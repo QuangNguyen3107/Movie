@@ -1,0 +1,2013 @@
+.container {
+  min-height: 100vh;
+}
+
+.banner {
+  position: relative;
+  width: 100%;
+  min-height: 70vh;
+  display: flex;
+  align-items: flex-start;
+}
+
+.bannerBackground {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 70vh;
+  overflow: hidden;
+}
+
+.bannerImage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: brightness(0.9); /* Darken the image */
+  z-index: 1;
+  transition: filter 0.8s ease;
+}
+
+.bannerGradient {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* Enhanced gradient with more darkness */
+  background: linear-gradient(
+    to right,
+    rgba(5, 5, 5, 0.5) 0%,
+    rgba(22, 22, 22, 0.4)30%,
+    rgba(57, 57, 57, 0.3) 60%,
+    rgba(73, 73, 73, 0)   100%
+  ), 
+  linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.1) 0%,
+    rgba(0, 0, 0, 0.3) 50%,
+    rgba(0, 0, 0, 1) 100%
+  );
+  z-index: 2;
+}
+.bannerBackground:after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(
+    circle at center,
+    transparent 0%,
+    rgba(0, 0, 0, 0.2) 60%, 
+    rgba(0, 0, 0, 0.5) 100%
+  );
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Make text stand out better against the darkened background */
+.movieTitle, .originalTitle {
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.metaItem, .actorBadge, .genreBadge {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.bannerContent {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  padding: 6rem 3rem;
+  gap: 2.5rem;
+  align-items: flex-start;
+}
+
+.leftSection {
+  flex: 0 0 auto;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+.rightSection {
+  padding: 0px;
+  color: white;
+  width: 60%;
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  min-height: 450px; /* Set a minimum height that matches typical poster height */
+  justify-content: space-between;
+}
+
+.moviePoster {
+  position: relative;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.posterImage {
+  width: 100%;
+  aspect-ratio: 2/3;
+  object-fit: cover;
+}
+
+/* Move poster controls (report/share) from top right to bottom */
+.posterControls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1.5rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.5) 50%, transparent);
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  opacity: 0;
+  transition: all 0.3s ease;
+  transform: translateY(20px);
+  z-index: 5;
+}
+
+/* Show controls on hover */
+.moviePoster:hover .posterControls {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Style the control buttons similar to play button */
+.posterControlButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 30px;
+  color: white;
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  min-width: 110px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.posterControlButton:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.posterControlButton i {
+  font-size: 1.1rem;
+  margin-right: 8px;
+  transition: all 0.3s;
+}
+
+.posterControlButton:hover i {
+  transform: scale(1.2);
+}
+
+/* Special styling for report button */
+.posterControlButton.reportButton {
+  background: rgba(133, 132, 132, 0.7);
+  border-color: rgba(131, 131, 131, 0.4);
+}
+
+.posterControlButton.reportButton:hover {
+  background: rgba(145, 140, 140, 0.9);
+  border-color: rgba(205, 200, 200, 0.7);
+  box-shadow: 0 4px 12px rgba(234, 106, 119, 0.4);
+}
+
+/* Special styling for share button */
+.posterControlButton.shareButton {
+  background: rgba(93, 94, 95, 0.7);
+  border-color: rgba(80, 81, 81, 0.4);
+}
+
+.posterControlButton.shareButton:hover {
+  background: rgba(154, 154, 160, 0.9);
+  border-color: rgba(147, 198, 224, 0.7);
+  box-shadow: 0 4px 12px rgba(232, 232, 234, 0.4);
+}
+
+/* Mobile responsiveness for the control buttons */
+@media (max-width: 576px) {
+  .posterControls {
+    padding: 1rem;
+  }
+
+  .posterControlButton {
+    padding: 8px 16px;
+    min-width: 90px;
+    font-size: 0.85rem;
+  }
+  
+  .posterControlButton i {
+    font-size: 1rem;
+    margin-right: 5px;
+  }
+}
+
+.posterActionButtonsRow {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  width: 100%;
+}
+
+.posterActionButton {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: rgba(121, 120, 120, 0.8);
+  border: 1px solid rgba(162, 160, 160, 0.2);
+  border-radius: 30px; /* Tăng độ bo cong từ 4px lên 12px */
+  color: white;
+  padding: 10px 15px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.posterActionButton:hover {
+  background: rgba(184, 183, 183, 0.8);
+  border-color: rgba(80, 74, 74, 0.4);
+  transform: translateY(-2px); /* Hiệu ứng nổi lên khi hover */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Thêm bóng đổ */
+}
+
+/* Hiệu ứng bấm (active) */
+.posterActionButton:active {
+  transform: translateY(1px); /* Hiệu ứng nhấn xuống */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Giảm bóng đổ khi nhấn */
+}
+
+/* Hiệu ứng ripple (sóng) khi click */
+.posterActionButton::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  border-radius: 100%;
+  transform: scale(1, 1) translate(-50%);
+  transform-origin: 50% 50%;
+}
+
+.posterActionButton:focus:not(:active)::after {
+  animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0, 0);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(20, 20);
+    opacity: 0;
+  }
+}
+
+.buttonIcon {
+  font-size: 1.5rem;
+  margin-right: 10px;
+}
+
+.buttonText {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.buttonLabel {
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.buttonDescription {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.headerButtons {
+  display: none;
+}
+
+.trailerButtonContainer {
+  position: absolute;
+  bottom: 20px;
+  left: 20px; /* Changed from right to left */
+  z-index: 20; /* Increased z-index to ensure visibility */
+}
+
+.trailerButton {
+  background-color: rgba(255, 0, 0, 0.8);
+  color: white;
+  border: none;
+  border-radius: 30px; /* Made it rounder to match other buttons */
+  padding: 10px 20px; /* Slightly larger */
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Added shadow for better visibility */
+}
+
+.trailerButton:hover {
+  background-color: rgba(255, 0, 0, 1);
+  transform: scale(1.05);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+}
+
+.trailerButton i {
+  font-size: 1.2em;
+  margin-right: 8px; /* Slightly increased margin */
+}
+
+/* Bottom left action buttons group */
+.bottomActionContainer {
+  position: absolute;
+  bottom: 30px;
+  left: 120px;
+  z-index: 20;
+  display: flex;
+  gap: 15px;
+}
+
+.trailerButton {
+  background-color: rgba(255, 0, 0, 0.8);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 30px;
+  padding: 10px 20px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.trailerButton:hover {
+  background-color: rgba(255, 0, 0, 1);
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+.trailerButton i {
+  font-size: 1.2em;
+  margin-right: 8px;
+}
+
+/* Replace the existing .movieActions with this improved version */
+/* Position actions at the bottom of the poster */
+.movieActions {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1.5rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.95), rgba(0, 0, 0, 0.7) 50%, transparent);
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  opacity: 0;
+  transition: all 0.3s ease;
+  transform: translateY(20px);
+  z-index: 5;
+}
+
+/* Show the actions when hovering over the poster */
+.moviePoster:hover .movieActions {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Action button styling */
+.actionButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 30px;
+  color: white;
+  padding: 8px 16px;
+  transition: all 0.3s ease;
+  min-width: 100px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.actionButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+}
+
+.actionButton i {
+  font-size: 1.1rem;
+  margin-right: 8px;
+  transition: all 0.3s;
+}
+
+.actionButton span {
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.actionButton:hover i {
+  transform: scale(1.2);
+}
+
+/* Special styling for report button */
+.actionButton.reportButton {
+  background: rgba(220, 53, 69, 0.7);
+  border-color: rgba(220, 53, 69, 0.4);
+}
+
+.actionButton.reportButton:hover {
+  background: rgba(220, 53, 69, 0.9);
+  border-color: rgba(220, 53, 69, 0.7);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+}
+
+/* Special styling for share button */
+.actionButton.shareButton {
+  background: rgba(13, 110, 253, 0.7);
+  border-color: rgba(13, 110, 253, 0.4);
+}
+
+.actionButton.shareButton:hover {
+  background: rgba(13, 110, 253, 0.9);
+  border-color: rgba(13, 110, 253, 0.7);
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.4);
+}
+
+/* Mobile responsiveness for the action buttons */
+@media (max-width: 576px) {
+  .movieActions {
+    padding: 1rem;
+  }
+  
+  .actionButton {
+    padding: 6px 12px;
+    min-width: 80px;
+    font-size: 0.8rem;
+  }
+  
+  .actionButton i {
+    font-size: 0.9rem;
+    margin-right: 5px;
+  }
+}
+
+.movieInfo {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.movieTitle {
+  font-size: 2.2rem; 
+  font-weight: bold;
+  margin-bottom: 0.4rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
+
+.ratingContainer {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  margin-top: 1rem;
+}
+
+.ratingStars {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.starIcon {
+  color: #ffc107;
+  font-size: 1.2rem;
+}
+
+.starInactive {
+  color: #6c757d;
+}
+
+.ratingValue {
+  font-size: 1.2rem;
+  color: #ffc107;
+  font-weight: bold;
+  margin-left: 0.5rem;
+}
+
+.ratingCount {
+  color: #aaa;
+  font-size: 0.9rem;
+  margin-left: 0.5rem;
+}
+
+.noRating {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-style: italic;
+}
+
+.noRatingBig {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-style: italic;
+  margin: 1rem 0;
+}
+
+.movieMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin: 1rem 0;
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+}
+
+.metaItem i {
+  margin-right: 6px;
+  font-size: 1rem;
+}
+
+.qualityBadge {
+  background-color: rgba(220, 53, 69, 0.2);
+  color: #ff8a8a;
+}
+
+.actorsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.actorBadge {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 15px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.actorBadge:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.genresContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.genreBadge {
+  background-color: rgba(220, 53, 69, 0.8);
+  color: white;
+  padding: 8px 15px;
+  font-size: 0.9rem;
+  border-radius: 20px;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.genreBadge:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  background-color: rgba(220, 53, 69, 1);
+}
+
+.actionButtons {
+  display: flex;
+  gap: 1rem;
+  margin-top: auto; /* This will push the action buttons to the bottom */
+  padding-top: 1.5rem;
+}
+
+.playButton, .favoriteButton {
+  min-width: 140px;
+  transition: all 0.3s ease;
+}
+
+.playButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+}
+
+.favoriteButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
+.favoriteButton.active {
+  background-color: #198754;
+  border-color: #198754;
+}
+
+.episodeList {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.episodeTitle {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+}
+
+.episodeBtn {
+  min-width: 100px;
+  margin: 5px;
+}
+
+.episodeBtnActive {
+  background-color: #dc3545;
+  color: white;
+}
+
+.describe {
+  width: 100%;
+  margin: 2rem 0;
+  padding: 15px;
+  font-size: 1.4rem;
+  display: flex;    
+  flex-direction: column;
+  position: relative;
+  max-width: 100%;
+  background: rgba(155, 94, 94, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e1e1e1;
+  line-height: 2;
+  letter-spacing: 0.3px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  transition: all 0.3s ease;
+}
+
+.describe:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.describe h5 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  background: linear-gradient(120deg, #ffffff, #a8a8a8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
+  letter-spacing: -0.5px;
+}
+
+.describe p {
+  font-size: 1.4rem;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+  margin-bottom: 2rem;
+  font-weight: 400;
+  letter-spacing: 0.2px;
+}
+
+.sectionTitle {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 992px) {
+  .bannerContent {
+    flex-direction: column;
+  }
+  
+  .leftSection, .rightSection {
+    width: 100%;
+  }
+  
+  .rightSection {
+    min-height: auto;
+    padding: 20px 0;
+  }
+  
+  .actionButtons {
+    margin-top: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .movieTitle {
+    font-size: 1.8rem;
+  }
+  
+  .originalTitle {
+    font-size: 1rem;
+  }
+  
+  .describe {
+    font-size: 1.2rem;
+    padding: 15px;
+  }
+  
+  .describe h5 {
+    font-size: 1.3rem;
+  }
+  
+  .describe p {
+    font-size: 1.2rem;
+  }
+  
+  .posterActionButtonsRow {
+    flex-direction: column;
+  }
+  
+  .posterControlButton {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+  }
+  
+  .posterControlButton i {
+    font-size: 0.9rem;
+  }
+}
+
+/* Nút phát video */
+.posterOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(167, 161, 161, 0.112);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.moviePoster:hover .posterOverlay {
+  opacity: 1;
+}
+
+.playButtonOverlay {
+  background: rgba(255, 255, 255, 0.085);
+  border: none; /* Bỏ viền trắng */
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.4); /* Tăng nhẹ hiệu ứng phát sáng */
+  backdrop-filter: blur(2px); /* Thêm hiệu ứng blur nhẹ */
+}
+
+.playButtonOverlay:hover {
+  transform: scale(1.1);
+  background: rgba(241, 241, 241, 0);
+  box-shadow: 0 0 50px rgba(255, 255, 255, 0.093);
+}
+
+.playButtonContent {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.playIcon {
+  width: 40px;
+  height: 40px;
+  margin-left: 5px;
+  filter: brightness(1.2) drop-shadow(0 0 5px rgba(255, 255, 255, 0.8)); /* Thêm hiệu ứng phát sáng cho icon */
+}
+
+/* Phim cùng thể loại */
+.relatedMoviesContainer {
+  position: relative;
+  width: 100%;
+  padding: 0 30px;
+  margin: 20px 0;
+}
+
+/* React Slick custom styling */
+.slickSlider {
+  margin: 0 -10px;
+  width: calc(100% + 20px);
+}
+
+.slickSlide {
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+/* Custom arrow styling for slick slider */
+.slickArrow {
+  position: absolute;
+  top: 40%;
+  transform: translateY(-50%);
+  width: 50px;
+  height: 50px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 50%;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+.slickArrow:before {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-top: 3px solid white;
+  border-left: 3px solid white;
+  transition: all 0.2s ease-in-out;
+  top: 13px;
+  left: 13px;
+}
+
+.slickArrow:hover {
+  background: rgba(51, 48, 48, 0.8);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.slickPrev {
+  left: -25px;
+  z-index: 11;
+}
+
+.slickPrev:before {
+  transform: rotate(-45deg);
+  margin-left: 3px;
+}
+
+.slickNext {
+  right: -25px;
+}
+
+.slickNext:before {
+  transform: rotate(135deg);
+  margin-right: 3px;
+}
+
+.slickPrev:hover:before {
+  transform: rotate(-45deg) scale(1.2);
+}
+
+.slickNext:hover:before {
+  transform: rotate(135deg) scale(1.2);
+}
+
+
+
+.relatedMovies.dragging {
+  cursor: grabbing;
+  scroll-behavior: auto;
+}
+
+.relatedMovieCard {
+  flex: 10px;
+  width: 220px;
+  transition: all 0.3s ease;
+  margin-bottom: 10px;
+  position: relative;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.relatedMovieCard:hover {
+  transform: translateY(-8px);
+}
+
+.movieLink {
+  text-decoration: none;
+  color: white;
+  display: block;
+  height: 100%;
+  -webkit-user-drag: none;
+}
+
+.relatedMoviePoster {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+}
+
+.relatedMovieImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.relatedMovieCard:hover .relatedMovieImage {
+  transform: scale(1.05);
+}
+
+/* Xóa nút play màu trắng và giữ lại chỉ nút xem phim màu đỏ */
+
+.relatedMovieOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.5) 60%, rgba(0, 0, 0, 0.2) 100%);
+  display: flex;
+  justify-content: center; /* Thay đổi: chỉ căn giữa theo chiều ngang */
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.relatedMovieCard:hover .relatedMovieOverlay {
+  opacity: 1;
+}
+
+/* Xóa phần CSS của nút play trắng */
+.relatedPlayButton {
+  display: none; /* Ẩn nút play màu trắng */
+}
+
+/* Cải thiện nút xem phim với hiệu ứng phát sáng */
+.watchButton {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.15) !important; /* Thêm background trắng với độ trong suốt cao */
+  border: none !important; /* Bỏ viền */
+  width: 60px !important;
+  height: 60px !important;
+  border-radius: 50% !important;
+  z-index: 3;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  backdrop-filter: blur(5px); /* Tăng độ blur để tạo hiệu ứng kính mờ */
+}
+
+/* Icon play trong nút */
+.watchButton i {
+  font-size: 40px !important;
+  color: rgb(167, 161, 161) !important; /* Đảm bảo màu icon là trắng */
+  text-shadow: 0 0 10px rgba(138, 137, 137, 0.8) !important; /* Thêm phát sáng cho icon */
+}
+
+/* Hiệu ứng khi hover vào nút */
+.watchButton:hover {
+  opacity: 1 !important;
+  background: rgba(255, 255, 255, 0.3) !important; /* Trắng trong suốt khi hover */
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.5), 0 0 50px rgba(255, 255, 255, 0.3) !important; /* Hiệu ứng glow trắng */
+  transform: translate(-50%, -50%) scale(1.15) !important;
+}
+
+/* Hiệu ứng pulse cho nút */
+@keyframes glow-pulse {
+  0% { box-shadow: 0 0 15px rgba(255, 255, 255, 0.3), 0 0 30px rgba(255, 255, 255, 0.1); }
+  50% { box-shadow: 0 0 25px rgba(255, 255, 255, 0.5), 0 0 50px rgba(255, 255, 255, 0.3); }
+  100% { box-shadow: 0 0 15px rgba(255, 255, 255, 0.3), 0 0 30px rgba(255, 255, 255, 0.1); }
+}
+
+.relatedMovieCard:hover .watchButton {
+  opacity: 0.9; /* Hiển thị nút với độ trong suốt nhẹ khi hover vào card */
+  animation: glow-pulse 2s infinite;
+}
+
+/* Tăng kích thước icon trong nút xem phim */
+.watchButton i {
+  font-size: 1.2rem;
+}
+
+/* Sửa lại responsive cho nút xem phim */
+@media (max-width: 768px) {
+  .watchButton {
+    font-size: 0.85rem;
+    padding: 8px 16px;
+  }
+}
+
+@media (max-width: 576px) {
+  .watchButton {
+    font-size: 0.8rem;
+    padding: 6px 12px;
+  }
+  
+  .watchButton i {
+    font-size: 0.9rem;
+  }
+}
+
+.relatedMovieInfo {
+  padding: 10px 5px;
+}
+
+.relatedMovieTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.4;
+  color: #fff;
+  transition: color 0.3s ease;
+}
+
+.relatedMovieCard:hover .relatedMovieTitle {
+  color: #b0a0a1;
+}
+
+.relatedMovieSubtitle {
+  font-size: 0.85rem;
+  color: #aaa;
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Badge cho năm và chất lượng phim */
+.relatedMovieBadges {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  z-index: 3;
+}
+
+.relatedMovieBadge {
+  background: rgba(220, 53, 69, 0.8);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.relatedMovieBadge.quality {
+  background: rgba(13, 110, 253, 0.8);
+}
+
+/* Thông tin tập phim ở dưới */
+.relatedEpisodeCount {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(40, 167, 69, 0.8);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 3;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .relatedMovieCard {
+    width: 180px;
+  }
+  
+  .relatedMoviePoster {
+    height: 250px;
+  }
+  
+  .relatedPlayButton {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .watchButton {
+    font-size: 0.8rem;
+    padding: 6px 12px;
+  }
+  
+  .scrollButton {
+    width: 35px;
+    height: 35px;
+  }
+}
+
+@media (max-width: 576px) {
+  .relatedMovieCard {
+    width: 150px;
+  }
+  
+  .relatedMoviePoster {
+    height: 220px;
+  }
+  
+  .relatedMovieTitle {
+    font-size: 0.9rem;
+  }
+  
+  .relatedMovieSubtitle {
+    font-size: 0.75rem;
+  }
+  
+  .relatedPlayButton {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .relatedPlayIcon {
+    font-size: 18px;
+  }
+  
+  .watchButton {
+    font-size: 0.75rem;
+    padding: 5px 10px;
+  }
+  
+  .scrollButton {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+/* Fix for dragging issues with slick slider */
+.slickSlider .slick-track {
+  display: flex;
+  align-items: stretch;
+}
+
+.slickSlider .slick-slide {
+  height: auto;
+  cursor: grab;
+}
+
+.slickSlider .slick-slide:active {
+  cursor: grabbing;
+}
+
+/* Prevent links from being clickable during drag */
+.slickSlider .slick-slide.slick-active {
+  pointer-events: auto;
+}
+
+.slickSlider .slick-slide.slick-active.slick-current.slick-cloned {
+  pointer-events: none;
+}
+
+.slickSlider:global(.dragging) a,
+.slickSlider:global(.dragging) .watchButton {
+  pointer-events: none;
+}
+
+/* Video Player */
+.videoPlayerOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 1050;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(5px);
+}
+
+.videoPlayerContainer {
+  width: 90%;
+  max-width: 1200px;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 0 50px rgba(255, 255, 255, 0.1);
+}
+
+/* Video Loading Styles */
+.videoLoading {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1051; /* Make sure it appears above the video player */
+}
+
+.videoLoadingSpinner {
+  width: 60px;
+  height: 60px;
+  border: 5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  border-top-color: #dc3545;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 20px;
+}
+
+.videoLoadingText {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive styles for loading indicator */
+@media (max-width: 768px) {
+  .videoLoadingSpinner {
+    width: 50px;
+    height: 50px;
+    border-width: 4px;
+  }
+  
+  .videoLoadingText {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .videoLoadingSpinner {
+    width: 40px;
+    height: 40px;
+    border-width: 3px;
+  }
+  
+  .videoLoadingText {
+    font-size: 0.9rem;
+  }
+}
+
+/* Bình luận */
+.commentsSection {
+  margin-top: 3rem;
+  margin-bottom: 3rem;
+}
+
+.commentForm {
+  margin-bottom: 2rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.commentInput {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  flex-grow: 1;
+}
+
+.commentList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.commentItem {
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.commentAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #dc3545;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.commentContent {
+  flex-grow: 1;
+}
+
+.commentHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.commentAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.commentDetails {
+  display: flex;
+  flex-direction: column;
+  margin-left: 0; /* Remove any additional margins */
+}
+
+.commentUsername {
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 0; /* Remove bottom margin */
+}
+
+.commentDate {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.commentText {
+  color: #ddd;
+}
+
+.loadMoreComments {
+  margin-top: 1rem;
+  align-self: center;
+}
+
+/* Apply tighter spacing for reply items */
+.replyItem .commentHeader {
+  gap: 8px; /* Use gap instead of margin for more precise control */
+}
+
+.replyItem .commentAvatar {
+  margin-right: 5px; /* Smaller margin for replies */
+}
+
+/* Responsive styles for related movies */
+@media (max-width: 576px) {
+  .relatedMovieCard {
+    width: 140px;
+  }
+  
+  .relatedMoviePoster {
+    height: 210px;
+  }
+  
+  .relatedMovieTitle {
+    font-size: 0.8rem;
+  }
+  
+  .scrollButton {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .playButtonOverlay {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .playIcon {
+    width: 30px;
+    height: 30px;
+  }
+  
+  .relatedMovieOverlay i {
+    width: 50px;
+    height: 50px;
+    font-size: 1.5rem;
+  }
+}
+
+/* Modal styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1100;
+  backdrop-filter: blur(5px);
+}
+
+.modalContent {
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+  color: #fff;
+  overflow: hidden;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modalHeader h5 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.modalBody {
+  padding: 1.5rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Social share buttons */
+.socialButtons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.socialButtons button {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.25rem;
+  transition: all 0.3s ease;
+}
+
+.socialButtons button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Rating UI */
+.ratingButtons {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1.5rem 0;
+}
+
+.ratingButton {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  border: 2px solid #6c757d;
+  background-color: transparent;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.ratingButton:hover {
+  border-color: #dc3545;
+  background-color: rgba(220, 53, 69, 0.2);
+  transform: scale(1.1);
+}
+
+.ratingActive {
+  border-color: #dc3545;
+  background-color: #dc3545;
+  color: white;
+}
+
+.ratingLabel {
+  text-align: center;
+  height: 1.5rem;
+  font-size: 1rem;
+  color: #dc3545;
+  font-weight: 500;
+  margin-top: 0.5rem;
+}
+
+/* Responsive styles for modals */
+@media (max-width: 576px) {
+  .modalContent {
+    width: 95%;
+  }
+  
+  .socialButtons button {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+  
+  .ratingButton {
+    width: 35px;
+    height: 35px;
+    font-size: 1rem;
+  }
+}
+
+/* Trailer Button */
+.trailerButtonContainer {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  z-index: 20;
+}
+
+.trailerButton {
+  background-color: rgba(255, 0, 0, 0.8);
+  color: white;
+  border: none;
+  border-radius: 30px;
+  padding: 10px 20px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.trailerButton:hover {
+  background-color: rgba(255, 0, 0, 1);
+  transform: scale(1.05);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+}
+
+.trailerButton i {
+  font-size: 1.2em;
+  margin-right: 8px;
+}
+
+/* Trailer modal */
+.videoModalContent {
+  background-color: #141414;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 960px;
+  position: relative;
+  margin: 2rem auto;
+  padding: 1rem;
+}
+
+.trailerContainer {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Content Container */
+.contentContainer {
+  position: relative;
+  width: 100%;
+  padding-right: 5%; /* Add right padding to shift content */
+  margin-left: 5%; /* Move content to the right by adding left margin */
+  max-width: 90%; /* Ensure it doesn't take full width */
+}
+
+/* Mobile responsiveness for the action buttons */
+@media (max-width: 576px) {
+  .movieActions {
+    padding: 1rem;
+  }
+  
+  .actionButton {
+    padding: 6px 12px;
+    min-width: 80px;
+    font-size: 0.85rem;
+  }
+  
+  .actionButton i {
+    font-size: 1rem;
+  }
+}
+
+/* Loading spinner container */
+.loadingSpinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* Content loading/blur styles */
+.loadingContainer {
+  filter: blur(8px);
+  opacity: 0.6;
+  transition: all 0.5s ease;
+  pointer-events: none; /* Prevent interaction while loading */
+}
+
+.loadedContent {
+  filter: blur(0);
+  opacity: 1;
+  transition: all 0.5s ease;
+}
+
+/* Skeleton loading styles */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite linear;
+  border-radius: 4px;
+}
+
+/* Poster skeleton */
+.posterSkeleton {
+  width: 300px;
+  aspect-ratio: 2/3;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* Banner skeleton */
+.bannerSkeleton {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 70vh;
+  z-index: 1;
+}
+
+/* Title skeleton */
+.titleSkeleton {
+  width: 70%;
+  height: 40px;
+  margin-bottom: 15px;
+}
+
+.subtitleSkeleton {
+  width: 50%;
+  height: 25px;
+  margin-bottom: 25px;
+}
+
+/* Metadata skeleton */
+.metaSkeleton {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.metaItemSkeleton {
+  width: 80px;
+  height: 30px;
+  border-radius: 15px;
+}
+
+/* Rating skeleton */
+.ratingSkeleton {
+  width: 120px;
+  height: 30px;
+  margin-bottom: 20px;
+}
+
+/* Badges skeleton */
+.badgesSkeleton {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.badgeSkeleton {
+  width: 100px;
+  height: 30px;
+  border-radius: 15px;
+}
+
+/* Description skeleton */
+.descriptionSkeleton {
+  width: 100%;
+  height: 200px;
+  border-radius: 15px;
+  margin: 20px 0;
+}
+
+/* Related movies skeleton */
+.relatedMoviesSkeleton {
+  display: flex;
+  gap: 15px;
+  overflow-x: hidden;
+  margin: 20px 0;
+}
+
+.relatedMovieCardSkeleton {
+  flex: 0 0 auto;
+  width: 220px;
+}
+
+.relatedMoviePosterSkeleton {
+  width: 100%;
+  height: 300px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.relatedMovieTitleSkeleton {
+  width: 90%;
+  height: 20px;
+  margin-bottom: 8px;
+}
+
+.relatedMovieSubtitleSkeleton {
+  width: 70%;
+  height: 15px;
+}
+
+/* Hide real content while skeleton is shown */
+.hiddenContent {
+  visibility: hidden;
+  position: absolute;
+}
+
+/* Responsive skeletons */
+@media (max-width: 992px) {
+  .posterSkeleton {
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .titleSkeleton {
+    height: 30px;
+  }
+  
+  .subtitleSkeleton {
+    height: 20px;
+  }
+  
+  .relatedMovieCardSkeleton {
+    width: 180px;
+  }
+  
+  .relatedMoviePosterSkeleton {
+    height: 250px;
+  }
+}
+
+/* Trailer Modal Content */
+.trailerModalContent {
+  background-color: rgba(15, 15, 15, 0.95);
+  border-radius: 8px;
+  max-width: 90vw;
+  width: 900px;
+  margin: 0 auto;
+  position: relative;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden; 
+  animation: modalFadeIn 0.3s ease;
+}
+
+.trailerContainer {
+  position: relative;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+}
+
+.trailerLoading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  background-color: #111;
+}
+
+@media (max-width: 768px) {
+  .trailerModalContent {
+    width: 95vw;
+    margin: 10vh auto;
+  }
+  
+  .trailerContainer {
+    min-height: 200px;
+  }
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* Add this to your CSS file */
+.commentUser {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.commentUsername {
+  font-weight: bold;
+  margin-bottom: 5px;
+  text-align: center;
+}
+
+.commentAvatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* Add this to your CSS file */
+.commentItem {
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  border-bottom: 1px solid #444;
+}
+
+.commentHeader {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.commentAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.commentDetails {
+  display: flex;
+  flex-direction: column;
+  margin-left: 0; /* Remove any additional margins */
+}
+
+.commentUsername {
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 0; /* Remove bottom margin */
+}
+
+.commentDate {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.commentContent {
+  margin: 5px 0;
+  color: #ddd;
+}
+
+.commentActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 5px;
+}
+
+.actionButton {
+  background: none;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.actionButton:hover {
+  color: #fff;
+}
+
+/* Add these new styles for liked and disliked states */
+.liked {
+  color: #dc3545 !important; /* Using Bootstrap's danger color (red) */
+  font-weight: bold;
+}
+
+.disliked {
+  color: #dc3545 !important;
+  font-weight: bold;
+}
+
+/* Animate the transition */
+.actionButton i {
+  transition: transform 0.2s ease;
+}
+
+.liked i {
+  transform: scale(1.2);
+}
+
+.disliked i {
+  transform: scale(1.2);
+}
+
+/* Replies styles */
+.repliesList {
+  margin-left: 30px;
+  margin-top: 10px;
+  border-left: 2px solid #444;
+  padding-left: 15px;
+}
+
+.replyItem {
+  margin-bottom: 15px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.replyForm {
+  margin-top: 10px;
+  margin-left: 30px;
+}
+
+
+
+
+
+
+  
