@@ -20,6 +20,9 @@
 # production
 /build
 
+# config files with sensitive information
+next.config.js
+
 # misc
 .DS_Store
 *.pem
@@ -44,3 +47,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# config files with sensitive keys
+next.config.js
