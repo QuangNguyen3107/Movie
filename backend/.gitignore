@@ -1,0 +1,48 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files containing sensitive information
+.env
+.env.*
+.env.local
+.env.development
+.env.test
+.env.production
+!.env.example
+
+# configuration files that might contain secrets
+src/config/jwtSecretkey
+
+# logs
+logs
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# coverage directory used by tools like istanbul
+coverage
+
+# uploads directory (if it contains user-generated content)
+# uncomment if you don't want to track this folder
+# /uploads/
+
+# misc
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln

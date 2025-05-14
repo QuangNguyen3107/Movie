@@ -1,0 +1,313 @@
+.ratingStatsContainer {
+  position: relative;
+  display: inline-block;
+  z-index: 10;
+}
+
+.ratingStatsToggle {
+  background: rgba(255, 193, 7, 0.15);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  white-space: nowrap;
+  user-select: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ratingStatsToggle:hover {
+  background: rgba(255, 193, 7, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.ratingStatsDropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 300px;
+  background: rgba(0, 0, 0, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  overflow: hidden;
+  margin-top: 0.5rem;
+  animation: fadeIn 0.3s ease-out;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  will-change: transform, opacity; /* Optimize for animations */
+  transform-origin: top center;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ratingStatsHeader {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ratingStatsSummary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.averageRating {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 0.5rem;
+}
+
+.ratingNumber {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #ffc107;
+}
+
+.ratingMax {
+  margin-left: 0.25rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.2rem;
+}
+
+.ratingStarIcons {
+  display: flex;
+  gap: 0.15rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
+}
+
+.starIcon {
+  color: #ffc107;
+  font-size: 1rem;
+}
+
+.ratingCount {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.ratingStatsDetails {
+  padding: 1rem;
+}
+
+.ratingBars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ratingBarRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  padding: 6px 4px;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.ratingBarRow:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.activeBarRow {
+  background: rgba(255, 193, 7, 0.1);
+  box-shadow: 0 0 8px rgba(255, 193, 7, 0.3);
+}
+
+/* Touch-specific feedback animation */
+@keyframes touchPulse {
+  0% { background-color: rgba(255, 193, 7, 0.1); }
+  50% { background-color: rgba(255, 193, 7, 0.2); }
+  100% { background-color: rgba(255, 193, 7, 0.1); }
+}
+
+.activeBarRow {
+  animation: touchPulse 0.5s ease;
+}
+
+.ratingBarLabel {
+  width: 20px;
+  text-align: right;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.ratingBarContainer {
+  flex-grow: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 0 3px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.ratingBarFill {
+  height: 100%;
+  background: linear-gradient(to right, #ffb700, #ffd700);
+  border-radius: 4px;
+  min-width: 3px; /* Ensure at least a tiny visible bar */
+  box-shadow: 0 0 4px rgba(255, 193, 7, 0.5);
+  transition: width 0.5s ease-out;
+}
+
+.ratingBarPercentage {
+  width: 45px;
+  font-size: 0.85rem;
+  text-align: right;
+  color: rgba(255, 255, 255, 1);
+  font-weight: 600;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+  margin-left: 5px;
+}
+
+.ratingBarCount {
+  min-width: 45px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  padding: 0 5px;
+  text-align: center;
+}
+
+.noRatings {
+  text-align: center;
+  padding: 1rem 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 576px) {
+  /* Dropdown adjustments */
+  .ratingStatsDropdown {
+    width: 300px;
+    right: -70px;
+    max-width: calc(100vw - 40px);
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  
+  .ratingStatsDropdown:after {
+    content: '';
+    position: absolute;
+    top: -10px;
+    right: 82px;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-bottom: 10px solid rgba(0, 0, 0, 0.9);
+  }
+  
+  /* Header and ratings summary adjustments */
+  .ratingStatsHeader {
+    padding: 0.8rem 0.5rem;
+  }
+  
+  .ratingNumber {
+    font-size: 2rem;
+  }
+  
+  .ratingMax {
+    font-size: 1rem;
+  }
+  
+  .starIcon {
+    font-size: 0.9rem;
+  }
+  
+  /* Bar chart adjustments */
+  .ratingStatsDetails {
+    padding: 0.8rem 0.5rem;
+  }
+  
+  .ratingBars {
+    gap: 0.3rem;
+  }
+    .ratingBarRow {
+    gap: 0.3rem;
+    margin-bottom: 0.3rem;
+    padding: 8px 4px; /* Increase touch target size */
+    touch-action: manipulation; /* Optimize touch behavior */
+  }
+  
+  .ratingBarLabel {
+    font-size: 0.8rem;
+    width: 15px;
+  }
+  
+  .ratingBarContainer {
+    height: 6px;
+    margin: 0 2px;
+  }
+  
+  .ratingBarPercentage {
+    width: 35px;
+    font-size: 0.75rem;
+  }
+  
+  .ratingBarCount {
+    min-width: 35px;
+    font-size: 0.7rem;
+    padding: 0 3px;
+  }
+}
+
+/* Styles for very small screens */
+@media (max-width: 380px) {
+  .ratingStatsDropdown {
+    width: 260px;
+    right: -60px;
+  }
+  
+  .ratingStatsDropdown:after {
+    right: 72px;
+  }
+  
+  .ratingBarPercentage {
+    width: 30px;
+    font-size: 0.7rem;
+  }
+  
+  .ratingBarCount {
+    min-width: 30px;
+  }
+  
+  .ratingNumber {
+    font-size: 1.8rem;
+  }
+  
+  .ratingStarIcons {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
