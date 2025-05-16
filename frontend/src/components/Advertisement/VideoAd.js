@@ -1,9 +1,17 @@
+// Video advertisement component that plays before movie content
 import React, { useState, useEffect, useRef } from 'react';
 import { FaForward } from 'react-icons/fa';
 import adService from '@/API/services/adService';
-import styles from '../../styles/AdPlayer.module.css';
+import styles from '@/styles/Advertisement.module.css';
 
-const AdPlayer = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
+/**
+ * Displays a video advertisement that plays before content
+ * @param {Object} props
+ * @param {Function} props.onComplete - Callback when ad completes or is skipped
+ * @param {Boolean} props.allowSkip - Whether to allow skipping after a period
+ * @param {Number} props.skipDelay - Seconds before skip button appears (default: 5)
+ */
+const VideoAd = ({ onComplete, allowSkip = true, skipDelay = 5 }) => {
   const [ad, setAd] = useState(null);
   const [loading, setLoading] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState(0);
@@ -23,11 +31,11 @@ const AdPlayer = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
           setTimeRemaining(adData.duration || 15);
         } else {
           // If no ad, complete immediately
-          onAdComplete();
+          onComplete();
         }
       } catch (error) {
         console.error('Error fetching video ad:', error);
-        onAdComplete(); // Skip on error
+        onComplete(); // Skip on error
       } finally {
         setLoading(false);
       }
@@ -41,7 +49,7 @@ const AdPlayer = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
         clearInterval(timerRef.current);
       }
     };
-  }, [onAdComplete]);
+  }, [onComplete]);
 
   // Track impression when ad is viewed
   useEffect(() => {
@@ -69,13 +77,13 @@ const AdPlayer = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
     const handleCanPlay = () => {
       videoElement.play().catch(err => {
         console.error('Error playing video ad:', err);
-        onAdComplete(); // Skip on error
+        onComplete(); // Skip on error
       });
     };
 
     // Handle video completion
     const handleEnded = () => {
-      onAdComplete();
+      onComplete();
     };
 
     // Setup countdown timer
@@ -107,7 +115,7 @@ const AdPlayer = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
         clearInterval(timerRef.current);
       }
     };
-  }, [ad, onAdComplete, allowSkip, skipDelay, timeRemaining]);
+  }, [ad, onComplete, allowSkip, skipDelay, timeRemaining]);
 
   // Handle skipping the ad
   const handleSkip = async () => {
@@ -121,7 +129,7 @@ const AdPlayer = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
     }
     
     // Complete and move to content
-    onAdComplete();
+    onComplete();
   };
 
   // Handle clicking on the ad
@@ -148,7 +156,7 @@ const AdPlayer = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
 
   if (loading) {
     return (
-      <div className={styles.adPlayerContainer}>
+      <div className={styles.videoAdContainer}>
         <div className={styles.loadingSpinner}>
           <div className="spinner-border text-light" role="status">
             <span className="visually-hidden">Loading...</span>
@@ -163,11 +171,11 @@ const AdPlayer = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
   }
 
   return (
-    <div className={styles.adPlayerContainer}>
+    <div className={styles.videoAdContainer}>
       <div className={styles.videoWrapper} onClick={handleAdClick}>
         <video 
           ref={videoRef}
-          className={styles.adVideo}
+          className={styles.videoAd}
           src={ad.content}
           muted={false}
           playsInline
@@ -194,7 +202,7 @@ const AdPlayer = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
               aria-label="Skip advertisement"
             >
               <FaForward className={styles.skipIcon} />
-              <span>{canSkip ? 'Bỏ qua' : `Bỏ qua sau ${skipDelay - (ad.duration - timeRemaining)}s`}</span>
+              <span>{canSkip ? 'Skip Ad' : `Skip in ${skipDelay - (ad.duration - timeRemaining)}s`}</span>
             </button>
           )}
         </div>
@@ -203,5 +211,4 @@ const AdPlayer = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
   );
 };
 
-export default AdPlayer;
-
+export default VideoAd;

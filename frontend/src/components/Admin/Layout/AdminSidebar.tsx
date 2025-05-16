@@ -2,8 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/router';
-import { 
+import { useRouter } from 'next/router';  import { 
   FaHome, 
   FaFilm, 
   FaUsers, 
@@ -13,7 +12,8 @@ import {
   FaPlayCircle,
   FaTimes,
   FaEnvelope,
-  FaExclamationTriangle
+  FaExclamationTriangle,
+  FaAd
 } from 'react-icons/fa';
 import styles from '@/styles/AdminSidebar.module.css';
 import axios from 'axios';
@@ -125,7 +125,7 @@ const AdminSidebar = () => {
     { path: '/admin/premium', icon: FaCrown, label: 'Premium', badge: pendingPremiumCount },
     { path: '/admin/feedback', icon: FaEnvelope, label: 'Góp ý người dùng', badge: unreadFeedbackCount },
     { path: '/admin/reports', icon: FaExclamationTriangle, label: 'Báo cáo lỗi' },
-    { path: '/admin/settings', icon: FaCog, label: 'Settings' },
+    { path: '/admin/advertisement', icon: FaAd, label: 'Quảng cáo' },
   ];
 
   return (

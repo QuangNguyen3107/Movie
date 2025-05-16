@@ -1362,8 +1362,7 @@ if (!user) {
       clearInterval(positionUpdateTimerRef.current);
       positionUpdateTimerRef.current = null;
     }
-  };
-  const selectEpisode = async (index) => {
+  };  const selectEpisode = async (index) => {
     // Kiểm tra trạng thái tài khoản của người dùng
     const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
     if (currentUser && currentUser.isActive === false) {
@@ -1380,16 +1379,15 @@ if (!user) {
     setVideoLoading(true);
     
     try {
-      // Fetch a random ad
-      const adData = await adService.getRandomAd();
-      setCurrentAd(adData);
-      
       // Show advertisement before the main content
-      setShowAd(true);
-      
-      // If ad is loaded, log the view
-      if (adData && adData.id) {
-        adService.logAdView(adData.id);
+      const adData = await adService.getRandomVideoAd();
+      if (adData) {
+        setCurrentAd(adData);
+        setShowAd(true);
+        setShowPlayer(false);
+      } else {
+        // If no ad is available, show the player directly
+        setShowPlayer(true);
       }
     } catch (error) {
       console.error("Error loading advertisement:", error);
@@ -1454,9 +1452,7 @@ if (!user) {
       } catch (error) {
         console.error("Failed to add movie to history:", error);
       }    }
-  };
-  
-  const handlePlayMainButton = async () => {
+  };  const handlePlayMainButton = async () => {
     // Kiểm tra trạng thái tài khoản của người dùng
     const currentUser = JSON.parse(localStorage.getItem('user') || 'null');
     if (currentUser && currentUser.isActive === false) {
@@ -1466,30 +1462,23 @@ if (!user) {
     }
     
     try {
-      // Fetch a random ad
-      const adData = await adService.getRandomAd();
-      setCurrentAd(adData);
-      
-      // Show advertisement before the main content
-      setShowAd(true);
-      
-      // If ad is loaded, log the view
-      if (adData && adData.id) {
-        adService.logAdView(adData.id);
+      // Fetch a video ad before showing the main content
+      const adData = await adService.getRandomVideoAd();
+      if (adData) {
+        setCurrentAd(adData);
+        setShowAd(true);
+        setShowPlayer(false);
+      } else {
+        // If no ad is available, show the player directly
+        setShowPlayer(true);
       }
     } catch (error) {
-      console.error("Error loading advertisement:", error);
-      // If there's an error loading the ad, just show the player directly
+      console.error("Error fetching advertisement:", error);
+      // If there's an error, just show the player directly
       setShowPlayer(true);
     }
-  };
-  // New function to handle ad completion
+  };  // New function to handle ad completion
   const handleAdComplete = () => {
-    // Log ad skip if there's a current ad
-    if (currentAd && currentAd.id) {
-      adService.logAdSkip(currentAd.id, 5);
-    }
-    
     // Hide ad and show actual player
     setShowAd(false);
     setCurrentAd(null);
@@ -2336,14 +2325,13 @@ if (!user) {
                     ></iframe>
                   </div>
                 </div>
-              </div>            )}
-
-            {showAd && currentAd && (
+              </div>            )}            {showAd && currentAd && (
               <div className={styles.videoPlayerOverlay}>
                 <div className={styles.videoPlayerContainer}>
                   <AdPlayer
-                    adUrl={currentAd.url}
                     onAdComplete={handleAdComplete}
+                    allowSkip={true}
+                    skipDelay={5}
                   />
                 </div>
               </div>

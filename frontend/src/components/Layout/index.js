@@ -5,24 +5,60 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../../utils/auth';
 import authService from '../../API/services/authService';
 import AccountLockedBanner from '../Alert/AccountLockedBanner';
+import { BannerAd } from '../Advertisement';
 
 export default function Layout({ children }) {
   const router = useRouter();
   const { isAuthenticated, isAccountLocked, showAccountLockedBanner } = useAuth();
+  const [showAds, setShowAds] = useState(true);
   
   // Check if current path is an auth page (login or signup)
   const isAuthPage = router.pathname.startsWith('/auth/');
+  const isAdminPage = router.pathname.startsWith('/admin/');
+  const isMoviePage = router.pathname.startsWith('/movie/');
   
-  // Track scrolling to adjust for fixed-position banner
+  // Only show ads on specific pages
   useEffect(() => {
-    if (showAccountLockedBanner && !isAuthPage) {
-      // Add padding to the top of the body to prevent content from hiding under the banner
-      document.body.style.paddingTop = '120px';
-      return () => {
-        document.body.style.paddingTop = '0';
-      };
-    }
-  }, [showAccountLockedBanner, isAuthPage]);
+    // Don't show ads on auth, admin, or account pages
+    const shouldShowAds = !isAuthPage && 
+                          !isAdminPage && 
+                          !router.pathname.startsWith('/account/') &&
+                          !router.pathname.startsWith('/payment/');
+    
+    setShowAds(shouldShowAds);
+  }, [router.pathname, isAuthPage, isAdminPage]);
+    // Track scrolling to adjust for fixed-position banner and ads
+  useEffect(() => {
+    const updateBodyPadding = () => {
+      let paddingTop = 0;
+      let paddingBottom = 0;
+      
+      // Account for locked banner
+      if (showAccountLockedBanner && !isAuthPage) {
+        paddingTop += 120;
+      }
+      
+      // Account for top ad banner if showing
+      if (showAds && !isMoviePage) {
+        paddingTop += 20; // Just a little spacing, not full height since we want overlay effect
+      }
+      
+      // Account for bottom ad banner if showing
+      if (showAds) {
+        paddingBottom += 20; // Just a little spacing for bottom content
+      }
+      
+      document.body.style.paddingTop = `${paddingTop}px`;
+      document.body.style.paddingBottom = `${paddingBottom}px`;
+    };
+    
+    updateBodyPadding();
+    
+    return () => {
+      document.body.style.paddingTop = '0';
+      document.body.style.paddingBottom = '0';
+    };
+  }, [showAccountLockedBanner, isAuthPage, showAds, isMoviePage]);
   
   return (
     <>
@@ -30,7 +66,13 @@ export default function Layout({ children }) {
       
       {showAccountLockedBanner && !isAuthPage && <AccountLockedBanner />}
       
+      {/* Top banner ad */}
+      {showAds && !isMoviePage && <BannerAd position="top" />}
+      
       <main>{children}</main>
+      
+      {/* Bottom banner ad */}
+      {showAds && <BannerAd position="bottom" />}
       
       {!isAuthPage && <Footer />}
     </>

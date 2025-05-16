@@ -1,6 +1,8 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
+
+// --- Hàm khởi động Server ---"cors");
 const path = require("path");
 const http = require("http"); // Thêm module http
 const { Server } = require("socket.io"); // Thêm Socket.IO
@@ -87,6 +89,12 @@ app.use("/api/admin/dashboard", dashboardRoutes);
 app.use("/api/admin/feedback", feedbackRoutes);
 app.use("/api/user-stats", userStatsRoutes);
 app.use('/api/reports', reportRoutes); // Thêm route cho báo cáo
+app.use('/api/advertisements', require('./routes/advertisementRoutes')); // Thêm route quảng cáo
+
+// Simple health check endpoint for API connectivity tests
+app.get('/api/health-check', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Server is running' });
+});
 
 // --- Hàm khởi động Server ---
 async function startServer() {

@@ -1536,17 +1536,18 @@ export default function ProfilePage() {
                         ? 'linear-gradient(to top, #e50914, #ff5757)' 
                         : 'linear-gradient(to top, #666, #999)'
                     }}
-                  >                    <span className="hours-label">
-                      {(() => {
+                  >                    <span className="hours-label">                      {(() => {
+                        // Vì dữ liệu từ server đã được chuyển thành giờ (hours)
+                        // nên cần hiển thị đúng định dạng
                         const h = Math.floor(hours);
-                        const m = Math.floor((hours - h) * 60);
+                        const m = Math.round((hours - h) * 60);
                         
-                        // Format like the main "Giờ xem phim" display
+                        // Format giờ phút cho nhãn hiển thị
                         if (h === 0) {
-                          // Only minutes
+                          // Nếu chưa đến 1 giờ, hiển thị theo phút
                           return `${m} phút`;
                         } else {
-                          // Hours and minutes
+                          // Nếu >= 1 giờ, hiển thị cả giờ và phút
                           return `${h} giờ${m > 0 ? ` ${m} phút` : ''}`;
                         }
                       })()}

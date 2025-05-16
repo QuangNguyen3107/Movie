@@ -144,13 +144,13 @@ function getCountdownText(releaseDate) {
   } else if (daysDiff === 1) {
     return "Ra mắt ngày mai";
   } else if (daysDiff <= 7) {
-    return `Ra mắt trong ${daysDiff} ngày`;
+    return `Ra mắt sau ${daysDiff} ngày`;
   } else if (daysDiff <= 30) {
     const weeks = Math.ceil(daysDiff / 7);
-    return `Ra mắt trong ${weeks} tuần`;
+    return `Ra mắt sau ${weeks} tuần`;
   } else {
     const months = Math.ceil(daysDiff / 30);
-    return `Ra mắt trong ${months} tháng`;
+    return `Ra mắt sau ${months} tháng`;
   }
 }
 
