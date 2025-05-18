@@ -1,211 +1,307 @@
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 import AdminLayout from '@/components/Layout/AdminLayout';
 import axios from 'axios';
-import { FaCheck, FaTrash, FaEye, FaEnvelope, FaEnvelopeOpen, FaFilter, FaClock, FaCheckCircle, FaBug, FaLightbulb, FaFilm, FaQuestionCircle, FaTimes, FaSearch, FaInbox, FaSadTear } from 'react-icons/fa';
+import {
+  FaEye, FaCheck, FaTimes, FaFilter, FaExclamationTriangle,
+  FaClock, FaEnvelope, FaUser, FaSearch, FaSort,
+  FaSortUp, FaSortDown, FaChevronLeft, FaChevronRight,
+  FaTrash, FaReply, FaCheckCircle, FaEdit, FaCalendarAlt,
+  FaSpinner, FaBell
+} from 'react-icons/fa';
 import styles from '@/styles/AdminDashboard.module.css';
 
-const FeedbackListPage = () => {
-  const [feedbacks, setFeedbacks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [filters, setFilters] = useState({
-    status: '',
-    type: '',
-    isRead: ''
-  });
-  const [showFilters, setShowFilters] = useState(false);
-  const [totalFeedbacks, setTotalFeedbacks] = useState(0);
-  const [unreadCount, setUnreadCount] = useState(0);
+// Định nghĩa kiểu dữ liệu cho feedback
+interface Feedback {
+  _id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  user: {
+    _id: string;
+    name?: string;
+    fullName?: string;
+    email: string;
+  } | null;
+  status: 'pending' | 'processed' | 'resolved';
+  adminResponse: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+interface FeedbackStats {
+  pending: number;
+  processed: number;
+  resolved: number;
+  unread: number;
+  total: number;
+}
+
+const FeedbackPage = () => {
   const router = useRouter();
+  
+  // State cho dữ liệu và phân trang
+  const [feedback, setFeedback] = useState<Feedback[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [totalFeedback, setTotalFeedback] = useState<number>(0);
+  const [activeTab, setActiveTab] = useState<string>('all');
+  
+  // State cho bộ lọc và sắp xếp
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [sortField, setSortField] = useState<string>('createdAt');
+  const [sortOrder, setSortOrder] = useState<string>('desc');
+  
+  // State cho thống kê
+  const [stats, setStats] = useState<FeedbackStats>({
+    pending: 0,
+    processed: 0,
+    resolved: 0,
+    unread: 0,
+    total: 0
+  });
 
-  useEffect(() => {
-    fetchFeedbacks();
-    fetchUnreadCount();
-  }, [page, filters]);
+  // State cho xóa feedback
+  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
+  const [feedbackToDelete, setFeedbackToDelete] = useState<string | null>(null);
+  const [deleteInProgress, setDeleteInProgress] = useState<boolean>(false);
 
-  const fetchUnreadCount = async () => {
-    try {
-      const token = localStorage.getItem('auth_token');
-      if (!token) return;
+  // State cho cập nhật trạng thái
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  
+  // State cho toast notification
+  const [toast, setToast] = useState<{
+    show: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({
+    show: false,
+    message: '',
+    type: 'info'
+  });
 
-      const response = await axios.get(
-        'http://localhost:5000/api/feedback/unread/count',
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.data.success) {
-        setUnreadCount(response.data.data.count);
-      }
-    } catch (error) {
-      console.error('Error fetching unread count:', error);
-    }
-  };
-
-  const fetchFeedbacks = async () => {
+  const ITEMS_PER_PAGE = 10;
+  // Fetch dữ liệu feedback
+  const fetchFeedback = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('auth_token'); // hoặc 'token' tùy theo cách bạn lưu token
       if (!token) {
         router.push('/auth/login');
         return;
       }
-
-      // Xây dựng query parameters từ state filters
-      let url = `http://localhost:5000/api/feedback?page=${page}&limit=10`;
-      if (filters.status) url += `&status=${filters.status}`;
-      if (filters.type) url += `&type=${filters.type}`;
-      if (filters.isRead !== '') url += `&isRead=${filters.isRead}`;
       
-      const response = await axios.get(url, {
+      // Xây dựng tham số query
+      const params: any = {
+        page: currentPage,
+        limit: ITEMS_PER_PAGE
+      };
+      
+      if (searchQuery) {
+        params.search = searchQuery;
+      }
+      
+      // Xử lý trạng thái dựa trên tab được chọn
+      if (activeTab !== 'all') {
+        params.status = activeTab;
+      } else if (statusFilter) {
+        params.status = statusFilter;
+      }
+      
+      if (sortField) {
+        params.sortField = sortField;
+        params.sortOrder = sortOrder;
+      }
+      
+      // Gọi API lấy danh sách feedback
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await axios.get(`${baseUrl}/feedback`, {
+        params,
         headers: { Authorization: `Bearer ${token}` }
       });
-
-      if (response.data.success && response.data.data) {
-        setFeedbacks(response.data.data.feedbacks);
+      
+      if (response.data.success) {
+        setFeedback(response.data.data.feedbacks);
         setTotalPages(response.data.data.pagination.totalPages);
-        setTotalFeedbacks(response.data.data.pagination.total);
+        setTotalFeedback(response.data.data.pagination.total);
       } else {
-        alert('Có lỗi khi tải dữ liệu góp ý');
+        console.error('Failed to fetch feedback:', response.data.message);
       }
     } catch (error) {
       console.error('Error fetching feedback:', error);
-      alert('Có lỗi khi tải dữ liệu góp ý');
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      setPage(newPage);
-    }
-  };
-
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    setPage(1); // Reset về trang 1 khi thay đổi filter
-  };
-
-  const handleViewDetail = (id) => {
-    router.push(`/admin/feedback/detail/${id}`);
-  };
-
-  const handleMarkAsRead = async (id) => {
+  // Fetch thống kê feedback
+  const fetchFeedbackStats = async () => {
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) return;
-
-      const response = await axios.patch(
-        `http://localhost:5000/api/feedback/${id}/read`, 
-        {}, 
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
+      
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await axios.get(`${baseUrl}/feedback/stats`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
       if (response.data.success) {
-        // Cập nhật danh sách feedback
-        setFeedbacks(prev => prev.map(feedback => {
-          if (feedback._id === id) {
-            return { ...feedback, isRead: true };
-          }
-          return feedback;
-        }));
-        
-        // Cập nhật số lượng chưa đọc
-        fetchUnreadCount();
-      } else {
-        alert('Có lỗi xảy ra khi đánh dấu đã đọc');
+        setStats(response.data.data);
       }
     } catch (error) {
-      console.error('Error marking feedback as read:', error);
-      alert('Có lỗi xảy ra khi đánh dấu đã đọc');
+      console.error('Error fetching feedback stats:', error);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa góp ý này?')) {
-      try {
-        const token = localStorage.getItem('auth_token');
-        if (!token) return;
+  // Xử lý thay đổi trang
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
-        const response = await axios.delete(
-          `http://localhost:5000/api/feedback/${id}`, 
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        if (response.data.success) {
-          // Xóa feedback khỏi danh sách
-          setFeedbacks(prev => prev.filter(feedback => feedback._id !== id));
-          setTotalFeedbacks(prev => prev - 1);
-          fetchUnreadCount(); // Cập nhật lại số lượng chưa đọc
-          alert('Đã xóa góp ý thành công');
-        } else {
-          alert('Có lỗi xảy ra khi xóa góp ý');
-        }
-      } catch (error) {
-        console.error('Error deleting feedback:', error);
-        alert('Có lỗi xảy ra khi xóa góp ý');
-      }
+  // Xử lý thay đổi bộ lọc
+  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+    const { name, value } = e.target;
+    
+    if (name === 'status') {
+      setStatusFilter(value);
+    } else if (name === 'search') {
+      setSearchQuery(value);
     }
   };
 
+  // Xử lý thay đổi sắp xếp
+  const handleSortChange = (field: string) => {
+    if (field === sortField) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  };
+  // Xử lý áp dụng bộ lọc
+  const applyFilters = () => {
+    setCurrentPage(1);
+    fetchFeedback();
+  };
+
+  // Xử lý reset bộ lọc
   const resetFilters = () => {
-    setFilters({
-      status: '',
-      type: '',
-      isRead: ''
-    });
-    setPage(1);
+    setSearchQuery('');
+    setStatusFilter('');
+    setCurrentPage(1);
   };
 
-  // Hiển thị icon tương ứng với loại feedback
-  const getTypeIcon = (type) => {
-    switch(type) {
-      case 'bug':
-        return <FaBug />;
-      case 'feature':
-        return <FaLightbulb />;
-      case 'content':
-        return <FaFilm />;
-      default:
-        return <FaQuestionCircle />;
+  // Xử lý thay đổi tab
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setCurrentPage(1);
+    setStatusFilter('');
+  };
+
+  // Xử lý xóa feedback
+  const handleDeleteFeedback = async () => {
+    if (!feedbackToDelete) return;
+    
+    try {
+      setDeleteInProgress(true);
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+      
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await axios.delete(`${baseUrl}/feedback/${feedbackToDelete}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data.success) {
+        // Cập nhật danh sách feedback sau khi xóa
+        setFeedback(feedback.filter(item => item._id !== feedbackToDelete));
+        // Cập nhật thống kê
+        fetchFeedbackStats();
+        // Đóng modal
+        setShowDeleteModal(false);
+        setFeedbackToDelete(null);
+        // Hiển thị thông báo thành công
+        setToast({
+          show: true,
+          message: 'Xóa góp ý thành công',
+          type: 'success'
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting feedback:', error);
+      alert('Có lỗi xảy ra khi xóa góp ý');
+      setToast({
+        show: true,
+        message: 'Có lỗi xảy ra khi xóa góp ý',
+        type: 'error'
+      });
+    } finally {
+      setDeleteInProgress(false);
     }
   };
 
-  // Hiển thị kiểu badge tương ứng với loại feedback
-  const getTypeBadge = (type) => {
-    switch(type) {
-      case 'bug':
-        return <span className="badge badge-danger px-2 py-1"><FaBug className="mr-1" /> Lỗi phần mềm</span>;
-      case 'feature':
-        return <span className="badge badge-warning px-2 py-1"><FaLightbulb className="mr-1" /> Tính năng mới</span>;
-      case 'content':
-        return <span className="badge badge-primary px-2 py-1"><FaFilm className="mr-1" /> Nội dung</span>;
-      default:
-        return <span className="badge badge-secondary px-2 py-1"><FaQuestionCircle className="mr-1" /> Khác</span>;
+  // Xử lý cập nhật trạng thái feedback
+  const updateFeedbackStatus = async (id: string, newStatus: string) => {
+    try {
+      setUpdatingStatus(id);
+      const token = localStorage.getItem('auth_token');
+      if (!token) return;
+      
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await axios.patch(`${baseUrl}/feedback/${id}`, 
+        { status: newStatus },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      if (response.data.success) {
+        // Lấy thông tin feedback được cập nhật
+        const updatedItem = feedback.find(item => item._id === id);
+        const userName = updatedItem?.user?.fullName || updatedItem?.user?.name || updatedItem?.name || 'Người dùng';
+        
+        // Cập nhật dữ liệu feedback trong state
+        setFeedback(feedback.map(item => 
+          item._id === id ? { ...item, status: newStatus as 'pending' | 'processed' | 'resolved' } : item
+        ));
+        
+        // Cập nhật thống kê
+        fetchFeedbackStats();
+        
+        // Hiển thị thông báo thành công
+        setToast({
+          show: true,
+          message: `Góp ý của "${userName}" đã được cập nhật thành "${getStatusText(newStatus)}"`,
+          type: 'success'
+        });
+        
+        // Ẩn toast sau 3 giây
+        setTimeout(() => {
+          setToast({ show: false, message: '', type: 'info' });
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Error updating feedback status:', error);
+      setToast({
+        show: true,
+        message: 'Có lỗi xảy ra khi cập nhật trạng thái góp ý',
+        type: 'error'
+      });
+      
+      // Ẩn toast sau 3 giây
+      setTimeout(() => {
+        setToast({ show: false, message: '', type: 'info' });
+      }, 3000);
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
-  // Hiển thị badge tương ứng với trạng thái
-  const getStatusBadge = (status) => {
-    switch(status) {
-      case 'resolved':
-        return <span className="badge badge-success px-2 py-1"><FaCheckCircle className="mr-1" /> Đã giải quyết</span>;
-      case 'reviewed':
-        return <span className="badge badge-info px-2 py-1"><FaEye className="mr-1" /> Đã xem xét</span>;
-      default:
-        return <span className="badge badge-light px-2 py-1"><FaClock className="mr-1" /> Đang chờ</span>;
-    }
-  };
-
-  // Format thời gian
-  const formatDate = (dateString) => {
+  // Format thời gian hiển thị
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('vi-VN', {
       day: '2-digit',
@@ -216,354 +312,561 @@ const FeedbackListPage = () => {
     });
   };
 
-  // Xây dựng các thẻ tóm tắt theo trạng thái
-  const statusSummary = [
-    {
-      icon: <FaInbox className="text-primary" />,
-      title: "Tổng số góp ý",
-      value: totalFeedbacks,
-      bgColor: "bg-white"
-    },
-    {
-      icon: <FaEnvelope className="text-danger" />,
-      title: "Chưa đọc",
-      value: unreadCount,
-      bgColor: "bg-light"
-    },
-    {
-      icon: <FaClock className="text-warning" />,
-      title: "Đang chờ",
-      value: feedbacks.filter(f => f.status === 'pending').length,
-      bgColor: "bg-white"
-    },
-    {
-      icon: <FaCheckCircle className="text-success" />,
-      title: "Đã giải quyết",
-      value: feedbacks.filter(f => f.status === 'resolved').length,
-      bgColor: "bg-light"
+  // Hiển thị icon tương ứng với trạng thái
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <FaClock className="text-warning" />;
+      case 'processed':
+        return <FaEye className="text-primary" />;
+      case 'resolved':
+        return <FaCheckCircle className="text-success" />;
+      default:
+        return <FaClock className="text-secondary" />;
     }
-  ];
+  };
+
+  // Hiển thị tên trạng thái
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'Đang chờ';
+      case 'processed':
+        return 'Đang xử lý';
+      case 'resolved':
+        return 'Đã giải quyết';
+      default:
+        return 'Không xác định';
+    }
+  };
+  // Fetch dữ liệu khi component mount hoặc khi các dependencies thay đổi
+  useEffect(() => {
+    fetchFeedback();
+    fetchFeedbackStats();
+  }, [currentPage, sortField, sortOrder, activeTab]);
 
   return (
     <>
       <Head>
-        <title>Quản lý Góp ý Người dùng</title>
+        <title>Quản lý góp ý - Admin Panel</title>
       </Head>
 
       <div className={styles.container}>
-        <section className={styles.header}>
+        {/* Header */}        <section className={styles.header}>
           <div className="container-fluid">
             <div className="row align-items-center">
               <div className="col-sm-6">
-                <h1 className={styles.headerTitle}>Quản lý Góp ý</h1>
+                <h1 className={styles.headerTitle}>
+                  <FaEnvelope className="header-icon mr-2" /> Quản lý góp ý
+                </h1>
+                <p className="text-muted mt-2 d-none d-sm-block">
+                  Quản lý và phản hồi góp ý từ người dùng hệ thống
+                </p>
               </div>
               <div className="col-sm-6">
-                <ol className={`breadcrumb float-sm-right ${styles.breadcrumb}`}>
-                  <li className="breadcrumb-item"><a href="/admin">Home</a></li>
-                  <li className="breadcrumb-item active">Góp ý người dùng</li>
+                <ol className={`breadcrumb float-sm-right ${styles.breadcrumb} custom-breadcrumb`}>
+                  <li className="breadcrumb-item">
+                    <Link href="/admin" legacyBehavior>
+                      <a>Trang chủ</a>
+                    </Link>
+                  </li>
+                  <li className="breadcrumb-item active">Góp ý</li>
                 </ol>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="content">
+        {/* Main Content */}        <section className="content">
           <div className="container-fluid">
-            {/* Dashboard Cards */}
-            <div className="row mb-4">
-              {statusSummary.map((item, index) => (
-                <div className="col-md-3 col-sm-6" key={index}>
-                  <div className={`card card-hover shadow-sm ${item.bgColor}`}>
-                    <div className="card-body p-3">
-                      <div className="d-flex justify-content-between align-items-center">
-                        <div>
-                          <h5 className="mb-0 font-weight-bold">{item.value}</h5>
-                          <span className="text-muted small">{item.title}</span>
-                        </div>
-                        <div className="icon-circle">
-                          {item.icon}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
 
-            <div className="card card-outline card-primary shadow-sm">
-              <div className="card-header bg-white">
-                <div className="d-flex justify-content-between align-items-center">
-                  <h3 className="card-title">
-                    <FaInbox className="mr-2" />
-                    Danh sách góp ý
-                  </h3>
-                  <button 
-                    onClick={() => setShowFilters(!showFilters)}
-                    className="btn btn-light border"
-                  >
-                    <FaFilter className="mr-1" /> {showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'}
-                  </button>
+            {/* Tab Navigation */}
+            <ul className="tab-navigation">
+              <li>
+                <a 
+                  href="#" 
+                  className={activeTab === 'all' ? 'active' : ''} 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleTabChange('all');
+                  }}
+                >
+                  Tất cả
+                  <span className="status-badge dark">{stats.total}</span>
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="#" 
+                  className={activeTab === 'pending' ? 'active' : ''} 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleTabChange('pending');
+                  }}
+                >
+                  Đang chờ
+                  <span className="status-badge warning">{stats.pending}</span>
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="#" 
+                  className={activeTab === 'processed' ? 'active' : ''} 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleTabChange('processed');
+                  }}
+                >
+                  Đang xử lý
+                  <span className="status-badge info">{stats.processed}</span>
+                </a>
+              </li>
+              <li>
+                <a 
+                  href="#" 
+                  className={activeTab === 'resolved' ? 'active' : ''} 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleTabChange('resolved');
+                  }}
+                >
+                  Đã giải quyết
+                  <span className="status-badge success">{stats.resolved}</span>
+                </a>
+              </li>
+            </ul>            {/* Search Filter Bar */}
+            <div className="filters-row">
+              <div className="search-box">
+                <input
+                  type="text"
+                  name="search"
+                  id="searchQuery"
+                  className="form-control"
+                  placeholder="Tìm kiếm báo cáo..."
+                  value={searchQuery}
+                  onChange={handleFilterChange}
+                />
+                <button onClick={applyFilters}>
+                  <FaSearch />
+                </button>
+              </div>
+              <button 
+                className="btn btn-primary"
+                onClick={applyFilters}
+              >
+                <FaFilter className="me-2" /> Lọc
+              </button>
+              <button 
+                className="btn btn-outline-secondary"
+                onClick={resetFilters}
+              >
+                <FaTimes className="me-2" /> Đặt lại
+              </button>
+            </div>
+            
+            {/* Feedback List */}
+            <div className="card">
+              <div className="card-header bg-gradient-light">
+                <h3 className="card-title">
+                  {activeTab === 'all' && 'Tất cả góp ý'}
+                  {activeTab === 'pending' && 'Góp ý chờ xử lý'}
+                  {activeTab === 'processed' && 'Góp ý đang xử lý'}
+                  {activeTab === 'resolved' && 'Góp ý đã giải quyết'}
+                </h3>
+                <div className="card-tools">
+                  <span className="badge badge-dark">{feedback.length} / {totalFeedback} góp ý</span>
                 </div>
               </div>
-
-              {showFilters && (
-                <div className="card-body border-bottom bg-light py-3">
-                  <div className="row">
-                    <div className="col-md-4 mb-2">
-                      <div className="form-group mb-md-0">
-                        <label className="small font-weight-bold mb-1">Trạng thái</label>
-                        <select
-                          name="status"
-                          value={filters.status}
-                          onChange={handleFilterChange}
-                          className="form-control shadow-sm"
-                        >
-                          <option value="">Tất cả trạng thái</option>
-                          <option value="pending">Đang chờ</option>
-                          <option value="reviewed">Đã xem xét</option>
-                          <option value="resolved">Đã giải quyết</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="col-md-4 mb-2">
-                      <div className="form-group mb-md-0">
-                        <label className="small font-weight-bold mb-1">Loại góp ý</label>
-                        <select
-                          name="type"
-                          value={filters.type}
-                          onChange={handleFilterChange}
-                          className="form-control shadow-sm"
-                        >
-                          <option value="">Tất cả loại</option>
-                          <option value="bug">Lỗi phần mềm</option>
-                          <option value="feature">Tính năng mới</option>
-                          <option value="content">Nội dung</option>
-                          <option value="other">Khác</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="col-md-4 mb-2">
-                      <div className="form-group mb-md-0">
-                        <label className="small font-weight-bold mb-1">Trạng thái đọc</label>
-                        <select
-                          name="isRead"
-                          value={filters.isRead}
-                          onChange={handleFilterChange}
-                          className="form-control shadow-sm"
-                        >
-                          <option value="">Tất cả</option>
-                          <option value="true">Đã đọc</option>
-                          <option value="false">Chưa đọc</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="row mt-3">
-                    <div className="col-12 text-right">
-                      <button
-                        onClick={resetFilters}
-                        className="btn btn-outline-secondary"
-                      >
-                        <FaTimes className="mr-1" /> Xóa bộ lọc
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="card-body">
+              
+              {/* Card view for mobile and grid view */}
+              <div className="card-body d-block d-md-none">
                 {loading ? (
                   <div className="text-center py-5">
                     <div className="spinner-border text-primary" role="status">
                       <span className="sr-only">Loading...</span>
                     </div>
-                    <p className="mt-2 text-muted">Đang tải dữ liệu...</p>
                   </div>
-                ) : feedbacks.length === 0 ? (
-                  <div className="text-center py-5">
-                    <div className="mb-3">
-                      <FaSadTear size={50} className="text-muted" />
-                    </div>
-                    <h5 className="text-muted">Không có góp ý nào</h5>
-                    <p className="text-muted">Không tìm thấy góp ý nào phù hợp với bộ lọc hiện tại</p>
-                    <button className="btn btn-outline-primary" onClick={resetFilters}>
-                      Xóa tất cả bộ lọc
-                    </button>
+                ) : feedback.length > 0 ? (
+                  <div className="feedback-cards">
+                    {feedback.map((item) => (                      <div 
+                        key={item._id} 
+                        className={`feedback-card mb-4 ${!item.isRead ? 'border-left-danger' : ''}`}
+                      >                        <div className="card-header d-flex justify-content-between align-items-center">
+                          <h5 className="m-0 text-truncate movie-subject">Góp ý từ người dùng</h5>
+                          {!item.isRead && <span className="badge badge-danger">Mới</span>}
+                        </div>
+                        <div className="card-body">
+                          <div className="user-info-container">
+                            <div className="avatar-circle bg-primary text-white">
+                              {item.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="user-details">
+                              <h5 className="mb-0">{item.name}</h5>
+                              <div className="user-email">
+                                <FaEnvelope size={12} /> {item.email}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="message-preview mb-3">
+                            <p className="text-muted mb-1">
+                              {item.message.length > 120 
+                                ? `${item.message.substring(0, 120)}...` 
+                                : item.message}
+                            </p>
+                          </div>
+                          
+                          <div className="card-meta">
+                            <span className={`badge ${
+                              item.status === 'pending' ? 'badge-warning' : 
+                              item.status === 'processed' ? 'badge-primary' : 
+                              'badge-success'
+                            }`}>
+                              {getStatusIcon(item.status)} <span className="ms-1">{getStatusText(item.status)}</span>
+                            </span>
+                            <div className="date-badge">
+                              <FaCalendarAlt className="me-1" size={12} /> {formatDate(item.createdAt)}
+                            </div>
+                          </div>                          <div className="status-actions mt-2 mb-3">
+                            <Link href={`/admin/feedback/detail/${item._id}`} legacyBehavior>
+                              <a 
+                                className="btn btn-sm btn-secondary"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <FaEdit className="me-1" /> Cập nhật trạng thái
+                              </a>
+                            </Link>
+                          </div>
+                            <div className="card-action-buttons">
+                            <Link href={`/admin/feedback/detail/${item._id}`} legacyBehavior>
+                              <a className="btn btn-sm btn-info">
+                                <FaEye className="me-1" /> Xem chi tiết
+                              </a>
+                            </Link>
+                            <button
+                              className="btn btn-sm btn-danger"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setFeedbackToDelete(item._id);
+                                setShowDeleteModal(true);
+                              }}
+                            >
+                              <FaTrash className="me-1" /> Xóa
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : (
-                  <div className="table-responsive">
-                    <table className="table table-bordered table-hover">
-                      <thead className="thead-light">
+                  <div className="text-center py-4">
+                    <p className="text-muted mb-0">Không tìm thấy dữ liệu góp ý</p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Table view for desktop */}              <div className="card-body p-0 d-none d-md-block">
+                <div className="table-responsive">
+                  <table className="table table-hover">                    <thead>                      <tr>
+                        <th className="cell-w-xs text-center" style={{width: "40px"}}>
+                          <input type="checkbox" className="form-check-input table-check" />
+                        </th>                        
+                        <th className="cursor-pointer cell-w-sm" onClick={() => handleSortChange('name')}>
+                          <div className="d-flex align-items-center">
+                            Người báo cáo
+                            {sortField === 'name' && (
+                              sortOrder === 'asc' ? <FaSortUp className="ms-1" /> : <FaSortDown className="ms-1" />
+                            )}
+                            {sortField !== 'name' && <FaSort className="ms-1" />}
+                          </div>
+                        </th>
+                        <th className="cell-w-lg">Nội Dung Góp Ý</th>
+                        <th className="cursor-pointer cell-w-sm" onClick={() => handleSortChange('status')}>
+                          <div className="d-flex align-items-center">
+                            Trạng thái
+                            {sortField === 'status' && (
+                              sortOrder === 'asc' ? <FaSortUp className="ms-1" /> : <FaSortDown className="ms-1" />
+                            )}
+                            {sortField !== 'status' && <FaSort className="ms-1" />}
+                          </div>
+                        </th>                        <th className="cursor-pointer cell-w-md" onClick={() => handleSortChange('createdAt')}>
+                          <div className="d-flex align-items-center">
+                            Ngày tạo
+                            {sortField === 'createdAt' && (
+                              sortOrder === 'asc' ? <FaSortUp className="ms-1" /> : <FaSortDown className="ms-1" />
+                            )}
+                            {sortField !== 'createdAt' && <FaSort className="ms-1" />}
+                          </div>
+                        </th>
+                        <th className="text-center cell-w-sm">Hành động</th>
+                      </tr>
+                    </thead>
+                    <tbody>                      {loading ? (
                         <tr>
-                          <th width="20%">Người gửi</th>
-                          <th width="30%">Tiêu đề & Nội dung</th>
-                          <th width="15%">Phân loại</th>
-                          <th width="15%">Trạng thái</th>
-                          <th width="10%">Thời gian</th>
-                          <th width="10%">Hành động</th>
+                          <td colSpan={6} className="text-center py-4">
+                            <div className="spinner-border text-primary" role="status">
+                              <span className="sr-only">Loading...</span>
+                            </div>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {feedbacks.map((feedback) => (
-                          <tr 
-                            key={feedback._id} 
-                            className={!feedback.isRead ? 'bg-light font-weight-bold' : ''}
-                            style={!feedback.isRead ? {borderLeft: '4px solid #e50914'} : {}}
-                          >
-                            <td>
-                              <div className="d-flex align-items-center">
-                                <div className="mr-2">
-                                  {!feedback.isRead ? 
-                                    <FaEnvelope className="text-danger" title="Chưa đọc" /> : 
-                                    <FaEnvelopeOpen className="text-muted" title="Đã đọc" />
-                                  }
+                      ) : feedback.length > 0 ? (
+                        feedback.map((item) => (                        <tr 
+                            key={item._id} 
+                            className={!item.isRead ? 'font-weight-bold' : ''}
+                            style={{
+                              boxShadow: !item.isRead ? 'inset 3px 0 0 #dc3545' : 'none',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >                            <td className="text-center">
+                              <input type="checkbox" className="form-check-input table-check" />
+                            </td>                            <td className="cell-w-sm">                              <div className="reporter-info-compact">
+                                <div className="avatar-circle-xs bg-primary text-white">
+                                  {item.user?.fullName 
+                                    ? item.user.fullName.charAt(0).toUpperCase() 
+                                    : item.user?.name 
+                                      ? item.user.name.charAt(0).toUpperCase() 
+                                      : item.name.charAt(0).toUpperCase()}
                                 </div>
                                 <div>
-                                  <div className="font-weight-bold">{feedback.name}</div>
-                                  <small className="text-muted">{feedback.email}</small>
+                                  <span className="reporter-name">
+                                    {item.user?.fullName || item.user?.name || item.name}
+                                  </span>
+                                  <span className="reporter-email">
+                                    <FaEnvelope size={10} className="mr-1" /> {item.email}
+                                  </span>
                                 </div>
                               </div>
+                            </td>                            <td className="text-truncate cell-w-lg">
+                              <span className="message-preview-table">
+                                {item.message.substring(0, 200)}...
+                              </span>
                             </td>
                             <td>
-                              <div className="font-weight-bold">{feedback.subject}</div>
-                              <small className="text-muted">{feedback.message.length > 100 ? 
-                                `${feedback.message.substring(0, 100)}...` : 
-                                feedback.message}</small>
-                            </td>
-                            <td>
-                              {getTypeBadge(feedback.type)}
-                            </td>
-                            <td>
-                              {getStatusBadge(feedback.status)}
-                            </td>
-                            <td>
-                              <div className="small">{formatDate(feedback.createdAt)}</div>
-                            </td>
-                            <td>
-                              <div className="btn-group">
+                              <span className={`badge ${
+                                item.status === 'pending' ? 'badge-warning' : 
+                                item.status === 'processed' ? 'badge-primary' : 
+                                'badge-success'
+                              }`}>
+                                {getStatusIcon(item.status)} <span className="ml-1">{getStatusText(item.status)}</span>
+                              </span>
+                              {!item.isRead && (
+                                <span className="badge badge-danger ml-2">Mới</span>
+                              )}                              <div className="mt-2">
+
+                              </div>
+                            </td>                            <td className="cell-w-md">
+                              <span className="d-inline-flex align-items-center text-muted">
+                                <FaCalendarAlt className="mr-1" size={12} /> {formatDate(item.createdAt)}
+                              </span>
+                            </td><td className="text-center">
+                              <div className="btn-group table-row-action">
+                                <Link href={`/admin/feedback/detail/${item._id}`} legacyBehavior>
+                                  <a className="btn btn-sm btn-info" title="Xem chi tiết">
+                                    <FaEye />
+                                  </a>
+                                </Link>
                                 <button
-                                  onClick={() => handleViewDetail(feedback._id)}
-                                  className="btn btn-sm btn-primary"
-                                  title="Xem chi tiết"
-                                >
-                                  <FaEye />
-                                </button>
-                                {!feedback.isRead && (
-                                  <button
-                                    onClick={() => handleMarkAsRead(feedback._id)}
-                                    className="btn btn-sm btn-success"
-                                    title="Đánh dấu đã đọc"
-                                  >
-                                    <FaEnvelopeOpen />
-                                  </button>
-                                )}
-                                <button
-                                  onClick={() => handleDelete(feedback._id)}
                                   className="btn btn-sm btn-danger"
                                   title="Xóa"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setFeedbackToDelete(item._id);
+                                    setShowDeleteModal(true);
+                                  }}
                                 >
                                   <FaTrash />
                                 </button>
                               </div>
                             </td>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        ))
+                      ) : (                      <tr>
+                        <td colSpan={6} className="text-center py-4">
+                          <p className="text-muted mb-0">Không tìm thấy dữ liệu góp ý</p>
+                        </td>
+                      </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div className="card-footer bg-white p-0 border-top-0">
+                <div className="d-flex p-3 align-items-center justify-content-between border-top">
+                  <div className="d-flex align-items-center">
+                    <input type="checkbox" className="form-check-input me-2" id="selectAll" />
+                    <label htmlFor="selectAll" className="form-check-label text-muted">Chọn tất cả</label>
                   </div>
-                )}
-
-                {/* Phân trang */}
-                {!loading && feedbacks.length > 0 && (
-                  <div className="d-flex justify-content-between align-items-center mt-3">
-                    <div>
-                      <span className="text-muted">Hiển thị {feedbacks.length} / {totalFeedbacks} góp ý</span>
-                    </div>
-                    <nav aria-label="Page navigation">
-                      <ul className="pagination m-0">
-                        <li className={`page-item ${page === 1 ? 'disabled' : ''}`}>
-                          <button 
-                            className="page-link" 
-                            onClick={() => handlePageChange(page - 1)}
-                            disabled={page === 1}
-                          >
-                            &laquo;
-                          </button>
-                        </li>
-                        {[...Array(totalPages).keys()].map(num => {
-                          // Hiển thị tối đa 5 trang
-                          if (totalPages <= 5 || 
-                              num + 1 === 1 || 
-                              num + 1 === page || 
-                              num + 1 === page - 1 || 
-                              num + 1 === page + 1 || 
-                              num + 1 === totalPages) {
-                            return (
-                              <li key={num + 1} className={`page-item ${page === num + 1 ? 'active' : ''}`}>
-                                <button className="page-link" onClick={() => handlePageChange(num + 1)}>
-                                  {num + 1}
-                                </button>
-                              </li>
-                            );
-                          } else if (num + 1 === page - 2 || num + 1 === page + 2) {
-                            return (
-                              <li key={num + 1} className="page-item disabled">
-                                <button className="page-link">...</button>
-                              </li>
-                            );
-                          }
-                          return null;
-                        })}
-                        <li className={`page-item ${page === totalPages ? 'disabled' : ''}`}>
-                          <button 
-                            className="page-link" 
-                            onClick={() => handlePageChange(page + 1)}
-                            disabled={page === totalPages}
-                          >
-                            &raquo;
-                          </button>
-                        </li>
-                      </ul>
-                    </nav>
+                  <div className="btn-group">
+                    <button className="btn btn-outline-secondary btn-sm">
+                      <FaTrash className="me-1" /> Xóa đã chọn
+                    </button>
                   </div>
-                )}
+                </div>
+              </div>
+              <div className="card-footer">
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <span>Hiển thị {feedback.length} / {totalFeedback} góp ý</span>
+                  </div>
+                  {totalPages > 1 && (
+                    <ul className="pagination pagination-sm m-0">
+                      <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                        <a 
+                          className="page-link" 
+                          href="#" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (currentPage > 1) handlePageChange(currentPage - 1);
+                          }}
+                        >
+                          <FaChevronLeft size={12} />
+                        </a>
+                      </li>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <li key={page} className={`page-item ${currentPage === page ? 'active' : ''}`}>
+                          <a 
+                            className="page-link" 
+                            href="#" 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handlePageChange(page);
+                            }}
+                          >
+                            {page}
+                          </a>
+                        </li>
+                      ))}
+                      <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                        <a 
+                          className="page-link" 
+                          href="#" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            if (currentPage < totalPages) handlePageChange(currentPage + 1);
+                          }}
+                        >
+                          <FaChevronRight size={12} />
+                        </a>
+                      </li>
+                    </ul>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </section>
-      </div>
-
-      <style jsx>{`
-        .icon-circle {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          background-color: rgba(0,0,0,0.1);
-          font-size: 1.25rem;
-        }
-        
-        .card-hover:hover {
-          transform: translateY(-3px);
-          transition: all 0.3s ease;
-          box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
-        }
-        
-        .badge {
-          font-weight: 500;
-          display: inline-flex;
-          align-items: center;
-        }
-      `}</style>
+      </div>      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <>
+          <div className="modal fade show active-modal" style={{ display: 'block', zIndex: 1050 }}>
+            <div className="modal-dialog" style={{ zIndex: 1051 }}>
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Xác nhận xóa</h5>
+                  <button
+                    type="button"
+                    className="close"
+                    onClick={() => setShowDeleteModal(false)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+                <div className="modal-body">
+                  <p>Bạn có chắc chắn muốn xóa góp ý này không?</p>
+                  <p className="text-danger">Lưu ý: Hành động này không thể hoàn tác.</p>
+                </div>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => setShowDeleteModal(false)}
+                    disabled={deleteInProgress}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={() => handleDeleteFeedback()}
+                    disabled={deleteInProgress}
+                  >
+                    {deleteInProgress ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm mr-2" role="status" aria-hidden="true"></span>
+                        Đang xóa...
+                      </>
+                    ) : (
+                      'Xóa'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div 
+            className="modal-backdrop fade show" 
+            style={{ zIndex: 1049 }} 
+            onClick={() => setShowDeleteModal(false)}
+          ></div>
+        </>
+      )}
+      
+      {/* Toast Notification */}
+      {toast.show && (
+        <div 
+          className={`toast-notification ${toast.type}`} 
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            zIndex: 1060,
+            minWidth: '300px',
+            backgroundColor: toast.type === 'success' ? '#28a745' : 
+                            toast.type === 'error' ? '#dc3545' : '#17a2b8',
+            color: '#fff',
+            padding: '12px 20px',
+            borderRadius: '4px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            animation: 'slideInRight 0.3s ease-out forwards'
+          }}
+        >
+          <div className="d-flex align-items-center">
+            {toast.type === 'success' && <FaCheckCircle className="me-2" />}
+            {toast.type === 'error' && <FaExclamationTriangle className="me-2" />}
+            {toast.type === 'info' && <FaBell className="me-2" />}
+            <span>{toast.message}</span>
+          </div>
+          <button 
+            type="button"
+            className="btn-close btn-close-white" 
+            onClick={() => setToast({ ...toast, show: false })}
+            style={{ 
+              background: 'transparent', 
+              border: 'none', 
+              color: '#fff',
+              fontSize: '20px',
+              cursor: 'pointer',
+              marginLeft: '10px',
+              padding: '0'
+            }}
+          >
+            <FaTimes />
+          </button>
+        </div>
+      )}
+      
+      {/* Custom CSS now moved to external file */}
     </>
   );
 };
 
 // Thêm getLayout để sử dụng AdminLayout
-FeedbackListPage.getLayout = (page) => {
+FeedbackPage.getLayout = (page: React.ReactNode) => {
   return <AdminLayout>{page}</AdminLayout>;
 };
 
-export default FeedbackListPage;
+export default FeedbackPage;

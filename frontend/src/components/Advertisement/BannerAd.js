@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
 import adService from '@/API/services/adService';
 import styles from '@/styles/Advertisement.module.css';
+import { useAdContext } from '@/context/AdContext';
 
 /**
  * Displays a banner advertisement
@@ -13,10 +14,35 @@ const BannerAd = ({ position = 'top' }) => {
   const [ad, setAd] = useState(null);
   const [closed, setClosed] = useState(false);
   const [adTracked, setAdTracked] = useState(false);
-
+  const { hideHomepageAds, isLoading } = useAdContext();
+  
+  // Log when ad visibility changes
+  useEffect(() => {
+    console.log(`%c[BannerAd ${position}] Ad visibility status:`, 'color: blue; font-weight: bold', { 
+      hideHomepageAds, 
+      isLoading 
+    });
+  }, [hideHomepageAds, isLoading, position]);
+  
   // Fetch the appropriate ad based on position
   useEffect(() => {
     const fetchAd = async () => {
+      // First, wait if the AdContext is still loading its settings
+      if (isLoading) {
+        console.log(`%c[BannerAd ${position}] AdContext is loading. Waiting to fetch ad...`, 'color: orange; font-weight: bold');
+        setAd(null); // Clear any existing ad while context loads
+        return;
+      }
+
+      // Now, AdContext is loaded, check if ads should be hidden
+      if (hideHomepageAds) {
+        console.log(`%c[BannerAd ${position}] Homepage ads hidden due to premium subscription (AdContext loaded).`, 'color: green; font-weight: bold');
+        setAd(null); // Ensure ad is cleared if it was previously shown
+        return;
+      }
+
+      // If AdContext is loaded and ads are not hidden, proceed to fetch
+      console.log(`%c[BannerAd ${position}] AdContext loaded, fetching ad...`, 'color: blue; font-weight: bold');
       try {
         let adData;
         if (position === 'top') {
@@ -31,10 +57,9 @@ const BannerAd = ({ position = 'top' }) => {
       } catch (error) {
         console.error(`Error fetching ${position} banner ad:`, error);
       }
-    };
-
+    };    
     fetchAd();
-  }, [position]);
+  }, [position, hideHomepageAds, isLoading]);
 
   // Track impression when ad is viewed
   useEffect(() => {

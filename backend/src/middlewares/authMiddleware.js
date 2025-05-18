@@ -57,8 +57,12 @@ const verifyToken = async (req, res, next) => {
                 });
             }
             
-            // Lưu thông tin user vào request
-            req.user = decoded;
+            // Lưu thông tin user vào request - include the full user object and decoded token
+            req.user = {
+              ...decoded,
+              ...user.toObject(),
+              _id: user._id || decoded.userId // Ensure _id is available
+            };
             
             debugLog("Token successfully verified for user:", decoded.userId);
             next();

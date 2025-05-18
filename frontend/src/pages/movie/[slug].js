@@ -1462,7 +1462,45 @@ if (!user) {
     }
     
     try {
-      // Fetch a video ad before showing the main content
+      // Kiểm tra gói Premium 15k trước (ID: 6826f81c13eb3da4a8bc6ce3)
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || localStorage.getItem('authToken');
+      if (token) {
+        // Nếu có token, kiểm tra quyền lợi từ API trước khi hiển thị quảng cáo
+        try {
+          const response = await fetch('http://localhost:5000/api/subscription/ad-benefits', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            
+            // Nếu user có quyền ẩn quảng cáo video (Premium 15k), hiển thị player trực tiếp
+            if (data.data && data.data.hideVideoAds === true) {
+              console.log('%c[Movie Player] Premium user detected - showing player directly', 'color: #32CD32; font-weight: bold');
+              setShowPlayer(true);
+              return;
+            }
+            
+            // Ghi log package ID cho debug
+            if (data.data && data.data.packageType) {
+              console.log(`[Movie Player] User package ID: ${data.data.packageType}`);
+              
+              if (data.data.packageType === '6826f81c13eb3da4a8bc6ce3') {
+                console.log('%c[Movie Player] Premium 15K package detected!', 'color: #FF00FF; font-weight: bold');
+                setShowPlayer(true);
+                return;
+              }
+            }
+          }
+        } catch (benefitsError) {
+          console.error("Error checking ad benefits:", benefitsError);
+          // Tiếp tục hiển thị quảng cáo nếu không kiểm tra được quyền lợi
+        }
+      }
+      
+      // Nếu không phải Premium, hiển thị quảng cáo
       const adData = await adService.getRandomVideoAd();
       if (adData) {
         setCurrentAd(adData);
@@ -1477,7 +1515,7 @@ if (!user) {
       // If there's an error, just show the player directly
       setShowPlayer(true);
     }
-  };  // New function to handle ad completion
+  };// New function to handle ad completion
   const handleAdComplete = () => {
     // Hide ad and show actual player
     setShowAd(false);

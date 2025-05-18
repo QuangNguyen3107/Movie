@@ -5,31 +5,18 @@ import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-// Default fallback ads in case of network issues
-const FALLBACK_ADS = [
-  {
-    id: 'fallback1',
-    content: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    advertiser: 'Sample Advertiser 1',
-    duration: 15,
-    type: 'video',
-    link: 'https://example.com'
-  }
-];
-
-const adService = {
-  // Get a random video ad to display before content
+const adService = {  // Get a random video ad to display before content
   getRandomVideoAd: async () => {
     try {
       const response = await axios.get(`${API_URL}/advertisements/random?type=video`);
       if (response.data.success && response.data.advertisement) {
         return response.data.advertisement;
       }
-      throw new Error('No ad returned from the server');
+      console.log('No video ad available from server');
+      return null; // Return null instead of a fallback ad
     } catch (error) {
       console.error('Error fetching video ad:', error);
-      // Fallback to a default ad if there's an error
-      return FALLBACK_ADS[0];
+      return null; // Return null on error instead of using fallback ad
     }
   },
   

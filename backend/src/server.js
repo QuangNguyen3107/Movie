@@ -86,7 +86,9 @@ app.use("/api/admin", adminRoutes); // Thêm route quản lý người dùng, va
 app.use("/api/admin", adminSearchRoutes); // Thêm route tìm kiếm admin với Elasticsearch
 app.use("/api/admin/upcoming-movies", upcomingMovieRoutes); // Thêm route quản lý phim sắp ra mắt
 app.use("/api/admin/dashboard", dashboardRoutes);
-app.use("/api/admin/feedback", feedbackRoutes);
+// Đăng ký các routes cho feedback
+app.use("/api/admin/feedback", feedbackRoutes); 
+app.use("/api/feedback", feedbackRoutes);
 app.use("/api/user-stats", userStatsRoutes);
 app.use('/api/reports', reportRoutes); // Thêm route cho báo cáo
 app.use('/api/advertisements', require('./routes/advertisementRoutes')); // Thêm route quảng cáo

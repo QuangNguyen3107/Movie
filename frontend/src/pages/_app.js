@@ -3,14 +3,15 @@ import Head from "next/head";
 import '../styles/animation.css';
 import '../styles/subscription-details.css'; // Import CSS for subscription details
 // import '../styles/admin-fix.css'; 
+import '../styles/feedbackAdmin.css'; // Import CSS for feedback admin
 import { SessionProvider } from "next-auth/react";
 import { AuthProvider, withAccountStatus } from "../utils/auth";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from 'next/router';
 import Layout from "../components/Layout";
-import FeedbackButton from "../components/FeedbackButton";
 import OfflineNotice from "../components/OfflineNotice";
 import NetworkStatusBar from "../components/NetworkStatusBar";
+import AdContextProvider from "../context/AdContext";
 import { registerServiceWorker } from "../utils/serviceWorker";
 
 function MyApp({ Component, pageProps: { session, ...pageProps } }) {
@@ -75,27 +76,21 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }) {
     const AccountStatusWrapper = withAccountStatus(() => component);
     return <AccountStatusWrapper />;
   }, [Component, pageProps, getLayout, isAuthPage, isAdminPage, isSearchPage]);
-
-  // Tối ưu việc render FeedbackButton
-  const renderFeedbackButton = useCallback(() => {
-    if (!isAdminPage && !isSearchPage) {
-      return <FeedbackButton user={user} />;
-    }
-    return null;
-  }, [isAdminPage, isSearchPage, user]);
+  // FeedbackButton component đã được loại bỏ
+  
   return (
     <SessionProvider session={session}>
-      <AuthProvider>        <Head>
-          <title>Đồ án Nhóm 6</title>
-          <meta name="description" content="Xem phim trực tuyến miễn phí HD" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <link rel="icon" href="/favicon.ico" />
-        </Head>
-
-        <NetworkStatusBar />
-        <OfflineNotice />
-        {getWrappedComponent()}
-        {renderFeedbackButton()}
+      <AuthProvider>
+        <AdContextProvider>
+          <Head>
+            <title>Đồ án Nhóm 6</title>
+            <meta name="description" content="Xem phim trực tuyến miễn phí HD" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <link rel="icon" href="/favicon.ico" />
+          </Head>          <NetworkStatusBar />
+          <OfflineNotice />
+          {getWrappedComponent()}
+        </AdContextProvider>
         
         <style jsx global>{`
           body {

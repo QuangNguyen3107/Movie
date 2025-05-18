@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { FaSearch, FaBell, FaBars, FaTimes, FaHome, FaFilm, FaTv, FaHeart, FaBookmark, FaHistory, FaSignOutAlt, FaUserCircle, FaPlay, FaEye, FaTrash, FaTimesCircle, FaLightbulb } from "react-icons/fa";
+import { FaSearch, FaComment, FaBars, FaTimes, FaHome, FaFilm, FaTv, FaHeart, FaBookmark, FaHistory, FaSignOutAlt,FaBell, FaUserCircle, FaPlay, FaEye, FaTrash, FaTimesCircle, FaLightbulb } from "react-icons/fa";
 import { useRouter } from "next/router";
 import { useAuth } from "../../utils/auth";
 import searchHistoryService from "../../API/services/searchHistoryService"; // Import service mới
 import searchSuggestionService from "../../API/services/searchSuggestionService"; // Import new service
+import FeedbackForm from "../Feedback/FeedbackForm";
 
 const getAvatarUrl = (user) => {
   if (!user) return "/img/avatar.png";
@@ -27,23 +28,23 @@ const getAvatarUrl = (user) => {
   return avatarUrl;
 };
 
-const Navbar = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
+const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchInput, setShowSearchInput] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showFeedbackForm, setShowFeedbackForm] = useState(false);
   const [searchHistory, setSearchHistory] = useState([]);
   const [showSearchHistory, setShowSearchHistory] = useState(false);
   const [searchHistoryLoading, setSearchHistoryLoading] = useState(false);
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  
-  const router = useRouter();
+    const router = useRouter();
   const { user, logout, isAuthenticated } = useAuth();
   const searchInputRef = useRef(null);
   const suggestionsRef = useRef(null);
+  const feedbackRef = useRef(null);
   const navRef = useRef(null);
   const [indicatorStyle, setIndicatorStyle] = useState({
     left: 0,
@@ -200,13 +201,13 @@ const Navbar = () => {
   const toggleUserMenu = () => {
     setShowUserMenu(!showUserMenu);
   };
-
   useEffect(() => {
     const handleClickOutside = (event) => {
       const navbarCollapse = document.getElementById("navbarNav");
       const navbarToggler = document.querySelector(".navbar-toggler");
       const userMenu = document.getElementById("userMenu");
       const userAvatar = document.querySelector(".profile-avatar");
+      const feedbackButton = document.querySelector(".feedback-button");
       
       if (
         isMenuOpen && 
@@ -235,16 +236,26 @@ const Navbar = () => {
       ) {
         setShowSuggestions(false);
       }
+      
+      if (
+        showFeedbackForm &&
+        feedbackRef.current &&
+        !feedbackRef.current.contains(event.target) &&
+        feedbackButton &&
+        !feedbackButton.contains(event.target)
+      ) {
+        setShowFeedbackForm(false);
+      }
     };
 
-    if (isMenuOpen || showUserMenu || showSuggestions) {
+    if (isMenuOpen || showUserMenu || showSuggestions || showFeedbackForm) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isMenuOpen, showUserMenu, showSuggestions]);
+  }, [isMenuOpen, showUserMenu, showSuggestions, showFeedbackForm]);
 
   const formatTimeAgo = (timestamp) => {
     const date = new Date(timestamp);
@@ -582,12 +593,13 @@ const Navbar = () => {
                 <button type="submit" className="btn btn-sm btn-outline-danger ms-2">
                   Tìm
                 </button>
-              </form>
-            ) : (
+              </form>            ) : (
               <FaSearch className="text-white fs-5 cursor-pointer" onClick={toggleSearchInput} />
             )}
-            <FaBell className="text-white fs-5 cursor-pointer" />
-            <div className="profile-avatar position-relative" onClick={handleAvatarClick}>
+            <FaComment 
+              className="text-white fs-5 cursor-pointer feedback-button" 
+              onClick={() => setShowFeedbackForm(!showFeedbackForm)} 
+            />            <div className="profile-avatar position-relative" onClick={handleAvatarClick}>
               <img 
                 src={getAvatarUrl(user)} 
                 alt="User Avatar" 
@@ -717,9 +729,7 @@ const Navbar = () => {
             )}
           </div>
         </div>
-      )}
-
-      {showSuggestions && (
+      )}      {showSuggestions && (
         <div className="search-suggestions-dropdown" ref={suggestionsRef}>
           <div className="search-suggestions-content">
             {loadingSuggestions ? (
@@ -750,6 +760,8 @@ const Navbar = () => {
           </div>
         </div>
       )}
+      
+      {showFeedbackForm && <FeedbackForm ref={feedbackRef} isOpen={showFeedbackForm} onClose={() => setShowFeedbackForm(false)} />}
 
       <style jsx>{`
         .navbar {
