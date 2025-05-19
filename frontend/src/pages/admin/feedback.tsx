@@ -25,6 +25,7 @@ interface Feedback {
     name?: string;
     fullName?: string;
     email: string;
+    avatar?: string;
   } | null;
   status: 'pending' | 'processed' | 'resolved';
   adminResponse: string;
@@ -83,7 +84,32 @@ const FeedbackPage = () => {
     show: false,
     message: '',
     type: 'info'
-  });
+  });  // Hàm để lấy URL ảnh đại diện người dùng
+  const getAvatarUrl = (user: any) => {
+    // Luôn trả về một URL avatar hợp lệ
+    const defaultAvatar = '/img/avatar.png';
+    
+    // Nếu không có user hoặc không có avatar, trả về avatar mặc định
+    if (!user || !user.avatar) return defaultAvatar;
+    
+    // Nếu avatar là đường dẫn mặc định, trả về đường dẫn mặc định
+    if (user.avatar === '/img/avatar.png') {
+      return defaultAvatar;
+    }
+    
+    // Khi avatar là URL đầy đủ (http hoặc https)
+    if (user.avatar.startsWith('http')) {
+      return user.avatar;
+    }
+    
+    // Xử lý URL tương đối - thêm tiền tố domain API
+    const baseApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const cleanBaseUrl = baseApiUrl.replace(/\/api$/, '');
+    
+    // Đảm bảo có đủ dấu / giữa baseUrl và đường dẫn avatar
+    const avatarPath = user.avatar.startsWith('/') ? user.avatar : `/${user.avatar}`;
+    return `${cleanBaseUrl}${avatarPath}`;
+  };
 
   const ITEMS_PER_PAGE = 10;
   // Fetch dữ liệu feedback
@@ -117,16 +143,14 @@ const FeedbackPage = () => {
         params.sortField = sortField;
         params.sortOrder = sortOrder;
       }
-      
-      // Gọi API lấy danh sách feedback
+        // Gọi API lấy danh sách feedback
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
       const response = await axios.get(`${baseUrl}/feedback`, {
         params,
         headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (response.data.success) {
-        setFeedback(response.data.data.feedbacks);
+      });      if (response.data.success) {
+        const feedbackData = response.data.data.feedbacks;
+        setFeedback(feedbackData);
         setTotalPages(response.data.data.pagination.totalPages);
         setTotalFeedback(response.data.data.pagination.total);
       } else {
@@ -495,11 +519,18 @@ const FeedbackPage = () => {
                           <h5 className="m-0 text-truncate movie-subject">Góp ý từ người dùng</h5>
                           {!item.isRead && <span className="badge badge-danger">Mới</span>}
                         </div>
-                        <div className="card-body">
-                          <div className="user-info-container">
-                            <div className="avatar-circle bg-primary text-white">
-                              {item.name.charAt(0).toUpperCase()}
-                            </div>
+                        <div className="card-body">                          <div className="user-info-container">
+                            <img 
+                              src={getAvatarUrl(item.user)} 
+                              alt={`Avatar của ${item.name}`}
+                              title={`${item.user?.fullName || item.user?.name || item.name}`}
+                              className="avatar-image"
+                              onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = '/img/avatar.png';
+                                e.currentTarget.classList.add('avatar-fallback');
+                              }}
+                            />
                             <div className="user-details">
                               <h5 className="mb-0">{item.name}</h5>
                               <div className="user-email">
@@ -516,13 +547,12 @@ const FeedbackPage = () => {
                             </p>
                           </div>
                           
-                          <div className="card-meta">
-                            <span className={`badge ${
+                          <div className="card-meta">                            <span className={`badge ${
                               item.status === 'pending' ? 'badge-warning' : 
                               item.status === 'processed' ? 'badge-primary' : 
                               'badge-success'
                             }`}>
-                              {getStatusIcon(item.status)} <span className="ms-1">{getStatusText(item.status)}</span>
+                              {getStatusText(item.status)}
                             </span>
                             <div className="date-badge">
                               <FaCalendarAlt className="me-1" size={12} /> {formatDate(item.createdAt)}
@@ -567,11 +597,13 @@ const FeedbackPage = () => {
               
               {/* Table view for desktop */}              <div className="card-body p-0 d-none d-md-block">
                 <div className="table-responsive">
-                  <table className="table table-hover">                    <thead>                      <tr>
+                  <table className="table table-hover">                    
+                    <thead>                      
+                      <tr>
                         <th className="cell-w-xs text-center" style={{width: "40px"}}>
                           <input type="checkbox" className="form-check-input table-check" />
-                        </th>                        
-                        <th className="cursor-pointer cell-w-sm" onClick={() => handleSortChange('name')}>
+                        </th>                          
+                        <th className="cursor-pointer cell-w-md" onClick={() => handleSortChange('name')}>
                           <div className="d-flex align-items-center">
                             Người báo cáo
                             {sortField === 'name' && (
@@ -589,7 +621,7 @@ const FeedbackPage = () => {
                             )}
                             {sortField !== 'status' && <FaSort className="ms-1" />}
                           </div>
-                        </th>                        <th className="cursor-pointer cell-w-md" onClick={() => handleSortChange('createdAt')}>
+                        </th>                        <th className="cursor-pointer cell-w-sm" onClick={() => handleSortChange('createdAt')}>
                           <div className="d-flex align-items-center">
                             Ngày tạo
                             {sortField === 'createdAt' && (
@@ -619,44 +651,50 @@ const FeedbackPage = () => {
                             }}
                           >                            <td className="text-center">
                               <input type="checkbox" className="form-check-input table-check" />
-                            </td>                            <td className="cell-w-sm">                              <div className="reporter-info-compact">
-                                <div className="avatar-circle-xs bg-primary text-white">
-                                  {item.user?.fullName 
-                                    ? item.user.fullName.charAt(0).toUpperCase() 
-                                    : item.user?.name 
-                                      ? item.user.name.charAt(0).toUpperCase() 
-                                      : item.name.charAt(0).toUpperCase()}
-                                </div>
+                            </td>                            
+                            <td className="cell-w-md">                              <div className="reporter-info-compact">
+                                <img 
+                                  src={getAvatarUrl(item.user)} 
+                                  alt={`Avatar của ${item.user?.fullName || item.user?.name || item.name}`}
+                                  title={`${item.user?.fullName || item.user?.name || item.name}`}
+                                  className="avatar-image-xs"
+                                  onError={(e) => {
+                                    e.currentTarget.onerror = null;
+                                    e.currentTarget.src = '/img/avatar.png';
+                                    e.currentTarget.classList.add('avatar-fallback');
+                                  }}
+                                />
                                 <div>
                                   <span className="reporter-name">
                                     {item.user?.fullName || item.user?.name || item.name}
                                   </span>
                                   <span className="reporter-email">
-                                    <FaEnvelope size={10} className="mr-1" /> {item.email}
+                                    <FaEnvelope size={10} className="me-1" /> {item.email}
                                   </span>
                                 </div>
                               </div>
-                            </td>                            <td className="text-truncate cell-w-lg">
+                            </td>                            
+                            <td className="text-truncate cell-w-lg">
                               <span className="message-preview-table">
-                                {item.message.substring(0, 200)}...
+                                {item.message.substring(0, 200)}
                               </span>
-                            </td>
+                            </td>                           
                             <td>
                               <span className={`badge ${
                                 item.status === 'pending' ? 'badge-warning' : 
                                 item.status === 'processed' ? 'badge-primary' : 
                                 'badge-success'
                               }`}>
-                                {getStatusIcon(item.status)} <span className="ml-1">{getStatusText(item.status)}</span>
+                                {getStatusText(item.status)}
                               </span>
                               {!item.isRead && (
-                                <span className="badge badge-danger ml-2">Mới</span>
+                                <span className="badge badge-danger ms-2">Mới</span>
                               )}                              <div className="mt-2">
 
                               </div>
-                            </td>                            <td className="cell-w-md">
+                            </td>                            <td className="cell-w-sm">
                               <span className="d-inline-flex align-items-center text-muted">
-                                <FaCalendarAlt className="mr-1" size={12} /> {formatDate(item.createdAt)}
+                                {formatDate(item.createdAt)}
                               </span>
                             </td><td className="text-center">
                               <div className="btn-group table-row-action">

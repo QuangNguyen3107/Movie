@@ -121,13 +121,13 @@
 }
 
 .cell-w-sm {
-    width: 180px;
-    max-width: 180px;
+    width: 150px;
+    max-width: 150px;
 }
 
 .cell-w-md {
-    width: 220px;
-    max-width: 220px;
+    width: 250px;
+    max-width: 250px;
 }
 
 .cell-w-lg {
@@ -523,6 +523,43 @@ tbody tr td {
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
+/* Avatar image styles for extra small avatars */
+.avatar-image-xs {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+    border: 1px solid #ffffff;
+    /* Add loading animation while image loads */
+    background-color: #7950F2;
+    background-image: linear-gradient(90deg, #7048e8, #5f3dc4, #7048e8);
+    background-size: 200% 100%;
+    animation: loading-pulse 1.5s ease-in-out infinite;
+}
+
+/* Loading animation keyframes */
+@keyframes loading-pulse {
+    0% {
+        background-position: -100% 0;
+    }
+    100% {
+        background-position: 100% 0;
+    }
+}
+
+.avatar-image-xs:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 5px rgba(13, 110, 253, 0.2);
+}
+
+.avatar-image-xs.avatar-fallback {
+    background-color: #f8f9fa;
+    border: 1px dashed #dee2e6;
+}
+
 tr {
     transition: all 0.2s ease;
 }
@@ -637,6 +674,35 @@ tr:hover td {
     border: 2px solid #ffffff;
     transition: all 0.2s ease;
     margin-right: 12px;
+}
+
+/* Avatar image styles for normal size avatars */
+.avatar-image {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 3px 6px rgba(13, 110, 253, 0.2);
+    border: 2px solid #ffffff;
+    transition: all 0.2s ease;
+    margin-right: 12px;
+    /* Add loading animation while image loads */
+    background-color: #7950F2;
+    background-image: linear-gradient(90deg, #7048e8, #5f3dc4, #7048e8);
+    background-size: 200% 100%;
+    animation: loading-pulse 1.5s ease-in-out infinite;
+}
+
+.avatar-image:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 10px rgba(13, 110, 253, 0.3);
+    border-color: #e0f0ff;
+}
+
+.avatar-image.avatar-fallback {
+    background-color: #f8f9fa;
+    border: 2px dashed #dee2e6;
 }
 
 .avatar-circle:hover {

@@ -88,12 +88,9 @@ exports.getMovieRatings = async (req, res) => {
         
         if (!movieId) {
             return responseHelper.badRequestResponse(res, "Movie ID is required");
-        }
-        
-        const ratings = await Rating.find({ 
+        }        const ratings = await Rating.find({ 
             movieId: mongoose.Types.ObjectId(movieId) 
-        }).populate('userId', 'username avatar');
-        
+        }).populate('userId', 'fullname email avatar');
         return responseHelper.successResponse(res, "Ratings retrieved successfully", { 
             ratings,
             success: true

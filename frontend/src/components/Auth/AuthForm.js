@@ -126,12 +126,16 @@ export default function AuthForm({ onSubmit, isLoading, error, message, isSignup
         }
     };
 
-    const authBoxClass = `auth-box ${isAnimating ? 'animating' : ''} ${isSignup ? 'signup' : 'login'}`;
-
-    return (
+    const authBoxClass = `auth-box ${isAnimating ? 'animating' : ''} ${isSignup ? 'signup' : 'login'}`;    return (
         <div className="auth-container">
+            <div className="background-image"></div>
             <div className="background-effect"></div>
             <div className="background-gradient"></div>
+            <div className="floating-particles">
+                {[...Array(15)].map((_, i) => (
+                    <div key={i} className={`particle particle-${i + 1}`}></div>
+                ))}
+            </div>
             
             <button className="home-button" onClick={handleHomeClick}>
                 <FaHome /> Home
@@ -329,8 +333,7 @@ export default function AuthForm({ onSubmit, isLoading, error, message, isSignup
                 </div>
             </div>
             
-            <style jsx>{`
-                .auth-container {
+            <style jsx>{`                .auth-container {
                     min-height: 100vh;
                     display: flex;
                     align-items: center;
@@ -340,33 +343,55 @@ export default function AuthForm({ onSubmit, isLoading, error, message, isSignup
                     perspective: 1000px;
                     position: relative;
                     overflow: hidden;
+                }                  .background-image {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: url('/img/background/movies-wall.jpg') center/cover no-repeat;
+                    opacity: 0.75; /* Tăng độ rõ lên cao hơn */
+                    z-index: 0;
+                    filter: blur(1px); /* Giảm độ mờ hơn nữa */
+                    transform: scale(1.1);
+                    animation: dynamicPan 80s infinite alternate-reverse ease-in-out;
                 }
                 
-                .background-effect {
+                @keyframes dynamicPan {
+                    0% { transform: scale(1.1) translate(0, 0) rotate(0deg); }
+                    20% { transform: scale(1.12) translate(-2%, -1%) rotate(0.5deg); }
+                    40% { transform: scale(1.15) translate(1%, -2%) rotate(-0.3deg); }
+                    60% { transform: scale(1.13) translate(2%, 0%) rotate(0.2deg); }
+                    80% { transform: scale(1.11) translate(1%, 2%) rotate(-0.5deg); }
+                    100% { transform: scale(1.16) translate(-1.5%, 1.5%) rotate(0.7deg); }
+                }
+                  .background-effect {
                     position: absolute;
                     top: -50%;
                     left: -50%;
                     width: 200%;
                     height: 200%;
                     background: linear-gradient(45deg, 
-                        rgba(25, 28, 40, 0.7) 0%, 
-                        rgba(40, 43, 60, 0.8) 20%, 
-                        rgba(70, 75, 95, 0.8) 40%, 
-                        rgba(20, 22, 35, 0.9) 60%, 
-                        rgba(60, 65, 85, 0.8) 80%, 
-                        rgba(15, 18, 30, 0.7) 100%);
-                    animation: gradientShift 20s ease infinite;
-                    z-index: 0;
+                        rgba(15, 18, 30, 0.7) 0%, 
+                        rgba(30, 33, 50, 0.8) 20%, 
+                        rgba(45, 50, 70, 0.8) 40%, 
+                        rgba(12, 15, 25, 0.9) 60%, 
+                        rgba(40, 45, 65, 0.8) 80%, 
+                        rgba(10, 12, 22, 0.7) 100%);
+                    animation: gradientShift 30s ease infinite;
+                    z-index: 1;
                 }
-                
-                .background-gradient {
+                  .background-gradient {
                     position: absolute;
                     top: 0;
                     left: 0;
                     width: 100%;
                     height: 100%;
-                    background: radial-gradient(circle at center, rgba(100, 100, 110, 0.2) 0%, rgba(10, 10, 10, 0.9) 70%);
-                    z-index: 1;
+                    background: radial-gradient(circle at 30% 30%, 
+                        rgba(60, 65, 80, 0.4) 0%, 
+                        rgba(40, 45, 55, 0.35) 20%, 
+                        rgba(10, 10, 20, 0.7) 70%);
+                    z-index: 2;
                 }
                 
                 .background-gradient::after {
@@ -376,9 +401,106 @@ export default function AuthForm({ onSubmit, isLoading, error, message, isSignup
                     left: -50%;
                     width: 200%;
                     height: 200%;
-                    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.05) 0%, rgba(0, 0, 0, 0) 70%);
+                    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.07) 0%, rgba(0, 0, 0, 0) 70%);
                     animation: lightMove 15s infinite linear;
                     z-index: 0;
+                }
+                
+                .floating-particles {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    overflow: hidden;
+                    z-index: 3;
+                    pointer-events: none;
+                }
+                
+                .particle {
+                    position: absolute;
+                    width: 6px;
+                    height: 6px;
+                    background: rgba(255, 255, 255, 0.15);
+                    border-radius: 50%;
+                    box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+                    animation: float 20s infinite linear;
+                    z-index: 3;
+                }
+                
+                .particle::after {
+                    content: '';
+                    position: absolute;
+                    width: 100%;
+                    height: 100%;
+                    border-radius: 50%;
+                    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.1) 100%);
+                    filter: blur(1px);
+                }
+                
+                @keyframes float {
+                    0% {
+                        transform: translateY(0) translateX(0) scale(1);
+                        opacity: 0;
+                    }
+                    5% {
+                        opacity: 0.8;
+                    }
+                    95% {
+                        opacity: 0.5;
+                    }
+                    100% {
+                        transform: translateY(-100vh) translateX(20px) scale(0.2);
+                        opacity: 0;
+                    }
+                }
+                
+                .particle-1 { left: 10%; animation-duration: 15s; animation-delay: 0s; }
+                .particle-2 { left: 20%; animation-duration: 25s; animation-delay: 2s; }
+                .particle-3 { left: 30%; animation-duration: 18s; animation-delay: 4s; }
+                .particle-4 { left: 40%; animation-duration: 22s; animation-delay: 6s; }
+                .particle-5 { left: 50%; animation-duration: 20s; animation-delay: 8s; }
+                .particle-6 { left: 60%; animation-duration: 17s; animation-delay: 10s; }
+                .particle-7 { left: 70%; animation-duration: 23s; animation-delay: 3s; }
+                .particle-8 { left: 80%; animation-duration: 19s; animation-delay: 5s; }
+                .particle-9 { left: 90%; animation-duration: 21s; animation-delay: 7s; }
+                .particle-10 { left: 15%; animation-duration: 24s; animation-delay: 9s; }
+                .particle-11 { left: 25%; animation-duration: 16s; animation-delay: 1s; }
+                .particle-12 { left: 35%; animation-duration: 26s; animation-delay: 0s; }
+                .particle-13 { left: 45%; animation-duration: 19s; animation-delay: 2s; }
+                .particle-14 { left: 55%; animation-duration: 22s; animation-delay: 4s; }
+                .particle-15 { left: 65%; animation-duration: 18s; animation-delay: 6s; }
+                  /* Thêm một số ánh sáng từ góc màn hình */
+                .auth-container::before {
+                    content: '';
+                    position: absolute;
+                    top: -30%;
+                    left: -30%;
+                    width: 80%;
+                    height: 80%;
+                    background: radial-gradient(circle at center, rgba(100, 110, 130, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+                    filter: blur(20px);
+                    animation: lightPulse 10s infinite alternate ease-in-out;
+                    z-index: 2;
+                }
+                
+                .auth-container::after {
+                    content: '';
+                    position: absolute;
+                    bottom: -30%;
+                    right: -30%;
+                    width: 80%;
+                    height: 80%;
+                    background: radial-gradient(circle at center, rgba(90, 100, 120, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+                    filter: blur(20px);
+                    animation: lightPulse 8s infinite alternate-reverse ease-in-out;
+                    z-index: 2;
+                }
+                
+                @keyframes lightPulse {
+                    0% { opacity: 0.5; transform: scale(1); }
+                    50% { opacity: 0.7; transform: scale(1.1); }
+                    100% { opacity: 0.5; transform: scale(1); }
                 }
 
                 @keyframes lightMove {
@@ -391,13 +513,11 @@ export default function AuthForm({ onSubmit, isLoading, error, message, isSignup
                     0% { transform: rotate(0deg); }
                     50% { transform: rotate(180deg); }
                     100% { transform: rotate(360deg); }
-                }
-
-                .auth-box {
+                }                .auth-box {
                     display: flex;
                     width: 900px;
                     height: ${mounted ? (isSignup ? '750px' : '600px') : 'auto'};
-                    background: rgba(26, 26, 26, 0.8);
+                    background: rgba(26, 26, 26, 0.65); /* Giảm độ đậm của nền để mờ hơn */
                     border-radius: 20px;
                     position: relative;
                     overflow: hidden;
@@ -405,8 +525,14 @@ export default function AuthForm({ onSubmit, isLoading, error, message, isSignup
                                 0 0 40px rgba(150, 150, 160, 0.1);
                     transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
                     z-index: 10;
-                    backdrop-filter: blur(10px);
-                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    backdrop-filter: blur(8px); /* Điều chỉnh độ mờ filter */
+                    border: 1px solid rgba(255, 255, 255, 0.08); /* Tăng độ sáng của viền */
+                    animation: glow 8s infinite alternate ease-in-out;
+                }
+                  @keyframes glow {
+                    0% { box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), 0 0 40px rgba(150, 150, 160, 0.1); }
+                    50% { box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), 0 0 60px rgba(100, 110, 140, 0.2); }
+                    100% { box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), 0 0 40px rgba(80, 95, 115, 0.2); }
                 }
 
                 .form-container {
@@ -416,9 +542,7 @@ export default function AuthForm({ onSubmit, isLoading, error, message, isSignup
                     left: 0;
                     transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
                     overflow-y: auto;
-                }
-
-                .welcome-section {
+                }                .welcome-section {
                     position: absolute;
                     width: 55%;
                     height: 100%;
@@ -482,10 +606,20 @@ export default function AuthForm({ onSubmit, isLoading, error, message, isSignup
                     transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
                     text-align: center;
                 }
-                
-                .welcome-content h1 {
+                  .welcome-content h1 {
                     text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
                     animation: titlePulse 3s infinite alternate;
+                    background: linear-gradient(90deg, #ffffff, #b0b0ff, #ffffff);
+                    background-size: 200% auto;
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    animation: shine 3s linear infinite;
+                }
+                
+                @keyframes shine {
+                    to {
+                        background-position: 200% center;
+                    }
                 }
                 
                 @keyframes titlePulse {
@@ -623,9 +757,7 @@ export default function AuthForm({ onSubmit, isLoading, error, message, isSignup
 
                 input::placeholder {
                     color: rgba(255, 255, 255, 0.3);
-                }
-
-                .auth-button {
+                }                .auth-button {
                     width: 100%;
                     padding: 14px;
                     background: linear-gradient(135deg, #4a5380, #323b66);
@@ -640,10 +772,19 @@ export default function AuthForm({ onSubmit, isLoading, error, message, isSignup
                     position: relative;
                     overflow: hidden;
                     letter-spacing: 0.5px;
-                    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+                    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2), 
+                               0 0 15px rgba(74, 83, 128, 0.15);
                     display: flex;
                     align-items: center;
                     justify-content: center;
+                    background-size: 200% 100%;
+                    animation: gradientMove 3s ease infinite;
+                }
+                
+                @keyframes gradientMove {
+                    0% { background-position: 0% 50%; }
+                    50% { background-position: 100% 50%; }
+                    100% { background-position: 0% 50%; }
                 }
 
                 .auth-button:disabled {

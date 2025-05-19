@@ -75,13 +75,12 @@ exports.getAllFeedback = async (req, res) => {
     
     // Đếm tổng số feedback
     const total = await Feedback.countDocuments(filter);
-    
-    // Lấy feedback với phân trang và sắp xếp
+      // Lấy feedback với phân trang và sắp xếp
     const feedbacks = await Feedback.find(filter)
       .sort(sort)
       .skip(skip)
       .limit(limit)
-      .populate('user', 'name fullName email')
+      .populate('user', 'name fullName email avatar') // Thêm trường avatar
       .lean();
     
     const totalPages = Math.ceil(total / limit);
@@ -113,7 +112,7 @@ exports.getFeedbackById = async (req, res) => {
       return res.status(400).json({ success: false, message: 'ID không hợp lệ' });
     }
     
-    const feedback = await Feedback.findById(id).populate('user', 'name fullName email');
+    const feedback = await Feedback.findById(id).populate('user', 'name fullName email avatar');
     
     if (!feedback) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy góp ý' });

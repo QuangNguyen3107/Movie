@@ -433,11 +433,7 @@ export const AuthProvider = ({ children }) => {
     }
     return null;
   };  // Check the user object to understand how admin roles are stored
-  console.log("Auth Context User Data:", {
-    user,
-    userRole: user?.role,
-    isUserAdmin: user?.role === 'admin' || user?.isAdmin === true
-  });
+
   
   const value = {
     user,

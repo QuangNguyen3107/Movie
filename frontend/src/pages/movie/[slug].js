@@ -514,9 +514,11 @@ const MovieDetail = ({ slug: slugProp }) => {
     }
   }, []);
 
-  useEffect(() => {
-    const fetchMovie = async () => {
+  useEffect(() => {    const fetchMovie = async () => {
       if (!slug) return;
+      
+      // Reset view tracking refs for new movie fetch
+      viewRecordedRef.current = false;
       
       // Check if we're coming from the most-viewed section to prevent double counting
       if (router.query.from === 'most-viewed') {
@@ -1394,8 +1396,7 @@ if (!user) {
       // If there's an error loading the ad, just show the player directly
       setShowPlayer(true);
     }
-    
-    if (movie && movie._id) {
+      if (movie && movie._id && !viewRecordedRef.current) {
       try {
         await movieViewService.recordMovieView(movie._id);
         console.log("Movie view recorded successfully from episode selection");
@@ -1404,7 +1405,6 @@ if (!user) {
         console.error("Error recording movie view from episode selection:", viewError);
       }
     }
-    
     if (user && movie) {
       setTimeout(() => {
         startWatchSession(0);
@@ -1475,10 +1475,19 @@ if (!user) {
           
           if (response.ok) {
             const data = await response.json();
-            
-            // Nếu user có quyền ẩn quảng cáo video (Premium 15k), hiển thị player trực tiếp
+              // Nếu user có quyền ẩn quảng cáo video (Premium 15k), hiển thị player trực tiếp
             if (data.data && data.data.hideVideoAds === true) {
               console.log('%c[Movie Player] Premium user detected - showing player directly', 'color: #32CD32; font-weight: bold');
+              // Đánh dấu là đã ghi nhận lượt xem để tránh ghi nhận lại trong handleAdComplete
+              if (movie && movie._id) {
+                try { 
+                  await movieViewService.recordMovieView(movie._id);
+                  console.log("Movie view recorded successfully for premium user");
+                  viewRecordedRef.current = true;
+                } catch (viewError) {
+                  console.error("Error recording movie view for premium user:", viewError);
+                }
+              }
               setShowPlayer(true);
               return;
             }
@@ -1489,6 +1498,16 @@ if (!user) {
               
               if (data.data.packageType === '6826f81c13eb3da4a8bc6ce3') {
                 console.log('%c[Movie Player] Premium 15K package detected!', 'color: #FF00FF; font-weight: bold');
+                // Đánh dấu là đã ghi nhận lượt xem để tránh ghi nhận lại trong handleAdComplete
+                if (movie && movie._id) {
+                  try {
+                    await movieViewService.recordMovieView(movie._id);
+                    console.log("Movie view recorded successfully for premium 15K user");
+                    viewRecordedRef.current = true;
+                  } catch (viewError) {
+                    console.error("Error recording movie view for premium 15K user:", viewError);
+                  }
+                }
                 setShowPlayer(true);
                 return;
               }
@@ -2530,7 +2549,8 @@ if (!user) {
                 <RatingStats 
                   userRatingsStats={userRatingsStats} 
                   averageRating={averageRating} 
-                  ratingCount={ratingCount} 
+                  ratingCount={ratingCount}
+                  movieSlug={slug}
                 />
               </div>
 
