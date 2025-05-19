@@ -761,10 +761,82 @@
   border-radius: 15px;
   font-size: 0.9rem;
   transition: all 0.3s ease;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 6px;
+  position: relative;
+  overflow: hidden;
 }
 
 .actorBadge:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(220, 53, 69, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.actorBadge:active {
+  transform: translateY(0);
+}
+
+.searchableActor {
+  padding-right: 28px;
+}
+
+.actorBadge.clickable {
+  cursor: pointer;
+  position: relative;
+  padding-right: 22px;
+}
+
+.actorBadge::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: #dc3545;
+  transition: width 0.3s ease;
+}
+
+.actorBadge:hover::after {
+  width: 100%;
+}
+
+.actorBadge.loading {
+  background-color: rgba(220, 53, 69, 0.3);
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.actorBadge .spinner {
+  animation: spin 1.5s linear infinite;
+  margin-right: 5px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.actorBadge.clickable::after {
+  content: '\f35d';
+  font-family: 'bootstrap-icons';
+  position: absolute;
+  right: 8px;
+  font-size: 0.75rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.actorBadge:hover {
+  background-color: rgba(220, 53, 69, 0.2);
+  box-shadow: 0 2px 5px rgba(220, 53, 69, 0.2);
+}
+
+.actorBadge.clickable:hover::after {
+  opacity: 1;
 }
 
 .genresContainer {

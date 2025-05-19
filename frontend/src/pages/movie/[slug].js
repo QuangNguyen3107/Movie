@@ -48,6 +48,12 @@ const MovieDetail = ({ slug: slugProp }) => {
   const router = useRouter();
   const { slug: routerSlug } = router.query;
   const slug = slugProp || routerSlug;
+    // Verify TMDB API environment variables
+  useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_TMDB_API_KEY || !process.env.NEXT_PUBLIC_TMDB_BASE_URL || !process.env.NEXT_PUBLIC_TMDB_AUTH_TOKEN) {
+      console.warn('TMDB API environment variables not properly set. Actor search functionality may not work correctly.');
+    }
+  }, []);
   
   // Add a ref to track if we've already recorded a view for this session
   // This prevents double counting of views when both play functions are called
@@ -2283,15 +2289,65 @@ if (!user) {
                         {movie.quality}
                       </span>
                     )}
-                  </div>
-
-                  <h3 className={styles.sectionTitle}>Diễn Viên</h3>
-                  <div className={styles.actorsContainer}>
-                    {movie.actor?.map((actor, index) => (
-                      <span key={index} className={styles.actorBadge}>
-                        {typeof actor === 'object' ? actor.name : actor}
-                      </span>
-                    ))}
+                  </div>                  <h3 className={styles.sectionTitle}>Diễn Viên</h3>
+                  <div className={styles.actorsContainer}>                    {movie.actor?.map((actor, index) => {
+                      const actorName = typeof actor === 'object' ? actor.name : actor;
+                      
+                      // Use a function to search for actor on TMDB
+                      const handleActorClick = async (e) => {
+                        e.preventDefault();
+                        
+                        try {
+                          toast.info(`Đang tìm kiếm thông tin về diễn viên: ${actorName}...`, {
+                            autoClose: 2000
+                          });
+                          
+                          const response = await axios.get(`${process.env.NEXT_PUBLIC_TMDB_BASE_URL || 'https://api.themoviedb.org/3'}/search/person`, {
+                            params: {
+                              query: actorName,
+                              include_adult: false,
+                              language: 'vi-VN,en-US',
+                              page: 1,
+                              api_key: process.env.NEXT_PUBLIC_TMDB_API_KEY
+                            },
+                            headers: {
+                              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_TMDB_AUTH_TOKEN}`,
+                              'accept': 'application/json'
+                            }
+                          });
+                          
+                          if (response.data.results && response.data.results.length > 0) {
+                            // Lưu ID diễn viên vào localStorage để sử dụng sau này
+                            try {
+                              const existingActors = JSON.parse(localStorage.getItem('actorCache') || '{}');
+                              existingActors[actorName.toLowerCase()] = response.data.results[0].id;
+                              localStorage.setItem('actorCache', JSON.stringify(existingActors));
+                            } catch (e) {
+                              console.error("Error saving actor to cache:", e);
+                            }
+                            
+                            // Navigate to performer page with the first matched actor ID
+                            router.push(`/performer/${response.data.results[0].id}`);
+                          } else {
+                            toast.info(`Không tìm thấy thông tin diễn viên: ${actorName}. Đang thử tìm kiếm phim có diễn viên này...`);
+                            // Chuyển hướng đến trang tìm kiếm với tên diễn viên                          router.push(`/search?query=${encodeURIComponent(actorName)}`);
+                          }
+                        } catch (error) {
+                          console.error('Error searching for actor:', error);
+                          toast.error('Không thể tải thông tin diễn viên.');
+                        }
+                      };
+                        return (
+                        <span 
+                          key={index} 
+                          className={styles.actorBadge}
+                          onClick={handleActorClick}
+                          title={`Xem thông tin diễn viên: ${actorName}`}
+                        >
+                          {actorName}
+                        </span>
+                      );
+                    })}
                   </div>
 
                   <h3 className={styles.sectionTitle}>Thể Loại</h3>
