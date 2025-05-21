@@ -38,11 +38,12 @@ export const endpoints = {
       getById: (id) => `${API_URL}/admin/users/${id}`,
       create: () => `${API_URL}/admin/users`,
       update: (id) => `${API_URL}/admin/users/${id}`,
-      delete: (id) => `${API_URL}/admin/users/${id}`,
+      delete: (id) => `${API_URL}/admin/users/${id}`,      
       updateRole: (id) => `${API_URL}/admin/users/${id}/role`,
       ban: (id) => `${API_URL}/admin/users/${id}/ban`,
       unban: (id) => `${API_URL}/admin/users/${id}/unban`,
-      toggleStatus: (id) => `${API_URL}/admin/users/${id}/toggle-status`
+      toggleStatus: (id) => `${API_URL}/admin/users/${id}/toggle-status`,
+      uploadAvatar: (id) => `${API_URL}/admin/users/${id}/avatar`
     },
     roles: {
       getAll: () => `${API_URL}/admin/roles`
