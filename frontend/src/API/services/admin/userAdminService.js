@@ -193,3 +193,35 @@ export const getAccountTypesForAdmin = async () => {
     throw error;
   }
 };
+/**
+ * Tải lên avatar cho người dùng (dành cho admin)
+ * @param {string} id - ID của người dùng 
+ * @param {File} avatarFile - File avatar để tải lên
+ * @returns {Promise<{success: boolean, message: string, avatarUrl: string}>}
+ */
+export const uploadUserAvatar = async (id, avatarFile) => {
+  try {
+    console.log('Uploading avatar for user:', id);
+    console.log('Avatar file:', avatarFile.name, avatarFile.type, avatarFile.size);
+    
+    // Tạo FormData để gửi file
+    const formData = new FormData();
+    formData.append('avatar', avatarFile);
+    
+    const response = await axiosInstance.post(
+      endpoints.admin.users.uploadAvatar(id), 
+      formData, 
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+    
+    console.log('Upload response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error(`Error uploading avatar for user ${id}:`, error);
+    throw error;
+  }
+}; 

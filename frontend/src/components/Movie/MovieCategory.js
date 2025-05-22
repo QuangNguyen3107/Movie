@@ -964,11 +964,7 @@ const MovieCategory = ({ title, endpoint, showTopMovies = true }) => {
                           <span className="badge bg-danger">
                             {movie.year}
                           </span>
-                          {movie.quality && (
-                            <span className="badge bg-primary ms-1">
-                              {movie.quality}
-                            </span>
-                          )}
+                          
                         </div>
                         
                         <div className={styles.episodeInfoBadge}>

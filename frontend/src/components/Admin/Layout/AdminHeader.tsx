@@ -125,29 +125,7 @@ const AdminHeader = () => {
         </div>
 
         <div className={styles.headerRight}>
-          <div className={styles.notificationContainer}>
-            <button 
-              ref={notificationBtnRef}
-              className={styles.iconButton} 
-              onClick={toggleNotifications}
-              aria-label="Toggle Notifications"
-              aria-expanded={showNotifications}
-            >
-              <FaBell />
-              {unreadCount > 0 && (
-                <span className={styles.badge}>{unreadCount > 99 ? '99+' : unreadCount}</span>
-              )}
-            </button>
-            
-            {showNotifications && (
-              <div className={styles.notificationDropdown}>
-                <NotificationDropdown 
-                  isOpen={true}
-                  onClose={handleNotificationClose} 
-                />
-              </div>
-            )}
-          </div>
+
 
           <div className={styles.userDropdown} ref={userDropdownRef}>
             <button 

@@ -4,9 +4,9 @@ import { useRouter } from 'next/router';
 import { Card, Button, Row, Col, Alert, Spinner, Badge, Modal } from 'react-bootstrap';
 import Link from 'next/link';
 import { FaEdit, FaTrash, FaArrowLeft, FaCalendarCheck } from 'react-icons/fa';
-import AdminLayout from '@/components/Layout/AdminLayout';
-import { getUpcomingMovieById, releaseUpcomingMovie, deleteUpcomingMovie, UpcomingMovie } from '@/services/admin/upcomingMovieService';
-import ReleasedMovieLink from '@/components/Admin/UpcomingMovies/ReleasedMovieLink';
+import AdminLayout from '../../../components/Layout/AdminLayout';
+import { getUpcomingMovieById, releaseUpcomingMovie, deleteUpcomingMovie, UpcomingMovie } from '../../../services/admin/upcomingMovieService';
+import ReleasedMovieLink from '../../../components/Admin/UpcomingMovies/ReleasedMovieLink';
 
 const UpcomingMovieDetail: React.FC = () => {
   const router = useRouter();

@@ -70,7 +70,7 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }) {
     
     // Không kiểm tra account status cho các trang auth, admin và search
     if (isAuthPage || isAdminPage || isSearchPage) {
-      return component;vc
+      return component;
     }
     
     const AccountStatusWrapper = withAccountStatus(() => component);

@@ -1,20 +1,28 @@
-// src/pages/admin/movies/add.tsx
-'use client';
-
-import React, { useState, useEffect } from 'react';
-import { FaArrowLeft, FaPlus, FaTimes, FaUpload, FaSave, FaImage } from 'react-icons/fa';
+import React, { useState, useEffect, useRef } from 'react';
+import { FaArrowLeft, FaSave, FaInfoCircle, FaFilm, FaCamera, FaEye, FaPlus, FaCopyright, FaClosedCaptioning, FaArrowUp } from 'react-icons/fa';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import axios from '@/API/config/axiosConfig';
 import { toast } from 'react-toastify';
 import Link from 'next/link';
 import AdminLayout from '@/components/Layout/AdminLayout';
-import Image from 'next/image';
+import styles from '@/styles/AdminMoviesEnhanced.module.css';
+import EpisodeManager from '@/components/Admin/Movies/EpisodeManager';
+import FormField from '@/components/Admin/Movies/FormField';
+import ImageUrlInput from '@/components/Admin/Movies/ImageUrlInput';
+import FormSkeleton from '@/components/Admin/Movies/FormSkeleton';
 
 // Interface cho danh mục phim
 interface Category {
   id: string;
   name: string;
   slug: string;
+}
+
+// Interface cho đạo diễn và diễn viên
+interface Person {
+  id: string;
+  name: string;
 }
 
 // Interface cho server_data
@@ -26,22 +34,15 @@ interface Episode {
   link_m3u8: string;
 }
 
-// Interface cho episodes
-interface Server {
-  server_name: string;
-  server_data: Episode[];
-}
-
 const AddMovie = () => {
   const router = useRouter();
-  const [movie, setMovie] = useState({
+  const [showBackToTop, setShowBackToTop] = useState(false);  const [movie, setMovie] = useState({
     name: '',
     origin_name: '',
-    slug: '',
-    year: new Date().getFullYear(),
+    slug: '',    year: new Date().getFullYear(),
     thumb_url: '',
     poster_url: '',
-    backdrop_url: '',
+    // Đã loại bỏ backdrop_url
     trailer_url: '',
     category: [] as string[],
     type: 'movie', // Phù hợp với backend
@@ -86,14 +87,16 @@ const AddMovie = () => {
     imdb: {
       id: ''
     }
-  });
-
-  const [categories, setCategories] = useState<Category[]>([]);
+  });  const [categories, setCategories] = useState<Category[]>([]);
+  const [directors, setDirectors] = useState<Person[]>([]);  // State cho danh sách đạo diễn
+  const [actors, setActors] = useState<Person[]>([]);  // State cho danh sách diễn viên
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState('');
-  const [uploading, setUploading] = useState(false);
   const [newCategory, setNewCategory] = useState('');  // State cho input thể loại mới
-  const [countries, setCountries] = useState([
+  const [newDirector, setNewDirector] = useState('');  // State cho input đạo diễn mới
+  const [newActor, setNewActor] = useState('');  // State cho input diễn viên mới
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [countries] = useState([
     { id: 'vi', name: 'Việt Nam' },
     { id: 'us', name: 'Mỹ' },
     { id: 'kr', name: 'Hàn Quốc' },
@@ -119,10 +122,33 @@ const AddMovie = () => {
     { id: 'no', name: 'Na Uy' },
     { id: 'other', name: 'Khác' }
   ]);
-  const [posterFile, setPosterFile] = useState<File | null>(null);
-  const [thumbFile, setThumbFile] = useState<File | null>(null);
-  const [backDropFile, setBackDropFile] = useState<File | null>(null);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  // State để theo dõi tab đang active
+  const [activeTab, setActiveTab] = useState('basic-info');
+  
+  // Các bước của form
+  const formSteps = [
+    { id: 'basic-info', title: 'Thông tin cơ bản', icon: <FaInfoCircle className="mr-2" /> },
+    { id: 'movie-details', title: 'Chi tiết phim', icon: <FaFilm className="mr-2" /> },
+    { id: 'media', title: 'Hình ảnh & Media', icon: <FaCamera className="mr-2" /> },
+    { id: 'preview', title: 'Xem trước', icon: <FaEye className="mr-2" /> },
+  ];
+
+  // Hàm chuyển đến tab tiếp theo
+  const goToNextTab = () => {
+    const currentIndex = formSteps.findIndex(step => step.id === activeTab);
+    if (currentIndex < formSteps.length - 1) {
+      setActiveTab(formSteps[currentIndex + 1].id);
+    }
+  };
+
+  // Hàm quay lại tab trước
+  const goToPrevTab = () => {
+    const currentIndex = formSteps.findIndex(step => step.id === activeTab);
+    if (currentIndex > 0) {
+      setActiveTab(formSteps[currentIndex - 1].id);
+    }
+  };
 
   // Thêm hàm xử lý nhập mảng (categories và countries) ngăn cách bởi dấu phẩy
   const handleArrayTextInput = (field: string, value: string) => {
@@ -132,22 +158,20 @@ const AddMovie = () => {
       ...prev,
       [field]: arrayValue
     }));
-    
-    // Xóa lỗi nếu đã nhập dữ liệu
+      // Xóa lỗi nếu đã nhập dữ liệu
     if (arrayValue.length > 0 && validationErrors[field]) {
-      setValidationErrors(prev => ({ ...prev, [field]: undefined }));
+      const newErrors = { ...validationErrors };
+      delete newErrors[field];
+      setValidationErrors(newErrors);
     }
   };
-
   // Hàm định dạng mảng thành chuỗi
-  const getArrayAsString = (array: any[] | string) => {
+  const getArrayAsString = (array: string[] | string): string => {
     if (Array.isArray(array)) {
       return array.join(', ');
     } 
     return array || '';
-  };
-
-  // Lấy danh sách danh mục
+  };  // Lấy danh sách danh mục
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -162,6 +186,22 @@ const AddMovie = () => {
     };
 
     fetchCategories();
+    
+    // Khởi tạo dữ liệu cho đạo diễn và diễn viên phổ biến
+  }, []);
+  
+  // Handle scroll event to show/hide back to top button
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.pageYOffset > 300) {
+        setShowBackToTop(true);
+      } else {
+        setShowBackToTop(false);
+      }
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Xử lý tạo slug tự động từ tên phim
@@ -183,10 +223,11 @@ const AddMovie = () => {
       ...prev, 
       name: name,
       slug: generateSlug(name)
-    }));
-    // Xóa lỗi nếu trường đã được điền
+    }));    // Xóa lỗi nếu trường đã được điền
     if (name) {
-      setValidationErrors(prev => ({ ...prev, name: undefined }));
+      const newErrors = { ...validationErrors };
+      delete newErrors.name;
+      setValidationErrors(newErrors);
     }
   };
 
@@ -194,100 +235,14 @@ const AddMovie = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setMovie(prev => ({ ...prev, [name]: value }));
-    
-    // Xóa lỗi nếu trường đã được điền
+      // Xóa lỗi nếu trường đã được điền
     if (value && validationErrors[name]) {
-      setValidationErrors(prev => ({ ...prev, [name]: undefined }));
+      const newErrors = { ...validationErrors };
+      delete newErrors[name];
+      setValidationErrors(newErrors);
     }
   };
-
-  // Xử lý upload hình ảnh thumb
-  const handleThumbUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Tạo preview cho hình ảnh đã chọn
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-
-    // Lưu file để upload sau
-    setThumbFile(file);
-  };
-
-  // Xử lý upload hình ảnh poster
-  const handlePosterUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setPosterFile(file);
-  };
-
-  // Xử lý upload hình ảnh backdrop
-  const handleBackdropUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setBackDropFile(file);
-  };
-
-  // Hàm upload các file ảnh
-  const uploadImages = async () => {
-    const uploadedUrls: Record<string, string> = {};
-    
-    // Upload thumb_url
-    if (thumbFile) {
-      const formData = new FormData();
-      formData.append('image', thumbFile);
-      try {
-        const response = await axios.post('/upload/image', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        if (response.data && response.data.url) {
-          uploadedUrls.thumb_url = response.data.url;
-        }
-      } catch (error) {
-        console.error('Error uploading thumb image:', error);
-        throw new Error('Không thể tải hình thumbnail lên server');
-      }
-    }
-    
-    // Upload poster_url
-    if (posterFile) {
-      const formData = new FormData();
-      formData.append('image', posterFile);
-      try {
-        const response = await axios.post('/upload/image', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        if (response.data && response.data.url) {
-          uploadedUrls.poster_url = response.data.url;
-        }
-      } catch (error) {
-        console.error('Error uploading poster image:', error);
-        throw new Error('Không thể tải hình poster lên server');
-      }
-    }
-    
-    // Upload backdrop_url
-    if (backDropFile) {
-      const formData = new FormData();
-      formData.append('image', backDropFile);
-      try {
-        const response = await axios.post('/upload/image', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        if (response.data && response.data.url) {
-          uploadedUrls.backdrop_url = response.data.url;
-        }
-      } catch (error) {
-        console.error('Error uploading backdrop image:', error);
-        throw new Error('Không thể tải hình backdrop lên server');
-      }
-    }
-    
-    return uploadedUrls;
-  };
+  // No longer needed - using direct image URLs now
 
   // Kiểm tra tính hợp lệ của form
   const validateForm = () => {
@@ -328,7 +283,6 @@ const AddMovie = () => {
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
-
   // Xử lý submit form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -341,22 +295,16 @@ const AddMovie = () => {
 
     try {
       setLoading(true);
-      
-      // Upload các file ảnh
-      const uploadedUrls = await uploadImages();
-      
-      // Chuẩn bị dữ liệu gửi đi
-      const directorValue = typeof movie.director === 'string' 
-        ? movie.director.split(',').map(item => item.trim())
-        : Array.isArray(movie.director) && movie.director.length > 0 
-          ? movie.director 
-          : [];
+          // Chuẩn bị dữ liệu gửi đi
+      const directorValue = movie.director.map(id => {
+        const directorInfo = directors.find(d => d.id === id);
+        return directorInfo ? directorInfo.name : id;
+      });
         
-      const actorValue = typeof movie.actor === 'string'
-        ? movie.actor.split(',').map(item => item.trim())
-        : Array.isArray(movie.actor) && movie.actor.length > 0 
-          ? movie.actor 
-          : [];
+      const actorValue = movie.actor.map(id => {
+        const actorInfo = actors.find(a => a.id === id);
+        return actorInfo ? actorInfo.name : id;
+      });
       
       // Định dạng category cho đúng với schema - mỗi phần tử phải là object có id, name và slug
       const categoryValue = Array.isArray(movie.category) 
@@ -399,18 +347,16 @@ const AddMovie = () => {
             };
           })
         : [];
-      
-      // Đảm bảo các trường dữ liệu đúng định dạng
-      const formattedMovie = {
-        ...movie,
+        // Đảm bảo các trường dữ liệu đúng định dạng
+      const formattedMovie = {        ...movie,
         director: directorValue,
         actor: actorValue,
         year: Number(movie.year),
         category: categoryValue, // Sử dụng category đã định dạng đúng
         country: countryValue, // Sử dụng country đã định dạng đúng
-        thumb_url: uploadedUrls.thumb_url || movie.thumb_url,
-        poster_url: uploadedUrls.poster_url || movie.poster_url,
-        backdrop_url: uploadedUrls.backdrop_url || movie.backdrop_url
+        thumb_url: movie.thumb_url,
+        poster_url: movie.poster_url
+        // Đã loại bỏ backdrop_url khỏi dữ liệu gửi đi
       };
 
       // Ghi log dữ liệu gửi đi để debug
@@ -418,40 +364,56 @@ const AddMovie = () => {
 
       // Gửi request đến API backend
       const response = await axios.post('/movies', formattedMovie);
-      
-      if (response.data) {
+        if (response.data) {
         toast.success('Thêm phim mới thành công');
         console.log('Movie added successfully:', response.data);
-        router.push('/admin/movies');
-      }
-    } catch (error: any) {
+        // Type-safe router navigation
+        void router.push('/admin/movies');      }} catch (error) {
       console.error('Error adding movie:', error);
       
-      // Hiển thị thông báo lỗi chi tiết hơn
-      if (error.response) {
-        console.error('Error status:', error.response.status);
-        console.error('Error data:', error.response.data);
-        
-        if (error.response.data && error.response.data.message) {
-          toast.error(`Lỗi: ${error.response.data.message}`);
-        } else if (error.response.data && error.response.data.error) {
-          toast.error(`Lỗi: ${error.response.data.error}`);
-        } else {
-          toast.error(`Lỗi ${error.response.status}: Không thể thêm phim mới`);
+      // Handle error with type safety
+      let errorMessage = 'Unknown error occurred';
+      
+      // Type safety - check for properties we expect, one by one
+      if (error && typeof error === 'object') {
+        // Check for error message
+        if ('message' in error && typeof error.message === 'string') {
+          errorMessage = error.message;
         }
-      } else if (error.request) {
-        // Yêu cầu đã được gửi nhưng không nhận được phản hồi
-        console.error('Error request:', error.request);
-        toast.error('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.');
-      } else {
-        // Có lỗi khi thiết lập request
-        toast.error(`Lỗi: ${error.message}`);
+        
+        // Check for axios response object
+        if ('response' in error) {
+          const response = error.response;
+          
+          if (response && typeof response === 'object') {
+            // Process response data if available
+            if ('data' in response && response.data) {
+              const data = response.data;
+              
+              if (typeof data === 'object') {
+                if ('message' in data && typeof data.message === 'string') {
+                  errorMessage = data.message;
+                } else if ('error' in data && typeof data.error === 'string') {
+                  errorMessage = data.error;
+                }
+              }
+            }
+            
+            // Include status code if available
+            if ('status' in response && typeof response.status === 'number') {
+              errorMessage = `Error ${response.status}: ${errorMessage}`;
+            }
+          }
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
       }
+      
+      toast.error(`Lỗi: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
   };
-
   // Xử lý thêm thể loại mới
   const handleAddCustomCategory = () => {
     if (!newCategory.trim()) {
@@ -480,8 +442,64 @@ const AddMovie = () => {
     
     // Xóa lỗi thể loại nếu có
     if (validationErrors.category) {
-      setValidationErrors(prev => ({ ...prev, category: undefined }));
+      const newErrors = { ...validationErrors };
+      delete newErrors.category;
+      setValidationErrors(newErrors);
     }
+  };
+
+  // Xử lý thêm đạo diễn mới
+  const handleAddCustomDirector = () => {
+    if (!newDirector.trim()) {
+      toast.error('Vui lòng nhập tên đạo diễn');
+      return;
+    }
+    
+    // Tạo ID tạm thời cho đạo diễn mới
+    const tempId = `director-${Date.now()}`;
+    
+    // Thêm vào danh sách director đã chọn
+    setMovie(prev => ({
+      ...prev,
+      director: [...prev.director, tempId]
+    }));
+    
+    // Thêm vào danh sách directors để hiển thị trong UI
+    setDirectors(prev => [
+      ...prev,
+      { id: tempId, name: newDirector.trim() }
+    ]);
+    
+    // Reset input
+    setNewDirector('');
+    toast.success(`Đã thêm đạo diễn "${newDirector.trim()}"`);
+  };
+
+  // Xử lý thêm diễn viên mới
+  const handleAddCustomActor = () => {
+    if (!newActor.trim()) {
+      toast.error('Vui lòng nhập tên diễn viên');
+      return;
+    }
+    
+    // Tạo ID tạm thời cho diễn viên mới
+    const tempId = `actor-${Date.now()}`;
+    
+    // Thêm vào danh sách actor đã chọn
+    setMovie(prev => ({
+      ...prev,
+      actor: [...prev.actor, tempId]
+    }));
+    
+    // Thêm vào danh sách actors để hiển thị trong UI
+    setActors(prev => [
+      ...prev,
+      { id: tempId, name: newActor.trim() }
+    ]);
+    
+    // Reset input
+    setNewActor('');
+    toast.success(`Đã thêm diễn viên "${newActor.trim()}"`);
   };
 
   // Xử lý thêm server mới
@@ -568,732 +586,934 @@ const AddMovie = () => {
     }));
   };
 
+  // Define the scrollToTop function
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
   return (
     <AdminLayout>
-      <div className="wrapper">
+      <div className={styles.pageContainer}>
         {/* Content Header */}
-        <section className="content-header">
-          <div className="container-fluid">
-            <div className="row mb-2">
-              <div className="col-sm-6">
-                <h1 className="m-0">Thêm Phim Mới</h1>
-              </div>
-              <div className="col-sm-6">
-                <ol className="breadcrumb float-sm-right">
-                  <li className="breadcrumb-item"><Link href="/admin">Dashboard</Link></li>
-                  <li className="breadcrumb-item"><Link href="/admin/movies">Quản lý phim</Link></li>
-                  <li className="breadcrumb-item active">Thêm phim mới</li>
-                </ol>
-              </div>
+        <header className={styles.pageHeader}>
+          <h1 className={styles.pageTitle}>
+            <FaFilm className={styles.headerIcon} />
+            Thêm Phim Mới
+          </h1>
+          <ul className={styles.breadcrumb}>
+            <li>
+              <Link href="/admin/dashboard">Dashboard</Link>
+            </li>
+            <li>
+              <Link href="/admin/movies">Quản lý phim</Link>
+            </li>
+            <li>Thêm phim mới</li>
+          </ul>
+        </header>
+
+        {/* Back to Top Button */}
+        <button 
+          className={`${styles.backToTop} ${showBackToTop ? styles.visible : ''}`}
+          onClick={scrollToTop}
+          aria-label="Back to top"
+        >
+          <FaArrowUp />
+        </button>
+
+        {loading ? (
+          <FormSkeleton />
+        ) : (
+          <form onSubmit={handleSubmit}>
+            {/* Tab Navigation */}
+            <div className={styles.tabNav}>
+              {formSteps.map((step) => (
+                <div
+                  key={step.id}
+                  className={`${styles.tabItem} ${activeTab === step.id ? styles.tabItemActive : ''}`}
+                  onClick={() => setActiveTab(step.id)}
+                >
+                  <span className={styles.tabIcon}>{step.icon}</span>
+                  {step.title}
+                </div>
+              ))}
             </div>
-          </div>
-        </section>
 
-        {/* Main content */}
-        <section className="content">
-          <div className="container-fluid">
-            <div className="row">
-              <div className="col-md-12">
-                <div className="card card-primary card-outline">
-                  <div className="card-header">
-                    <h3 className="card-title">
-                      <i className="fas fa-film mr-1"></i>
-                      Thông tin phim
-                    </h3>
+            {/* Basic Info Section */}
+            {activeTab === 'basic-info' && (
+              <div className={styles.formSection}>
+                <div className={styles.formTitle}>
+                  <span>
+                    <FaInfoCircle className="mr-2" /> 
+                    Thông tin cơ bản
+                  </span>
+                </div>
+                <div className={styles.formContent}>
+                  <div className={styles.formRow}>
+                    <div className={styles.formCol}>
+                      <FormField 
+                        label="Tên phim (Tiếng Việt)" 
+                        id="name" 
+                        required 
+                        error={validationErrors.name}
+                      >
+                        <input
+                          type="text"
+                          id="name"
+                          name="name"
+                          value={movie.name}
+                          onChange={handleNameChange}
+                          className={styles.formInput}
+                          placeholder="Nhập tên phim bằng tiếng Việt"
+                        />
+                      </FormField>
+                    </div>
+                    <div className={styles.formCol}>
+                      <FormField 
+                        label="Tên gốc" 
+                        id="origin_name" 
+                        required 
+                        error={validationErrors.origin_name}
+                      >
+                        <input
+                          type="text"
+                          id="origin_name"
+                          name="origin_name"
+                          value={movie.origin_name}
+                          onChange={handleChange}
+                          className={styles.formInput}
+                          placeholder="Nhập tên gốc của phim"
+                        />
+                      </FormField>
+                    </div>
                   </div>
-                  <form onSubmit={handleSubmit}>
-                    <div className="card-body">
-                      <div className="row">
-                        {/* Cột trái */}
-                        <div className="col-md-8">
-                          <div className="card card-primary">
-                            <div className="card-header">
-                              <h3 className="card-title">Thông tin cơ bản</h3>
-                            </div>
-                            <div className="card-body">
-                              <div className="form-group">
-                                <label htmlFor="name">Tên phim (Tiếng Việt) <span className="text-danger">*</span></label>
-                                <input
-                                  type="text"
-                                  id="name"
-                                  name="name"
-                                  value={movie.name}
-                                  onChange={handleNameChange}
-                                  className={`form-control ${validationErrors.name ? 'is-invalid' : ''}`}
-                                  placeholder="Nhập tên phim"
-                                  required
-                                />
-                                {validationErrors.name && <div className="invalid-feedback">{validationErrors.name}</div>}
-                              </div>
 
-                              <div className="form-group">
-                                <label htmlFor="origin_name">Tên gốc <span className="text-danger">*</span></label>
-                                <input
-                                  type="text"
-                                  id="origin_name"
-                                  name="origin_name"
-                                  value={movie.origin_name}
-                                  onChange={handleChange}
-                                  className={`form-control ${validationErrors.origin_name ? 'is-invalid' : ''}`}
-                                  placeholder="Nhập tên gốc của phim"
-                                  required
-                                />
-                                {validationErrors.origin_name && <div className="invalid-feedback">{validationErrors.origin_name}</div>}
-                              </div>
+                  <div className={styles.formRow}>
+                    <div className={styles.formCol}>
+                      <FormField 
+                        label="Slug URL" 
+                        id="slug" 
+                        required 
+                        error={validationErrors.slug}
+                        hint="Slug sẽ được tự động tạo từ tên phim"
+                      >
+                        <div className={styles.inputGroupAddon}>
+                          <input
+                            type="text"
+                            id="slug"
+                            name="slug"
+                            value={movie.slug}
+                            onChange={handleChange}
+                            className={styles.formInput}
+                            placeholder="slug-tu-dong"
+                          />
+                          <button 
+                            type="button" 
+                            onClick={() => movie.name && setMovie(prev => ({ ...prev, slug: generateSlug(movie.name) }))
+                            }
+                            className={styles.addonButton}
+                          >
+                            Tạo lại
+                          </button>
+                        </div>
+                      </FormField>
+                    </div>
+                    <div className={styles.formCol}>
+                      <FormField 
+                        label="Năm sản xuất" 
+                        id="year" 
+                        required 
+                        error={validationErrors.year}
+                      >
+                        <input
+                          type="number"
+                          id="year"
+                          name="year"
+                          value={movie.year}
+                          onChange={handleChange}
+                          min="1900"
+                          max="2100"
+                          className={styles.formInput}
+                          placeholder="Nhập năm sản xuất"
+                        />
+                      </FormField>
+                    </div>
+                  </div>
 
-                              <div className="row">
-                                <div className="col-md-6">
-                                  <div className="form-group">
-                                    <label htmlFor="slug">Slug URL <span className="text-danger">*</span></label>
-                                    <div className="input-group">
-                                      <input
-                                        type="text"
-                                        id="slug"
-                                        name="slug"
-                                        value={movie.slug}
-                                        onChange={handleChange}
-                                        className={`form-control ${validationErrors.slug ? 'is-invalid' : ''}`}
-                                        placeholder="Slug sẽ được tạo tự động từ tên phim"
-                                        required
-                                      />
-                                      <div className="input-group-append">
-                                        <button 
-                                          type="button"
-                                          className="btn btn-info"
-                                          onClick={() => setMovie(prev => ({ ...prev, slug: generateSlug(movie.name) }))}
-                                        >
-                                          Tạo lại
-                                        </button>
-                                      </div>
-                                    </div>
-                                    {validationErrors.slug && <div className="invalid-feedback d-block">{validationErrors.slug}</div>}
-                                    <small className="form-text text-muted">Slug được tạo tự động từ tên phim, bạn có thể chỉnh sửa nếu cần</small>
-                                  </div>
-                                </div>
-                                <div className="col-md-6">
-                                  <div className="form-group">
-                                    <label htmlFor="year">Năm sản xuất <span className="text-danger">*</span></label>
-                                    <input
-                                      type="number"
-                                      id="year"
-                                      name="year"
-                                      min="1900"
-                                      max={new Date().getFullYear() + 10}
-                                      value={movie.year}
-                                      onChange={handleChange}
-                                      className={`form-control ${validationErrors.year ? 'is-invalid' : ''}`}
-                                      required
-                                    />
-                                    {validationErrors.year && <div className="invalid-feedback">{validationErrors.year}</div>}
-                                  </div>
-                                </div>
+                  <div className={styles.formRow}>
+                    <div className={styles.formCol}>
+                      <FormField 
+                        label="Thể loại" 
+                        id="category" 
+                        required 
+                        error={validationErrors.category}
+                      >
+                        <div className={styles.categorySelection}>
+                          <div className={styles.checkboxContainer}>
+                            {categories.map((category) => (
+                              <div key={category.id} className={styles.checkboxGroup}>
+                                <label className={styles.checkboxLabel}>
+                                  <input
+                                    type="checkbox"
+                                    name="category"
+                                    value={category.id}
+                                    checked={movie.category.includes(category.id)}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      setMovie(prev => ({
+                                        ...prev,
+                                        category: e.target.checked
+                                          ? [...prev.category, value]
+                                          : prev.category.filter(id => id !== value)
+                                      }));
+                                      
+                                      // Xóa lỗi nếu đã chọn ít nhất một thể loại
+                                      if (e.target.checked && validationErrors.category) {
+                                        const newErrors = { ...validationErrors };
+                                        delete newErrors.category;
+                                        setValidationErrors(newErrors);
+                                      }
+                                    }}
+                                    className={styles.checkboxInput}
+                                  />
+                                  {category.name}
+                                </label>
                               </div>
-
-                              <div className="row">
-                                <div className="col-md-4">
-                                  <div className="form-group">
-                                    <label htmlFor="type">Loại phim <span className="text-danger">*</span></label>
-                                    <select
-                                      id="type"
-                                      name="type"
-                                      value={movie.type}
-                                      onChange={handleChange}
-                                      className={`form-control ${validationErrors.type ? 'is-invalid' : ''}`}
-                                      required
-                                    >
-                                      <option value="movie">Phim lẻ</option>
-                                      <option value="series">Phim bộ</option>
-                                      <option value="tv">TV Shows</option>
-                                    </select>
-                                    {validationErrors.type && <div className="invalid-feedback">{validationErrors.type}</div>}
-                                  </div>
-                                </div>
-                                <div className="col-md-4">
-                                  <div className="form-group">
-                                    <label htmlFor="quality">Chất lượng <span className="text-danger">*</span></label>
-                                    <select
-                                      id="quality"
-                                      name="quality"
-                                      value={movie.quality}
-                                      onChange={handleChange}
-                                      className={`form-control ${validationErrors.quality ? 'is-invalid' : ''}`}
-                                      required
-                                    >
-                                      <option value="HD">HD</option>
-                                      <option value="FHD">FHD</option>
-                                      <option value="SD">SD</option>
-                                    </select>
-                                    {validationErrors.quality && <div className="invalid-feedback">{validationErrors.quality}</div>}
-                                  </div>
-                                </div>
-                                <div className="col-md-4">
-                                  <div className="form-group">
-                                    <label htmlFor="lang">Ngôn ngữ <span className="text-danger">*</span></label>
-                                    <select
-                                      id="lang"
-                                      name="lang"
-                                      value={movie.lang}
-                                      onChange={handleChange}
-                                      className={`form-control ${validationErrors.lang ? 'is-invalid' : ''}`}
-                                      required
-                                    >
-                                      <option value="Vietsub">Vietsub</option>
-                                      <option value="Thuyết minh">Thuyết minh</option>
-                                    </select>
-                                    {validationErrors.lang && <div className="invalid-feedback">{validationErrors.lang}</div>}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="form-group">
-                                <label htmlFor="content">Nội dung phim <span className="text-danger">*</span></label>
-                                <textarea
-                                  id="content"
-                                  name="content"
-                                  value={movie.content}
-                                  onChange={handleChange}
-                                  className={`form-control ${validationErrors.content ? 'is-invalid' : ''}`}
-                                  placeholder="Nhập nội dung, cốt truyện của phim"
-                                  rows={5}
-                                  required
-                                />
-                                {validationErrors.content && <div className="invalid-feedback">{validationErrors.content}</div>}
-                              </div>
-                            </div>
+                            ))}
                           </div>
 
-                          <div className="card card-info">
-                            <div className="card-header">
-                              <h3 className="card-title">Thông tin tập phim</h3>
-                              <div className="card-tools">
-                                <button type="button" className="btn btn-tool" data-card-widget="collapse">
-                                  <i className="fas fa-minus"></i>
-                                </button>
-                              </div>
-                            </div>
-                            <div className="card-body">
-                              <div className="row">
-                                <div className="col-md-4">
-                                  <div className="form-group">
-                                    <label htmlFor="time">Thời lượng</label>
-                                    <input
-                                      type="text"
-                                      id="time"
-                                      name="time"
-                                      value={movie.time}
-                                      onChange={handleChange}
-                                      className="form-control"
-                                      placeholder="VD: 60 phút/tập, 120 phút"
-                                    />
-                                  </div>
-                                </div>
-                                <div className="col-md-4">
-                                  <div className="form-group">
-                                    <label htmlFor="episode_current">Trạng thái tập hiện tại</label>
-                                    <input
-                                      type="text"
-                                      id="episode_current"
-                                      name="episode_current"
-                                      value={movie.episode_current}
-                                      onChange={handleChange}
-                                      className="form-control"
-                                      placeholder="VD: Hoàn Tất (12/12)"
-                                    />
-                                  </div>
-                                </div>
-                                <div className="col-md-4">
-                                  <div className="form-group">
-                                    <label htmlFor="episode_total">Tổng số tập</label>
-                                    <input
-                                      type="text"
-                                      id="episode_total"
-                                      name="episode_total"
-                                      value={movie.episode_total}
-                                      onChange={handleChange}
-                                      className="form-control"
-                                      placeholder="VD: 12 Tập"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <div className="row">
-                                <div className="col-md-6">
-                                  <div className="form-group">
-                                    <label htmlFor="status">Tình trạng <span className="text-danger">*</span></label>
-                                    <select
-                                      id="status"
-                                      name="status"
-                                      value={movie.status}
-                                      onChange={handleChange}
-                                      className={`form-control ${validationErrors.status ? 'is-invalid' : ''}`}
-                                      required
-                                    >
-                                      <option value="completed">Hoàn thành</option>
-                                      <option value="updating">Đang cập nhật</option>
-                                    </select>
-                                    {validationErrors.status && <div className="invalid-feedback">{validationErrors.status}</div>}
-                                  </div>
-                                </div>
-                                <div className="col-md-6">
-                                  <div className="form-group">
-                                    <label htmlFor="showtimes">Lịch chiếu</label>
-                                    <input
-                                      type="text"
-                                      id="showtimes"
-                                      name="showtimes"
-                                      value={movie.showtimes}
-                                      onChange={handleChange}
-                                      className="form-control"
-                                      placeholder="VD: Thứ 2, 3, 4 hàng tuần"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="card card-success">
-                            <div className="card-header">
-                              <h3 className="card-title">Quản lý tập phim</h3>
-                              <div className="card-tools">
-                                <button type="button" className="btn btn-tool" data-card-widget="collapse">
-                                  <i className="fas fa-minus"></i>
-                                </button>
-                              </div>
-                            </div>
-                            <div className="card-body p-0">
-                              <div className="p-3">
-                                {movie.episodes.map((server, serverIndex) => (
-                                  <div key={serverIndex} className="card card-outline card-info mb-3">
-                                    <div className="card-header">
-                                      <div className="card-title w-75">
-                                        <div className="input-group">
-                                          <div className="input-group-prepend">
-                                            <span className="input-group-text">Server:</span>
-                                          </div>
-                                          <input
-                                            type="text"
-                                            value={server.server_name}
-                                            onChange={(e) => handleServerNameChange(serverIndex, e.target.value)}
-                                            className="form-control"
-                                            placeholder="VD: Vietsub #1, Thuyết minh, v.v..."
-                                          />
-                                        </div>
-                                      </div>
-                                      <div className="card-tools">
-                                        <button
-                                          type="button"
-                                          className="btn btn-danger btn-sm"
-                                          onClick={() => handleRemoveServer(serverIndex)}
-                                          disabled={movie.episodes.length === 1}
-                                        >
-                                          <i className="fas fa-trash mr-1"></i>
-                                          Xóa server
-                                        </button>
-                                      </div>
-                                    </div>
-                                    <div className="card-body p-0">
-                                      <div className="table-responsive">
-                                        <table className="table table-striped mb-0">
-                                          <thead>
-                                            <tr>
-                                              <th style={{width: '30px'}}>#</th>
-                                              <th>Tên tập</th>
-                                              <th>Slug</th>
-                                              <th>Link nhúng</th>
-                                              <th style={{width: '80px'}}>Thao tác</th>
-                                            </tr>
-                                          </thead>
-                                          <tbody>
-                                            {server.server_data.map((episode, episodeIndex) => (
-                                              <tr key={episodeIndex}>
-                                                <td>{episodeIndex + 1}</td>
-                                                <td>
-                                                  <input
-                                                    type="text"
-                                                    value={episode.name}
-                                                    onChange={(e) => handleUpdateEpisode(serverIndex, episodeIndex, 'name', e.target.value)}
-                                                    className="form-control form-control-sm"
-                                                    placeholder="Tên tập"
-                                                  />
-                                                </td>
-                                                <td>
-                                                  <input
-                                                    type="text"
-                                                    value={episode.slug}
-                                                    onChange={(e) => handleUpdateEpisode(serverIndex, episodeIndex, 'slug', e.target.value)}
-                                                    className="form-control form-control-sm"
-                                                    placeholder="Slug tập"
-                                                  />
-                                                </td>
-                                                <td>
-                                                  <input
-                                                    type="text"
-                                                    value={episode.link_embed}
-                                                    onChange={(e) => handleUpdateEpisode(serverIndex, episodeIndex, 'link_embed', e.target.value)}
-                                                    className="form-control form-control-sm"
-                                                    placeholder="Link nhúng"
-                                                  />
-                                                  <input
-                                                    type="text"
-                                                    value={episode.link_m3u8}
-                                                    onChange={(e) => handleUpdateEpisode(serverIndex, episodeIndex, 'link_m3u8', e.target.value)}
-                                                    className="form-control form-control-sm mt-1"
-                                                    placeholder="Link m3u8 (nếu có)"
-                                                  />
-                                                </td>
-                                                <td>
-                                                  <button
-                                                    type="button"
-                                                    className="btn btn-danger btn-sm"
-                                                    onClick={() => handleRemoveEpisode(serverIndex, episodeIndex)}
-                                                    disabled={server.server_data.length === 1}
-                                                  >
-                                                    <i className="fas fa-trash"></i>
-                                                  </button>
-                                                </td>
-                                              </tr>
-                                            ))}
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                      <div className="card-footer">
-                                        <button
-                                          type="button"
-                                          className="btn btn-info btn-sm"
-                                          onClick={() => handleAddEpisode(serverIndex)}
-                                        >
-                                          <i className="fas fa-plus mr-1"></i>
-                                          Thêm tập mới
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                                <button
-                                  type="button"
-                                  className="btn btn-success"
-                                  onClick={handleAddServer}
-                                >
-                                  <i className="fas fa-plus mr-1"></i>
-                                  Thêm server mới
-                                </button>
-                              </div>
+                          <div className={styles.addCustomCategory}>
+                            <div className={styles.inputGroupAddon}>
+                              <input
+                                type="text"
+                                value={newCategory}
+                                onChange={(e) => setNewCategory(e.target.value)}
+                                className={styles.formInput}
+                                placeholder="Thêm thể loại mới"
+                              />
+                              <button
+                                type="button"
+                                onClick={handleAddCustomCategory}
+                                className={styles.addonButton}
+                                title="Thêm thể loại"
+                              >
+                                <FaPlus />
+                              </button>
                             </div>
                           </div>
                         </div>
+                      </FormField>
+                    </div>
+                  </div>
 
-                        {/* Cột phải */}
-                        <div className="col-md-4">
-                          <div className="card card-secondary">
-                            <div className="card-header">
-                              <h3 className="card-title">Hình ảnh & Media</h3>
-                            </div>
-                            <div className="card-body">
-                              <div className="form-group">
-                                <label>Thumbnail <span className="text-danger">*</span></label>
-                                <div className="input-group mb-3">
-                                  <div className="custom-file">
-                                    <input
-                                      type="file"
-                                      className="custom-file-input"
-                                      id="thumbImage"
-                                      accept="image/*"
-                                      onChange={handleThumbUpload}
-                                    />
-                                    <label className="custom-file-label" htmlFor="thumbImage">
-                                      {thumbFile ? thumbFile.name : 'Chọn hình ảnh thumbnail'}
-                                    </label>
-                                  </div>
-                                </div>
-                                {preview && (
-                                  <div className="mt-2 text-center">
-                                    <img 
-                                      src={preview} 
-                                      alt="Preview" 
-                                      className="img-thumbnail" 
-                                      style={{ maxHeight: '200px' }} 
-                                    />
-                                  </div>
-                                )}
-                                {!preview && movie.thumb_url && (
-                                  <div className="mt-2 text-center">
-                                    <img 
-                                      src={movie.thumb_url} 
-                                      alt="Current Thumbnail" 
-                                      className="img-thumbnail" 
-                                      style={{ maxHeight: '200px' }} 
-                                    />
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="form-group">
-                                <label>Poster</label>
-                                <div className="input-group mb-3">
-                                  <div className="custom-file">
-                                    <input
-                                      type="file"
-                                      className="custom-file-input"
-                                      id="posterImage"
-                                      accept="image/*"
-                                      onChange={handlePosterUpload}
-                                    />
-                                    <label className="custom-file-label" htmlFor="posterImage">
-                                      {posterFile ? posterFile.name : 'Chọn hình ảnh poster'}
-                                    </label>
-                                  </div>
-                                </div>
-
-                                <label htmlFor="poster_url">hoặc URL Poster</label>
+                  <div className={styles.formRow}>
+                    <div className={styles.formCol}>
+                      <FormField 
+                        label="Quốc gia" 
+                        id="country" 
+                        required 
+                        error={validationErrors.country}
+                      >
+                        <div className={styles.checkboxContainer}>
+                          {countries.map((country) => (
+                            <div key={country.id} className={styles.checkboxGroup}>
+                              <label className={styles.checkboxLabel}>
                                 <input
-                                  type="url"
-                                  id="poster_url"
-                                  name="poster_url"
-                                  value={movie.poster_url}
-                                  onChange={handleChange}
-                                  className="form-control"
-                                  placeholder="Nhập URL hình poster phim"
-                                />
-                              </div>
-
-                              <div className="form-group">
-                                <label>Backdrop</label>
-                                <div className="input-group mb-3">
-                                  <div className="custom-file">
-                                    <input
-                                      type="file"
-                                      className="custom-file-input"
-                                      id="backdropImage"
-                                      accept="image/*"
-                                      onChange={handleBackdropUpload}
-                                    />
-                                    <label className="custom-file-label" htmlFor="backdropImage">
-                                      {backDropFile ? backDropFile.name : 'Chọn hình ảnh backdrop'}
-                                    </label>
-                                  </div>
-                                </div>
-
-                                <label htmlFor="backdrop_url">hoặc URL Backdrop</label>
-                                <input
-                                  type="url"
-                                  id="backdrop_url"
-                                  name="backdrop_url"
-                                  value={movie.backdrop_url}
-                                  onChange={handleChange}
-                                  className="form-control"
-                                  placeholder="Nhập URL hình backdrop phim"
-                                />
-                              </div>
-
-                              <div className="form-group">
-                                <label htmlFor="trailer_url">URL Trailer</label>
-                                <input
-                                  type="url"
-                                  id="trailer_url"
-                                  name="trailer_url"
-                                  value={movie.trailer_url}
-                                  onChange={handleChange}
-                                  className="form-control"
-                                  placeholder="Nhập URL video trailer (YouTube)"
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="card card-warning">
-                            <div className="card-header">
-                              <h3 className="card-title">Thể loại & Phân loại</h3>
-                            </div>
-                            <div className="card-body">
-                              <div className="form-group">
-                                <label>Thể loại <span className="text-danger">*</span></label>
-                                <textarea
-                                  id="category"
-                                  name="category"
-                                  value={getArrayAsString(movie.category)}
-                                  onChange={(e) => handleArrayTextInput('category', e.target.value)}
-                                  className={`form-control ${validationErrors.category ? 'is-invalid' : ''}`}
-                                  placeholder="Nhập các thể loại, phân cách bằng dấu phẩy"
-                                  rows={3}
-                                  required
-                                />
-                                {validationErrors.category && <div className="text-danger">{validationErrors.category}</div>}
-                              </div>
-
-                              <div className="form-group mt-4">
-                                <label>Quốc gia <span className="text-danger">*</span></label>
-                                <textarea
-                                  id="country"
+                                  type="checkbox"
                                   name="country"
-                                  value={getArrayAsString(movie.country)}
-                                  onChange={(e) => handleArrayTextInput('country', e.target.value)}
-                                  className={`form-control ${validationErrors.country ? 'is-invalid' : ''}`}
-                                  placeholder="Nhập các quốc gia, phân cách bằng dấu phẩy"
-                                  rows={3}
-                                  required
+                                  value={country.id}
+                                  checked={movie.country.includes(country.id)}
+                                  onChange={(e) => {
+                                    const value = e.target.value;
+                                    setMovie(prev => ({
+                                      ...prev,
+                                      country: e.target.checked
+                                        ? [...prev.country, value]
+                                        : prev.country.filter(id => id !== value)
+                                    }));
+                                    
+                                    // Xóa lỗi nếu đã chọn ít nhất một quốc gia
+                                    if (e.target.checked && validationErrors.country) {
+                                      const newErrors = { ...validationErrors };
+                                      delete newErrors.country;
+                                      setValidationErrors(newErrors);
+                                    }
+                                  }}
+                                  className={styles.checkboxInput}
                                 />
-                                {validationErrors.country && <div className="text-danger">{validationErrors.country}</div>}
-                              </div>
+                                {country.name}
+                              </label>
                             </div>
-                          </div>
-
-                          <div className="card card-secondary">
-                            <div className="card-header">
-                              <h3 className="card-title">Diễn viên & Đạo diễn</h3>
-                            </div>
-                            <div className="card-body">
-                              <div className="form-group">
-                                <label htmlFor="director">Đạo diễn</label>
-                                <input
-                                  type="text"
-                                  id="director"
-                                  name="director"
-                                  value={movie.director}
-                                  onChange={handleChange}
-                                  className="form-control"
-                                  placeholder="Nhập tên đạo diễn, phân cách bằng dấu phẩy"
-                                />
-                                <small className="form-text text-muted">Phân cách bằng dấu phẩy, ví dụ: James Cameron, Christopher Nolan</small>
-                              </div>
-
-                              <div className="form-group">
-                                <label htmlFor="actor">Diễn viên</label>
-                                <textarea
-                                  id="actor"
-                                  name="actor"
-                                  value={movie.actor}
-                                  onChange={handleChange}
-                                  className="form-control"
-                                  placeholder="Nhập tên diễn viên, phân cách bằng dấu phẩy"
-                                  rows={3}
-                                />
-                                <small className="form-text text-muted">Phân cách bằng dấu phẩy, ví dụ: Tom Hanks, Leonardo DiCaprio</small>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="card card-danger">
-                            <div className="card-header">
-                              <h3 className="card-title">Tùy chọn bổ sung</h3>
-                            </div>
-                            <div className="card-body">
-                              <div className="custom-control custom-switch mb-3">
-                                <input 
-                                  type="checkbox" 
-                                  className="custom-control-input" 
-                                  id="is_copyright"
-                                  checked={movie.is_copyright}
-                                  onChange={(e) => setMovie({ ...movie, is_copyright: e.target.checked })}
-                                />
-                                <label className="custom-control-label" htmlFor="is_copyright">Có bản quyền</label>
-                              </div>
-                              
-                              <div className="custom-control custom-switch mb-3">
-                                <input 
-                                  type="checkbox" 
-                                  className="custom-control-input" 
-                                  id="chieurap"
-                                  checked={movie.chieurap}
-                                  onChange={(e) => setMovie({ ...movie, chieurap: e.target.checked })}
-                                />
-                                <label className="custom-control-label" htmlFor="chieurap">Phim chiếu rạp</label>
-                              </div>
-                              
-                              <div className="custom-control custom-switch mb-3">
-                                <input 
-                                  type="checkbox" 
-                                  className="custom-control-input" 
-                                  id="sub_docquyen"
-                                  checked={movie.sub_docquyen}
-                                  onChange={(e) => setMovie({ ...movie, sub_docquyen: e.target.checked })}
-                                />
-                                <label className="custom-control-label" htmlFor="sub_docquyen">Sub độc quyền</label>
-                              </div>
-
-                              <div className="form-group">
-                                <label htmlFor="notify">Thông báo</label>
-                                <input
-                                  type="text"
-                                  id="notify"
-                                  name="notify"
-                                  value={movie.notify}
-                                  onChange={handleChange}
-                                  className="form-control"
-                                  placeholder="Thông báo hiển thị kèm phim"
-                                />
-                              </div>
-
-                              <div className="form-group">
-                                <label htmlFor="tmdb_id">ID TMDB (nếu có)</label>
-                                <input
-                                  type="text"
-                                  id="tmdb_id"
-                                  name="tmdb.id"
-                                  value={movie.tmdb.id}
-                                  onChange={(e) => setMovie({ 
-                                    ...movie, 
-                                    tmdb: { 
-                                      ...movie.tmdb, 
-                                      id: e.target.value 
-                                    } 
-                                  })}
-                                  className="form-control"
-                                  placeholder="ID phim trên TMDB"
-                                />
-                              </div>
-
-                              <div className="form-group">
-                                <label htmlFor="imdb_id">ID IMDB (nếu có)</label>
-                                <input
-                                  type="text"
-                                  id="imdb_id"
-                                  name="imdb.id"
-                                  value={movie.imdb.id}
-                                  onChange={(e) => setMovie({ 
-                                    ...movie, 
-                                    imdb: { 
-                                      ...movie.imdb, 
-                                      id: e.target.value 
-                                    } 
-                                  })}
-                                  className="form-control"
-                                  placeholder="ID phim trên IMDB"
-                                />
-                              </div>
-                            </div>
-                          </div>
+                          ))}
                         </div>
-                      </div>
+                      </FormField>
                     </div>
-                    <div className="card-footer">
-                      <div className="d-flex justify-content-between">
-                        <button type="button" className="btn btn-default" onClick={() => router.push('/admin/movies')}>
-                          <i className="fas fa-arrow-left mr-1"></i>
-                          Quay lại
-                        </button>
-                        <button type="submit" className="btn btn-primary btn-lg" disabled={loading}>
-                          {loading ? (
-                            <>
-                              <i className="fas fa-spinner fa-spin mr-1"></i>
-                              Đang lưu...
-                            </>
-                          ) : (
-                            <>
-                              <FaSave className="mr-1" />
-                              Lưu phim
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </form>
+                  </div>
                 </div>
               </div>
+            )}
+
+            {/* Movie Details Section */}
+            {activeTab === 'movie-details' && (
+              <div className={styles.formSection}>
+                <div className={styles.formTitle}>
+                  <span>
+                    <FaFilm className="mr-2" /> 
+                    Chi tiết phim
+                  </span>
+                </div>
+                <div className={styles.formContent}>
+                  <div className={styles.formRow}>
+                    <div className={styles.formCol}>
+                      <FormField 
+                        label="Nội dung phim" 
+                        id="content" 
+                        required 
+                        error={validationErrors.content}
+                      >
+                        <textarea
+                          id="content"
+                          name="content"
+                          value={movie.content}
+                          onChange={handleChange}
+                          className={styles.formTextarea}
+                          placeholder="Nhập nội dung mô tả phim"
+                          rows={5}
+                        />
+                      </FormField>
+                    </div>
+                  </div>                  <div className={styles.formRow}>
+                    <div className={styles.formCol}>
+                      <FormField 
+                        label="Đạo diễn" 
+                        id="director"
+                      >
+                        <div className={styles.categorySelection}>
+                          <div className={styles.checkboxContainer}>
+                            {directors.map((director) => (
+                              <div key={director.id} className={styles.checkboxGroup}>
+                                <label className={styles.checkboxLabel}>
+                                  <input
+                                    type="checkbox"
+                                    name="director"
+                                    value={director.id}
+                                    checked={movie.director.includes(director.id)}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      setMovie(prev => ({
+                                        ...prev,
+                                        director: e.target.checked
+                                          ? [...prev.director, value]
+                                          : prev.director.filter(id => id !== value)
+                                      }));
+                                    }}
+                                    className={styles.checkboxInput}
+                                  />
+                                  {director.name}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className={styles.addCustomCategory}>
+                            <div className={styles.inputGroupAddon}>
+                              <input
+                                type="text"
+                                value={newDirector}
+                                onChange={(e) => setNewDirector(e.target.value)}
+                                className={styles.formInput}
+                                placeholder="Thêm đạo diễn mới"
+                              />
+                              <button
+                                type="button"
+                                onClick={handleAddCustomDirector}
+                                className={styles.addonButton}
+                                title="Thêm đạo diễn"
+                              >
+                                <FaPlus />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </FormField>
+                    </div>
+                    <div className={styles.formCol}>
+                      <FormField 
+                        label="Diễn viên" 
+                        id="actor"
+                      >
+                        <div className={styles.categorySelection}>
+                          <div className={styles.checkboxContainer}>
+                            {actors.map((actor) => (
+                              <div key={actor.id} className={styles.checkboxGroup}>
+                                <label className={styles.checkboxLabel}>
+                                  <input
+                                    type="checkbox"
+                                    name="actor"
+                                    value={actor.id}
+                                    checked={movie.actor.includes(actor.id)}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      setMovie(prev => ({
+                                        ...prev,
+                                        actor: e.target.checked
+                                          ? [...prev.actor, value]
+                                          : prev.actor.filter(id => id !== value)
+                                      }));
+                                    }}
+                                    className={styles.checkboxInput}
+                                  />
+                                  {actor.name}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className={styles.addCustomCategory}>
+                            <div className={styles.inputGroupAddon}>
+                              <input
+                                type="text"
+                                value={newActor}
+                                onChange={(e) => setNewActor(e.target.value)}
+                                className={styles.formInput}
+                                placeholder="Thêm diễn viên mới"
+                              />
+                              <button
+                                type="button"
+                                onClick={handleAddCustomActor}
+                                className={styles.addonButton}
+                                title="Thêm diễn viên"
+                              >
+                                <FaPlus />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </FormField>
+                    </div>
+                  </div>
+
+                  <div className={styles.formRow}>
+                    <div className={styles.formCol}>
+                      <FormField 
+                        label="Loại phim" 
+                        id="type"
+                      >
+                        <select
+                          id="type"
+                          name="type"
+                          value={movie.type}
+                          onChange={handleChange}
+                          className={styles.formSelect}
+                          aria-label="Loại phim"
+                        >
+                          <option value="movie">Phim lẻ</option>
+                          <option value="series">Phim bộ</option>
+                          <option value="tvshow">TV Show</option>
+                          <option value="hoathinh">Hoạt hình</option>
+                        </select>
+                      </FormField>
+                    </div>
+                    <div className={styles.formCol}>
+                      <FormField 
+                        label="Trạng thái" 
+                        id="status"
+                      >
+                        <select
+                          id="status"
+                          name="status"
+                          value={movie.status}
+                          onChange={handleChange}
+                          className={styles.formSelect}
+                          aria-label="Trạng thái"
+                        >
+                          <option value="ongoing">Đang chiếu</option>
+                          <option value="completed">Hoàn tất</option>
+                          <option value="trailer">Sắp chiếu</option>
+                        </select>
+                      </FormField>
+                    </div>
+                  </div>
+
+                  <div className={styles.formRow}>
+                    <div className={styles.formCol}>
+                      <FormField 
+                        label="Chất lượng" 
+                        id="quality"
+                      >
+                        <select
+                          id="quality"
+                          name="quality"
+                          value={movie.quality}
+                          onChange={handleChange}
+                          className={styles.formSelect}
+                          aria-label="Chất lượng"
+                        >
+                          <option value="HD">HD</option>
+                          <option value="SD">SD</option>
+                          <option value="HDCam">HD Cam</option>
+                          <option value="Trailer">Trailer</option>
+                          <option value="FullHD">Full HD</option>
+                        </select>
+                      </FormField>
+                    </div>
+                    <div className={styles.formCol}>
+                      <FormField 
+                        label="Ngôn ngữ" 
+                        id="lang"
+                      >
+                        <select
+                          id="lang"
+                          name="lang"
+                          value={movie.lang}
+                          onChange={handleChange}
+                          className={styles.formSelect}
+                          aria-label="Chất lượng"
+                        >
+                          <option value="Vietsub">Vietsub</option>
+                          <option value="Thuyết minh">Thuyết minh</option>
+                          <option value="Lồng tiếng">Lồng tiếng</option>
+                        </select>
+                      </FormField>
+                    </div>
+                  </div>
+
+                  <div className={styles.formCard}>
+                    <div className={`${styles.formCardHeader} ${styles.blue}`}>
+                      <h3>Thông tin tập phim</h3>
+                    </div>
+                    <div className={styles.formCardBody}>
+                      <div className={styles.formRow}>
+                        <div className={styles.formCol}>
+                          <FormField 
+                            label="Thời lượng" 
+                            id="time"
+                          >
+                            <input
+                              type="text"
+                              id="time"
+                              name="time"
+                              value={movie.time}
+                              onChange={handleChange}
+                              className={styles.formInput}
+                              placeholder="VD: 45 phút/tập"
+                            />
+                          </FormField>
+                        </div>
+                        <div className={styles.formCol}>
+                          <FormField 
+                            label="Tổng số tập" 
+                            id="episode_total"
+                          >
+                            <input
+                              type="text"
+                              id="episode_total"
+                              name="episode_total"
+                              value={movie.episode_total}
+                              onChange={handleChange}
+                              className={styles.formInput}
+                              placeholder="VD: 16 Tập"
+                            />
+                          </FormField>
+                        </div>
+                      </div>
+                      <div className={styles.formRow}>
+                        <div className={styles.formCol}>
+                          <FormField 
+                            label="Tập hiện tại" 
+                            id="episode_current"
+                          >
+                            <input
+                              type="text"
+                              id="episode_current"
+                              name="episode_current"
+                              value={movie.episode_current}
+                              onChange={handleChange}
+                              className={styles.formInput}
+                              placeholder="VD: Hoàn Tất (16/16)"
+                            />
+                          </FormField>
+                        </div>
+                        <div className={styles.formCol}>
+                          <FormField 
+                            label="Lịch chiếu (nếu có)" 
+                            id="showtimes"
+                          >
+                            <input
+                              type="text"
+                              id="showtimes"
+                              name="showtimes"
+                              value={movie.showtimes}
+                              onChange={handleChange}
+                              className={styles.formInput}
+                              placeholder="VD: Thứ 2, 3 hàng tuần"
+                            />
+                          </FormField>
+                        </div>
+                      </div>
+                      <div className={styles.formRow}>
+                        <div className={styles.formCol}>
+                          <FormField 
+                            label="Trailer URL" 
+                            id="trailer_url"
+                            hint="URL Youtube hoặc URL nhúng khác"
+                          >                            <input
+                              type="text"
+                              id="trailer_url"
+                              name="trailer_url"
+                              value={movie.trailer_url}
+                              onChange={handleChange}
+                              className={styles.formInput}
+                              placeholder="https://www.youtube.com/watch?v=..."
+                            />
+                          </FormField>
+                        </div>
+                      </div>                      <div className={styles.formRow}>
+                        <div className={styles.formCol}>
+                          <div className={styles.customSwitch}>
+                            <span>
+                              <FaCopyright className="me-2" />
+                              Bản quyền
+                            </span>
+                            <label className={styles.toggleSwitch}>
+                              <input
+                                type="checkbox"
+                                name="is_copyright"
+                                checked={movie.is_copyright}
+                                onChange={(e) => setMovie(prev => ({ ...prev, is_copyright: e.target.checked }))}
+                                aria-label="Bản quyền"
+                              />
+                              <span className={styles.toggleSlider}></span>
+                            </label>
+                          </div>
+                        </div>
+                        <div className={styles.formCol}>
+                          <div className={styles.customSwitch}>
+                            <span>
+                              <FaFilm className="me-2" />
+                              Phim chiếu rạp
+                            </span>
+                            <label className={styles.toggleSwitch}>
+                              <input
+                                type="checkbox"
+                                name="chieurap"
+                                checked={movie.chieurap}
+                                onChange={(e) => setMovie(prev => ({ ...prev, chieurap: e.target.checked }))}
+                                aria-label="Phim chiếu rạp"
+                              />
+                              <span className={styles.toggleSlider}></span>
+                            </label>
+                          </div>
+                        </div>
+                        <div className={styles.formCol}>
+                          <div className={styles.customSwitch}>
+                            <span>
+                              <FaClosedCaptioning className="me-2" />
+                              Sub độc quyền
+                            </span>
+                            <label className={styles.toggleSwitch}>
+                              <input
+                                type="checkbox"
+                                name="sub_docquyen"
+                                checked={movie.sub_docquyen}
+                                onChange={(e) => setMovie(prev => ({ ...prev, sub_docquyen: e.target.checked }))}
+                                aria-label="Sub độc quyền"
+                              />
+                              <span className={styles.toggleSlider}></span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={styles.formCard}>
+                    <div className={`${styles.formCardHeader} ${styles.purple}`}>
+                      <h3>ID tham chiếu (nếu có)</h3>
+                    </div>
+                    <div className={styles.formCardBody}>
+                      <div className={styles.formRow}>
+                        <div className={styles.formCol}>
+                          <FormField 
+                            label="IMDB ID" 
+                            id="imdb_id"
+                          >
+                            <input
+                              type="text"
+                              id="imdb_id"
+                              name="imdb[id]"
+                              value={movie.imdb.id}
+                              onChange={(e) => setMovie(prev => ({ ...prev, imdb: { ...prev.imdb, id: e.target.value } }))
+                              }
+                              className={styles.formInput}
+                              placeholder="VD: tt0944947"
+                            />
+                          </FormField>
+                        </div>
+                        <div className={styles.formCol}>
+                          <FormField 
+                            label="TMDB ID" 
+                            id="tmdb_id"
+                          >
+                            <input
+                              type="text"
+                              id="tmdb_id"
+                              name="tmdb[id]"
+                              value={movie.tmdb.id}
+                              onChange={(e) => setMovie(prev => ({ ...prev, tmdb: { ...prev.tmdb, id: e.target.value } }))
+                              }
+                              className={styles.formInput}
+                              placeholder="VD: 1399"
+                            />
+                          </FormField>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Media Section */}
+            {activeTab === 'media' && (
+              <div className={styles.formSection}>
+                <div className={styles.formTitle}>
+                  <span>
+                    <FaCamera className="mr-2" /> 
+                    Hình ảnh & Media
+                  </span>
+                </div>
+                <div className={styles.formContent}>
+                  <div className={styles.formRow}>
+                    <div className={styles.formCol}>
+                      <ImageUrlInput
+                        id="thumbUrl"
+                        label="URL hình thumbnail"
+                        onUrlChange={(url) => {
+                          setMovie(prev => ({ ...prev, thumb_url: url }));
+                          setPreview(url);
+                        }}
+                        value={movie.thumb_url}
+                        hint="Định dạng: JPG, PNG, WebP (Kích thước đề xuất: 500x750px)"
+                        placeholder="Nhập đường dẫn hình thumbnail"
+                      />
+                    </div>
+                    <div className={styles.formCol}>
+                      <ImageUrlInput
+                        id="posterUrl"
+                        label="URL hình poster"
+                        onUrlChange={(url) => {
+                          setMovie(prev => ({ ...prev, poster_url: url }));
+                        }}
+                        value={movie.poster_url}
+                        hint="Định dạng: JPG, PNG, WebP (Kích thước đề xuất: 800x1200px)"
+                        placeholder="Nhập đường dẫn hình poster"
+                      />
+                    </div>
+                  </div>                  {/* Đã loại bỏ trường URL hình nền backdrop */}
+
+                  <EpisodeManager
+                    episodes={movie.episodes}
+                    onAddServer={handleAddServer}
+                    onRemoveServer={handleRemoveServer}
+                    onServerNameChange={handleServerNameChange}
+                    onAddEpisode={handleAddEpisode}
+                    onRemoveEpisode={handleRemoveEpisode}
+                    onUpdateEpisode={handleUpdateEpisode}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Preview Section */}
+            {activeTab === 'preview' && (
+              <div className={styles.formSection}>
+                <div className={styles.formTitle}>
+                  <span>
+                    <FaEye className="mr-2" /> 
+                    Xem trước thông tin
+                  </span>
+                </div>
+                <div className={styles.formContent}>                  <div className={styles.previewSection}>
+                    <div className="row">
+                      <div className="col-md-8">
+                        <h3 className={styles.previewTitle}>Thông tin cơ bản</h3>
+                        <div className={styles.previewItem}>
+                          <div className={styles.previewLabel}>Tên phim:</div>
+                          <div className={styles.previewValue}>{movie.name || '(Chưa nhập)'}</div>
+                        </div>
+                        <div className={styles.previewItem}>
+                          <div className={styles.previewLabel}>Tên gốc:</div>
+                          <div className={styles.previewValue}>{movie.origin_name || '(Chưa nhập)'}</div>
+                        </div>
+                        <div className={styles.previewItem}>
+                          <div className={styles.previewLabel}>Slug URL:</div>
+                          <div className={styles.previewValue}>{movie.slug || '(Chưa nhập)'}</div>
+                        </div>
+                        <div className={styles.previewItem}>
+                          <div className={styles.previewLabel}>Năm sản xuất:</div>
+                          <div className={styles.previewValue}>{movie.year}</div>
+                        </div>
+                      </div>
+                      <div className={styles.formCol}>                        {preview && (
+                          <div className={styles.imagePreviewContainer}>
+                            <Image 
+                              src={preview} 
+                              alt="Preview" 
+                              className={styles.thumbnailPreview}
+                              width={300}
+                              height={450}
+                              style={{objectFit: 'contain'}}
+                            />
+                          </div>
+                        )}
+                        
+                        {!preview && movie.thumb_url && (
+                          <div className={styles.imagePreviewContainer}>
+                            <Image
+                              src={movie.thumb_url}
+                              alt="Thumbnail"
+                              className={styles.thumbnailPreview}
+                              width={300}
+                              height={450}
+                              style={{objectFit: 'contain'}}
+                            />
+                          </div>
+                        )}
+                        
+                        {!preview && !movie.thumb_url && (
+                          <div className={`${styles.imagePreviewContainer} ${styles.noImage}`}>
+                            <div className={styles.noImagePlaceholder}>
+                              <FaFilm size={48} opacity={0.5} />
+                              <p>Chưa có ảnh</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <h3 className={styles.previewTitle}>Thể loại & Quốc gia</h3>
+                    <div className={styles.previewItem}>
+                      <div className={styles.previewLabel}>Thể loại:</div>
+                      <div className={styles.previewValue}>
+                        {movie.category.length > 0 ? (
+                          <div className={styles.tagList}>
+                            {movie.category.map(categoryId => {
+                              const category = categories.find(c => c.id === categoryId);
+                              return (
+                                <span key={categoryId} className={styles.tag}>
+                                  {category ? category.name : categoryId}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        ) : '(Chưa chọn)'}
+                      </div>
+                    </div>
+                    <div className={styles.previewItem}>
+                      <div className={styles.previewLabel}>Quốc gia:</div>
+                      <div className={styles.previewValue}>
+                        {movie.country.length > 0 ? (
+                          <div className={styles.tagList}>
+                            {movie.country.map(countryId => {
+                              const country = countries.find(c => c.id === countryId);
+                              return (
+                                <span key={countryId} className={styles.tag}>
+                                  {country ? country.name : countryId}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        ) : '(Chưa chọn)'}
+                      </div>
+                    </div>
+                    
+                    <h3 className={styles.previewTitle}>Thông tin chi tiết</h3>
+                    <div className={styles.previewItem}>
+                      <div className={styles.previewLabel}>Nội dung:</div>
+                      <div className={styles.previewValue}>
+                        {movie.content || '(Chưa nhập)'}
+                      </div>
+                    </div>
+                    <div className={styles.previewItem}>
+                      <div className={styles.previewLabel}>Đạo diễn:</div>
+                      <div className={styles.previewValue}>
+                        {Array.isArray(movie.director) && movie.director.length > 0 ? movie.director.join(', ') : '(Chưa nhập)'}
+                      </div>
+                    </div>
+                    <div className={styles.previewItem}>
+                      <div className={styles.previewLabel}>Diễn viên:</div>
+                      <div className={styles.previewValue}>
+                        {Array.isArray(movie.actor) && movie.actor.length > 0 ? movie.actor.join(', ') : '(Chưa nhập)'}
+                      </div>
+                    </div>
+                    <div className={styles.previewItem}>
+                      <div className={styles.previewLabel}>Loại phim:</div>
+                      <div className={styles.previewValue}>
+                        {movie.type === 'movie' ? 'Phim lẻ' : movie.type === 'series' ? 'Phim bộ' : movie.type === 'tvshow' ? 'TV Show' : 'Hoạt hình'}
+                      </div>
+                    </div>
+                    <div className={styles.previewItem}>
+                      <div className={styles.previewLabel}>Trạng thái:</div>
+                      <div className={styles.previewValue}>
+                        {movie.status === 'completed' ? 'Hoàn tất' : movie.status === 'ongoing' ? 'Đang chiếu' : 'Sắp chiếu'}
+                      </div>
+                    </div>
+                    
+                    <h3 className={styles.previewTitle}>Thông tin tập phim</h3>
+                    <div className={styles.previewItem}>
+                      <div className={styles.previewLabel}>Số tập:</div>
+                      <div className={styles.previewValue}>
+                        {`${movie.episode_current} - Tổng cộng: ${movie.episode_total}`}
+                      </div>
+                    </div>
+                    <div className={styles.previewItem}>
+                      <div className={styles.previewLabel}>Server phim:</div>
+                      <div className={styles.previewValue}>
+                        {movie.episodes.length} server với tổng cộng {movie.episodes.reduce((total, server) => total + server.server_data.length, 0)} tập
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Form Navigation */}
+            <div className={styles.formNavigation}>
+              {activeTab !== formSteps[0].id && (
+                <button 
+                  type="button" 
+                  onClick={goToPrevTab}
+                  className={styles.navButtonPrev}
+                >
+                  <FaArrowLeft className={styles.navButtonIcon} /> 
+                  Quay lại
+                </button>
+              )}
+              
+              {activeTab !== formSteps[formSteps.length - 1].id ? (
+                <button 
+                  type="button"
+                  onClick={goToNextTab}
+                  className={styles.navButtonNext}
+                >
+                  Tiếp theo
+                </button>
+              ) : (
+                <button 
+                  type="submit"
+                  className={styles.saveButton}
+                  disabled={loading}
+                >
+                  <FaSave className={styles.saveButtonIcon} />
+                  {loading ? 'Đang lưu...' : 'Lưu phim'}
+                </button>
+              )}
             </div>
-          </div>
-        </section>
+          </form>
+        )}
       </div>
     </AdminLayout>
   );
