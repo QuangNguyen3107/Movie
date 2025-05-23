@@ -23,10 +23,11 @@ const BannerAd = ({ position = 'top' }) => {
       isLoading 
     });
   }, [hideHomepageAds, isLoading, position]);
-  
   // Fetch the appropriate ad based on position
   useEffect(() => {
-    const fetchAd = async () => {
+    const fetchAd = async () => {      // Always log the current position and ad visibility at the beginning
+      console.log(`%c[BannerAd ${position}] Starting ad fetch with hideHomepageAds=${hideHomepageAds}`, 'color: purple; font-weight: bold');
+      
       // First, wait if the AdContext is still loading its settings
       if (isLoading) {
         console.log(`%c[BannerAd ${position}] AdContext is loading. Waiting to fetch ad...`, 'color: orange; font-weight: bold');
@@ -34,25 +35,36 @@ const BannerAd = ({ position = 'top' }) => {
         return;
       }
 
-      // Now, AdContext is loaded, check if ads should be hidden
+      // Now, AdContext is loaded, check if ads should be hidden for ANY position
+      // Force both top AND bottom banner ads to be hidden if user is premium
       if (hideHomepageAds) {
-        console.log(`%c[BannerAd ${position}] Homepage ads hidden due to premium subscription (AdContext loaded).`, 'color: green; font-weight: bold');
+        console.log(`%c[BannerAd ${position}] Homepage ads hidden due to premium subscription (position: ${position}).`, 'color: green; font-weight: bold');
         setAd(null); // Ensure ad is cleared if it was previously shown
         return;
-      }
-
-      // If AdContext is loaded and ads are not hidden, proceed to fetch
+      }// If AdContext is loaded and ads are not hidden, proceed to fetch
       console.log(`%c[BannerAd ${position}] AdContext loaded, fetching ad...`, 'color: blue; font-weight: bold');
       try {
-        let adData;
+        let adData;        // Double check that we still want to show ads based on premium status
+        if (hideHomepageAds) {
+          console.log(`%c[BannerAd ${position}] Premium user detected, not fetching ads`, 'color: red; font-weight: bold');
+          return;  
+        }
+        
         if (position === 'top') {
+          console.log(`%c[BannerAd ${position}] Getting TOP banner ad...`, 'color: blue;');
           adData = await adService.getTopBannerAd();
         } else {
+          console.log(`%c[BannerAd ${position}] Getting BOTTOM banner ad...`, 'color: blue;');
           adData = await adService.getBottomBannerAd();
         }
         
+        console.log(`%c[BannerAd ${position}] Ad data received:`, 'color: blue;', adData ? 'Ad exists' : 'No ad available');
+        
         if (adData) {
+          console.log(`%c[BannerAd ${position}] Setting ad data`, 'color: green;');
           setAd(adData);
+        } else {
+          console.log(`%c[BannerAd ${position}] No ad to set`, 'color: orange;');
         }
       } catch (error) {
         console.error(`Error fetching ${position} banner ad:`, error);
@@ -96,8 +108,17 @@ const BannerAd = ({ position = 'top' }) => {
     setClosed(true);
   };
 
+  // Add more detailed logging before deciding whether to render
+  const shouldRender = ad && !closed;
+  console.log(`%c[BannerAd ${position}] Render decision:`, 'color: purple;', {
+    hasAd: !!ad,
+    isClosed: closed,
+    willRender: shouldRender,
+    position
+  });
+
   // Don't render if there's no ad or it's been closed
-  if (!ad || closed) {
+  if (!shouldRender) {
     return null;
   }
   return (
