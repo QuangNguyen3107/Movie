@@ -91,3 +91,62 @@ export const markAllNotificationsAsRead = async () => {
     return false;
   }
 };
+
+/**
+ * Gửi thông báo bảo trì hệ thống tới tất cả người dùng qua email
+ * @param {Object} data - Dữ liệu thông báo bảo trì
+ * @param {string} data.subject - Tiêu đề email
+ * @param {string} data.message - Nội dung thông báo
+ * @param {string} data.maintenanceTime - Thời gian bảo trì
+ * @param {string} data.expectedDuration - Thời gian dự kiến hoàn thành
+ * @param {string} [data.userGroup='all'] - Nhóm người dùng (all, premium, free)
+ * @returns {Promise<Object>} Kết quả gửi thông báo
+ */
+export const sendMaintenanceNotification = async (data) => {
+  try {
+    const response = await axios.post('/admin/notifications/send-maintenance', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error sending maintenance notification:', error);
+    throw error;
+  }
+};
+
+/**
+ * Gửi thông báo tùy chỉnh tới tất cả người dùng qua email
+ * @param {Object} data - Dữ liệu thông báo tùy chỉnh
+ * @param {string} data.subject - Tiêu đề email
+ * @param {string} data.message - Nội dung thông báo
+ * @param {string} [data.htmlContent] - Nội dung HTML (tùy chọn)
+ * @param {string} [data.userGroup='all'] - Nhóm người dùng (all, premium, free)
+ * @returns {Promise<Object>} Kết quả gửi thông báo
+ */
+export const sendCustomNotification = async (data) => {
+  try {
+    const response = await axios.post('/admin/notifications/send-custom', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error sending custom notification:', error);
+    throw error;
+  }
+};
+
+/**
+ * Lấy lịch sử gửi thông báo email
+ * @param {Object} params - Các tham số truy vấn
+ * @param {number} [params.page=1] - Trang hiện tại
+ * @param {number} [params.limit=10] - Số lượng bản ghi mỗi trang
+ * @returns {Promise<Object>} Kết quả với danh sách lịch sử và thông tin phân trang
+ */
+export const getNotificationHistory = async (params = {}) => {
+  try {
+    const { page = 1, limit = 10 } = params;
+    const response = await axios.get('/admin/notifications/history', {
+      params: { page, limit }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching notification history:', error);
+    throw error;
+  }
+};

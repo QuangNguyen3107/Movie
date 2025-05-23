@@ -2,8 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import styles from '@/styles/AdminUpcomingMovies.module.css';
 import { Table, Button, Spinner, Form, InputGroup, Row, Col, Card, Alert, Badge, Modal } from 'react-bootstrap';
-import { FaPlus, FaEdit, FaTrash, FaSearch, FaFileCsv, FaEye, FaFileExport } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaSearch, FaEye, FaFileExport, FaPaperPlane } from 'react-icons/fa';
 import AdminLayout from '@/components/Layout/AdminLayout';
 import { getUpcomingMovies, deleteUpcomingMovie, releaseUpcomingMovie } from '@/services/admin/upcomingMovieService';
 import { UpcomingMovie } from '@/services/admin/upcomingMovieService';
@@ -191,41 +192,20 @@ const UpcomingMoviesPage: React.FC = () => {
                   </div>
                 ) : upcomingMovies.length > 0 ? (
                   <>
-                    <div className="table-responsive">
-                      <Table striped bordered hover>
-                        <thead>
+                    <div className="table-responsive">                      
+                      <Table striped bordered hover className={styles['movie-table']}>                        <thead>
                           <tr>
-                            <th className="text-center" style={{ width: '5%' }}>ID</th>
-                            <th className="text-center" style={{ width: '15%' }}>Hình ảnh</th>
-                            <th style={{ width: '30%' }}>Tên phim</th>
-                            <th style={{ width: '25%' }}>Thông tin</th>
-                            <th className="text-center" style={{ width: '15%' }}>Ngày phát hành</th>
-                            <th className="text-center" style={{ width: '10%' }}>Thao tác</th>
+                            <th className="text-center" width="5%">ID</th>
+                            <th width="35%">Tên phim</th>
+                            <th width="30%">Thông tin</th>
+                            <th className="text-center" width="15%">Ngày phát hành</th>
+                            <th className="text-center" width="15%">Thao tác</th>
                           </tr>
                         </thead>
-                        <tbody>
-                          {upcomingMovies.map((movie, index) => (
+                        <tbody>                          {upcomingMovies.map((movie, index) => (
                             <tr key={movie._id}>
                               <td className="text-center">
                                 {(page - 1) * limit + index + 1}
-                              </td>
-                              <td className="text-center">
-                                {movie.thumb_url ? (
-                                  <img
-                                    src={movie.thumb_url}
-                                    alt={movie.name}
-                                    width="80"
-                                    height="120"
-                                    style={{ objectFit: 'cover' }}
-                                  />
-                                ) : (
-                                  <div 
-                                    className="bg-secondary text-white d-flex justify-content-center align-items-center"
-                                    style={{ width: '80px', height: '120px', margin: '0 auto' }}
-                                  >
-                                    No image
-                                  </div>
-                                )}
                               </td>
                               <td>
                                 <strong>{movie.name}</strong>
@@ -257,36 +237,34 @@ const UpcomingMoviesPage: React.FC = () => {
                                 ) : (
                                   <span className="text-muted">Chưa cập nhật</span>
                                 )}
-                              </td>
-                              <td className="text-center">
-                                <div className="btn-group">
+                              </td>                              <td className="text-center">
+                                <div className={styles['action-buttons']}>
                                   <Link href={`/admin/upcoming-movies/${movie._id}`} passHref>
-                                    <Button variant="info" size="sm" title="Xem chi tiết" className="me-1">
+                                    <Button variant="outline-info" size="sm" title="Xem chi tiết" className={styles['action-btn']}>
                                       <FaEye />
                                     </Button>
                                   </Link>
                                   <Link href={`/admin/upcoming-movies/edit/${movie._id}`} passHref>
-                                    <Button variant="warning" size="sm" title="Sửa" className="me-1">
+                                    <Button variant="outline-warning" size="sm" title="Sửa" className={styles['action-btn']}>
                                       <FaEdit />
                                     </Button>
-                                  </Link>
-                                  <Button
-                                    variant="danger"
+                                  </Link>                                  <Button
+                                    variant="outline-danger"
                                     size="sm"
                                     title="Xóa"
-                                    className="me-1"
+                                    className={styles['action-btn']}
                                     onClick={() => handleDeleteClick(movie)}
                                   >
                                     <FaTrash />
-                                  </Button>
-                                  {!movie.is_released && (
+                                  </Button>                                  {!movie.is_released && (
                                     <Button
-                                      variant="success"
+                                      variant="outline-success"
                                       size="sm"
                                       title="Chuyển sang phát hành"
+                                      className={styles['action-btn']}
                                       onClick={() => handleReleaseClick(movie)}
                                     >
-                                      Phát hành
+                                      <FaPaperPlane />
                                     </Button>
                                   )}
                                 </div>

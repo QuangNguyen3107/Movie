@@ -98,21 +98,14 @@ const Movies = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-
   // Initial load and fetch filters
   useEffect(() => {
     // Fetch initial movies on mount
     fetchMovies(1, false);
   }, []); // Run only once on mount
-
-  // Fetch movies when filters or sort option change
-  useEffect(() => {
-    // Don't run on initial mount, let the mount effect handle it
-    if (!loading) {
-      setPage(1); // Reset page when filters change
-      fetchMovies(1, false); // Fetch with new filters/sort
-    }
-  }, [filters, sortOption]); // Depend on filters and sortOption
+  
+  // We're removing the automatic filter refresh on filter/sort change
+  // Instead, we'll use an Apply button to trigger the fetch
 
   const handleCategoryToggle = (e) => {
     e.stopPropagation();
@@ -137,55 +130,46 @@ const Movies = () => {
     setShowCountryDropdown(false);
     setShowSortOptions(false);
   };
-
   const handleCategorySelect = (categoryId) => {
-    // Update filter and immediately fetch
+    // Just update filter state without fetching
     setFilters(prev => {
       const newFilters = { ...prev, category: categoryId };
       console.log("Selecting category:", categoryId);
       return newFilters;
     });
     setShowCategoryDropdown(false);
-    setLoading(true); // Show loading state right away
-    // Use setTimeout to ensure state is updated before fetching
-    setTimeout(() => {
-      fetchMovies(1, false);
-    }, 0);
   };
 
   const handleCountrySelect = (countryCode) => {
-    // Update filter and immediately fetch
+    // Just update filter state without fetching
     setFilters(prev => {
       const newFilters = { ...prev, country: countryCode };
       console.log("Selecting country:", countryCode);
       return newFilters;
     });
     setShowCountryDropdown(false);
-    setLoading(true); // Show loading state right away
-    // Use setTimeout to ensure state is updated before fetching
-    setTimeout(() => {
-      fetchMovies(1, false);
-    }, 0);
   };
 
   const handleYearSelect = (year) => {
-    // Update filter and immediately fetch
+    // Just update filter state without fetching
     setFilters(prev => {
       const newFilters = { ...prev, year };
       console.log("Selecting year:", year);
       return newFilters;
     });
     setShowYearDropdown(false);
-    setLoading(true); // Show loading state right away
-    // Use setTimeout to ensure state is updated before fetching
-    setTimeout(() => {
-      fetchMovies(1, false);
-    }, 0);
   };
-
+  
+  // New function to apply all filters at once
+  const applyFilters = () => {
+    setLoading(true);
+    setPage(1);
+    fetchMovies(1, false);
+  };
   const handleSortChange = (option) => {
     setSortOption(option);
     setShowSortOptions(false);
+    // No longer triggers immediate fetch
   };
 
   const getSortOptionName = (option = sortOption) => {
@@ -209,10 +193,15 @@ const Movies = () => {
     setShowCountryDropdown(false);
     setShowYearDropdown(false);
   };
-
   const fetchMovies = async (pageNumber, isLoadMore = false) => {
-    // Prevent fetching if already loading, unless it's a refresh or initial load
-    if (loading && !refreshing && pageNumber > 1) return;
+    // Prevent duplicate fetching while already loading
+    if (loading && !refreshing && pageNumber > 1) {
+      console.log('Already loading, skipping fetch request');
+      return;
+    }
+    
+    // Keep track of the current fetch operation
+    const currentFetchId = Date.now().toString();
 
     try {
       setLoading(true);
@@ -253,9 +242,7 @@ const Movies = () => {
       const response = await fetch(url);
       const result = await response.json();
       
-      console.log('API Response:', result);
-
-      // Process response from the search API
+      console.log('API Response:', result);      // Process response from the search API
       if (result && result.hits && Array.isArray(result.hits)) {
         const newMovies = result.hits; // Get movies array from hits
         const totalItems = result.total || 0; // Get total count
@@ -268,20 +255,81 @@ const Movies = () => {
           console.log('No movies found with current filters');
         }
 
+        // First, process the movies with all necessary fields
         const processedMovies = newMovies.map(movie => ({
           ...movie,
           // Ensure URLs are absolute if needed
           thumb_url: movie.thumb_url || movie.poster_url || '/placeholder.jpg',
           poster_url: movie.poster_url || movie.thumb_url || '/placeholder.jpg'
         }));
-
+        
+        // Then, deduplicate the movies by slug or other identifiers
+        const uniqueMovies = [];
+        const seenSlugs = new Set();
+        const seenIds = new Set();
+        
+        processedMovies.forEach(movie => {
+          // Create a composite identifier when slug/id is missing
+          const compositeId = !movie.slug && !movie._id && !movie.id 
+            ? `${movie.name}-${movie.year || ''}-${movie.origin_name || ''}`
+            : null;
+            
+          // Check if we've already seen this movie
+          if (
+            (movie.slug && seenSlugs.has(movie.slug)) || 
+            (movie._id && seenIds.has(movie._id)) ||
+            (movie.id && seenIds.has(movie.id)) ||
+            (compositeId && seenIds.has(compositeId))
+          ) {
+            return; // Skip this movie
+          }
+          
+          // Add to seen sets
+          if (movie.slug) seenSlugs.add(movie.slug);
+          if (movie._id) seenIds.add(movie._id);
+          if (movie.id) seenIds.add(movie.id);
+          if (compositeId) seenIds.add(compositeId);
+          
+          // Add to unique movies
+          uniqueMovies.push(movie);        });
+        
+        console.log(`Deduplicated to ${uniqueMovies.length} movies`);
+        
+        // Set movies based on page number
         if (pageNumber === 1 || !isLoadMore || refreshing) {
-          setMovies(processedMovies); // Replace movies on first page/refresh
+          // On the first page or refresh, just replace the movies
+          setMovies(uniqueMovies);
         } else {
-          // Append new unique movies when loading more
+          // When loading more, ensure we only add unique movies by checking all possible IDs
           setMovies(prev => {
-            const existingSlugs = new Set(prev.map(m => m.slug));
-            const uniqueNewMovies = processedMovies.filter(m => !existingSlugs.has(m.slug));
+            // Use a Map to track existing movies by all possible identifiers (id, _id, slug)
+            const existingMoviesMap = new Map();
+            
+            // Add all existing movies to the map with multiple keys
+            prev.forEach(m => {
+              if (m._id) existingMoviesMap.set(m._id, m);
+              if (m.id) existingMoviesMap.set(m.id, m);
+              if (m.slug) existingMoviesMap.set(m.slug, m);
+              // Also use a composite key to catch edge cases
+              const compositeKey = `${m.name}-${m.year}-${m.origin_name}`;
+              existingMoviesMap.set(compositeKey, m);
+            });
+            
+            // Filter only movies that don't exist in our map
+            const uniqueNewMovies = uniqueMovies.filter(m => {
+              // Check against all possible identifiers
+              const idExists = (m._id && existingMoviesMap.has(m._id)) || 
+                              (m.id && existingMoviesMap.has(m.id)) || 
+                              (m.slug && existingMoviesMap.has(m.slug));
+              
+              // Also check by composite key for movies that might have changed ID but are the same
+              const compositeKey = `${m.name}-${m.year}-${m.origin_name}`;
+              const compositeExists = existingMoviesMap.has(compositeKey);
+              
+              return !idExists && !compositeExists;
+            });
+            
+            console.log(`Found ${uniqueNewMovies.length} truly unique new movies`);
             return [...prev, ...uniqueNewMovies];
           });
         }
@@ -310,11 +358,19 @@ const Movies = () => {
       setRefreshing(false);
     }
   };
-
   const loadMore = () => {
     if (!loading && hasMore) {
+      // Set a loading state
+      setLoading(true);
+      
+      // Calculate the next page
       const nextPage = page + 1;
-      fetchMovies(nextPage, true);
+      console.log(`Loading more movies, page ${nextPage}`);
+      
+      // Add a small delay to prevent race conditions with multiple clicks
+      setTimeout(() => {
+        fetchMovies(nextPage, true);
+      }, 50);
     }
   };
 
@@ -469,8 +525,14 @@ const Movies = () => {
                     <li><button className={`dropdown-item ${sortOption === 'year-asc' ? 'active' : ''}`} onClick={() => handleSortChange('year-asc')}>Năm cũ nhất</button></li>
                   </ul>
                 )}
-              </div>
-
+              </div>              <button
+                className="btn btn-danger d-flex align-items-center"
+                onClick={applyFilters}
+                disabled={loading}
+              >
+                Áp dụng bộ lọc
+              </button>
+            
               <button
                 className="btn btn-outline-light d-flex align-items-center ms-auto"
                 onClick={handleRefresh}
@@ -524,11 +586,15 @@ const Movies = () => {
                       </button>
                     </span>
                   )}
-                  
-                  <button 
+                    <button 
                     className="btn btn-sm btn-outline-secondary" 
                     onClick={() => {
                       setFilters({ category: "", country: "", year: "", type: "single" });
+                      // Apply the cleared filters immediately
+                      setTimeout(() => {
+                        setLoading(true);
+                        fetchMovies(1, false);
+                      }, 0);
                     }}
                   >
                     Xóa tất cả
@@ -538,11 +604,11 @@ const Movies = () => {
             </div>
           )}
 
-          <div className="row g-3 movie-grid">
+          <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 row-cols-xl-5 g-4 mb-4">
             {(loading && page === 1 && !refreshing) || (refreshing) ? (
               // Show skeletons when loading
               [...Array(24)].map((_, i) => (
-                <div key={`skeleton-${i}`} className="col-6 col-sm-4 col-md-3 col-lg-3 col-xl-2 mb-4">
+                <div key={`skeleton-${i}`} className="col mb-4">
                   <div className="card h-100 bg-dark border-0">
                     <Skeleton height="300px" borderRadius="8px" />
                     <div className="card-body p-2">
@@ -553,16 +619,17 @@ const Movies = () => {
                     </div>
                   </div>
                 </div>
-              ))
-            ) : movies && movies.length > 0 ? (
+              ))            ) : movies && movies.length > 0 ? (
               // Show movies if available
-              movies.map((movie) => {
-                console.log('Rendering movie:', movie.name, movie); // Debug log
-                const imageId = `movie-${movie.slug}`;
+              movies.map((movie, index) => {
+                // Generate a stable unique ID for each movie using all available identifiers
+                const movieUniqueId = movie.slug || movie._id || movie.id || `movie-${index}-${movie.name}-${movie.year || ''}`;
+                const imageId = `movie-${movieUniqueId}`;
+                
                 return (
                   <div
-                    key={movie.slug || movie._id || Math.random().toString()}
-                    className="col-6 col-sm-4 col-md-3 col-lg-3 col-xl-2 mb-4"
+                    key={movieUniqueId}
+                    className="col mb-4"
                   >
                     <div className={`card h-100 bg-dark border-0 ${styles.movieCard}`}>
                       <div className={`position-relative ${styles.moviePoster}`}>
@@ -623,15 +690,19 @@ const Movies = () => {
                         )}
                       </div>
 
-                      <div className="card-body p-2">
-                        <Link href={`/movie/${movie.slug}`} className="text-decoration-none">
-                          <h6 className="card-title text-white mb-1 text-truncate" title={movie.name}>
-                            {movie.name}
-                          </h6>
-                        </Link>
-                        <p className="card-text small text-muted text-truncate" title={movie.origin_name}>
-                          {movie.origin_name}
-                        </p>
+                      <div className="card-body py-0 px-1" style={{backgroundColor: "#1a1a1a", minHeight: "auto"}}>
+                        <h6 className={`card-title text-white mb-0 ${styles.movieTitleEllipsis}`}>
+                          <Link href={`/movie/${movie.slug}`} legacyBehavior>
+                            <a className="text-decoration-none stretched-link" style={{ color: 'inherit' }}>
+                              {movie.name}
+                            </a>
+                          </Link>
+                        </h6>
+                        {movie.origin_name && (
+                          <p className="card-text small text-muted text-truncate mb-0" style={{fontSize: "10px", lineHeight: 1, maxHeight: "14px"}} title={movie.origin_name}>
+                            {movie.origin_name}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -691,11 +762,15 @@ const Movies = () => {
               <h3 className="text-white">Không tìm thấy phim</h3>
               <p className="text-secondary">
                 Không có phim lẻ nào phù hợp với bộ lọc hiện tại.
-              </p>
-              <button
+              </p>              <button
                 className="btn btn-outline-light mt-3"
                 onClick={() => {
                   setFilters({ category: "", country: "", year: "", type: "single" });
+                  // Apply the cleared filters immediately
+                  setTimeout(() => {
+                    setLoading(true);
+                    fetchMovies(1, false);
+                  }, 0);
                 }}
               >
                 Xóa bộ lọc

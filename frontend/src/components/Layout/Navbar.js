@@ -207,7 +207,7 @@ const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
       const navbarToggler = document.querySelector(".navbar-toggler");
       const userMenu = document.getElementById("userMenu");
       const userAvatar = document.querySelector(".profile-avatar");
-      const feedbackButton = document.querySelector(".feedback-button");
+      const feedbackButton = document.querySelector(".feedback-button, .feedback-button-mobile");
       
       if (
         isMenuOpen && 
@@ -236,13 +236,12 @@ const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
       ) {
         setShowSuggestions(false);
       }
-      
-      if (
+        if (
         showFeedbackForm &&
         feedbackRef.current &&
         !feedbackRef.current.contains(event.target) &&
-        feedbackButton &&
-        !feedbackButton.contains(event.target)
+        ((feedbackButton && !feedbackButton.contains(event.target)) ||
+        (!feedbackButton))
       ) {
         setShowFeedbackForm(false);
       }
@@ -490,8 +489,7 @@ const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
               </div>
             </form>
           ) : (
-            <FaSearch className="text-white fs-5 cursor-pointer" onClick={toggleSearchInput} />
-          )}
+            <FaSearch className="text-white fs-5 cursor-pointer" onClick={toggleSearchInput} />          )}
           <div className="profile-avatar ms-2" onClick={handleAvatarClick}>
             <img 
               src={getAvatarUrl(user)} 
@@ -550,12 +548,22 @@ const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
                 <span className="d-inline-block d-lg-none me-2"><FaBookmark /></span>
                 Xem sau
               </Link>
-            </li>
-            <li className={`nav-item ${isActive('/history') ? 'active' : ''}`}>
+            </li>            <li className={`nav-item ${isActive('/history') ? 'active' : ''}`}>
               <Link href="/history" className={`nav-link text-white px-3 ${isActive('/history') ? 'active' : ''}`}>
                 <span className="d-inline-block d-lg-none me-2"><FaHistory /></span>
                 Đã Xem
               </Link>
+            </li>
+            <li className="nav-item d-lg-none">              <button 
+                onClick={() => {
+                  setShowFeedbackForm(!showFeedbackForm);
+                  setIsMenuOpen(false); // Đóng menu sau khi mở form góp ý
+                }} 
+                className="nav-link text-white px-3 bg-transparent border-0 w-100 text-start"
+              >
+                <span className="d-inline-block me-2"><FaComment /></span>
+                Góp ý
+              </button>
             </li>
             {!isAuthenticated && (
               <li className="nav-item d-lg-none">
@@ -595,11 +603,13 @@ const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
                 </button>
               </form>            ) : (
               <FaSearch className="text-white fs-5 cursor-pointer" onClick={toggleSearchInput} />
-            )}
-            <FaComment 
+            )}            <FaComment 
               className="text-white fs-5 cursor-pointer feedback-button" 
-              onClick={() => setShowFeedbackForm(!showFeedbackForm)} 
-            />            <div className="profile-avatar position-relative" onClick={handleAvatarClick}>
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowFeedbackForm(!showFeedbackForm);
+              }} 
+            /><div className="profile-avatar position-relative" onClick={handleAvatarClick}>
               <img 
                 src={getAvatarUrl(user)} 
                 alt="User Avatar" 
@@ -1042,11 +1052,10 @@ const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
           border-right: 8px solid transparent;
           border-bottom: 8px solid #212529;
         }
-        
-        @media (max-width: 992px) {
+          @media (max-width: 992px) {
           .search-history-dropdown {
             position: fixed;
-            top: 30%;
+            top: 50%;
             left: 60%;
             transform: translate(-50%, -50%);
             width: 90%;
@@ -1313,11 +1322,10 @@ const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
           border-right: 8px solid transparent;
           border-bottom: 8px solid #212529;
         }
-        
-        @media (max-width: 992px) {
+          @media (max-width: 992px) {
           .search-suggestions-dropdown {
             position: fixed;
-            top: 30%;
+            top: 50%;
             left: 60%;
             transform: translate(-50%, -50%);
             width: 90%;

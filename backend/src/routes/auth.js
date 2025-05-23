@@ -137,7 +137,8 @@ router.post("/register", async (req, res) => {
         // Lấy ObjectId của Role (User) và AccountType (Normal hoặc VIP)
         const role = await Role.findOne({ name: "User" });
         const accountType = await AccountType.findOne({ name: "Normal" });  // Hoặc "VIP"
-
+        console.log("Role:", role);
+        console.log("AccountType:", accountType);
         if (!role || !accountType) {
             return res.status(400).json({ error: "Không tìm thấy vai trò hoặc loại tài khoản" });
         }

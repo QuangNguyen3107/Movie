@@ -31,6 +31,8 @@ const feedbackRoutes = require('./routes/feedbackRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const upcomingMovieRoutes = require('./routes/upcomingMovieRoutes');
 const publicUpcomingMovieRoutes = require('./routes/publicUpcomingMovieRoutes');
+const notificationEmailRoutes = require('./routes/notificationEmailRoutes');
+const bulkEmailRoutes = require('./routes/bulkEmailRoutes');
 
 dotenv.config();
 const app = express();
@@ -86,6 +88,8 @@ app.use("/api/admin", adminRoutes); // Thêm route quản lý người dùng, va
 app.use("/api/admin", adminSearchRoutes); // Thêm route tìm kiếm admin với Elasticsearch
 app.use("/api/admin/upcoming-movies", upcomingMovieRoutes); // Thêm route quản lý phim sắp ra mắt
 app.use("/api/admin/dashboard", dashboardRoutes);
+app.use("/api/admin/notifications", notificationEmailRoutes); // Thêm route gửi thông báo email
+app.use("/api/admin/notifications", bulkEmailRoutes); // Thêm route gửi email hàng loạt
 // Đăng ký các routes cho feedback
 app.use("/api/admin/feedback", feedbackRoutes); 
 app.use("/api/feedback", feedbackRoutes);
@@ -108,6 +112,15 @@ async function startServer() {
       // 🟢 Khởi tạo Elasticsearch Client
       await initElasticsearchClient();
       console.log("✅ Elasticsearch client initialized");
+
+      // 🟢 Kiểm tra cấu hình email
+      const { verifyEmailConfig } = require('./config/email');
+      const emailConfigOk = await verifyEmailConfig();
+      if (emailConfigOk) {
+          console.log("✅ Email service configured successfully");
+      } else {
+          console.warn("⚠️ Email service not configured correctly. Email notifications may not work.");
+      }
 
       // 🟢 Kích hoạt Swagger Docs
       swaggerDocs(app);

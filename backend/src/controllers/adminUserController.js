@@ -49,17 +49,18 @@ exports.getUsers = async (req, res) => {
         _id: user._id,
         fullname: user.fullname,
         email: user.email,
-        avatar: user.avatar,
         role: user.role_id,
         accountType: user.accountTypeId,
-        isActive: user.isActive !== false, // Handle undefined
+        isActive: user.isActive !== false, // Đảm bảo trả về boolean
         createdAt: user.createdAt,
-        updatedAt: user.updatedAt
+        updatedAt: user.updatedAt,
+        lastLogin: user.lastLogin || null,
+        avatar: user.avatar || null
       })),
       pagination: {
         currentPage: page,
-        totalPages,
-        totalUsers,
+        totalPages: totalPages,
+        totalUsers: totalUsers,
         usersPerPage: limit
       }
     });
@@ -70,109 +71,79 @@ exports.getUsers = async (req, res) => {
 };
 
 /**
- * Lấy thông tin chi tiết của một người dùng theo ID
+ * Lấy thông tin chi tiết một người dùng theo ID
  */
 exports.getUserById = async (req, res) => {
   try {
-    const userId = req.params.userId;
-
+    const { userId } = req.params;
     const user = await User.findById(userId)
       .populate('role_id', 'name')
       .populate('accountTypeId', 'name');
-
+    
     if (!user) {
       return responseHelper.notFoundResponse(res, 'User not found');
     }
-
-    // Không trả về password trong response
-    const userData = {
+    
+    return responseHelper.successResponse(res, 'User retrieved successfully', {
       _id: user._id,
       fullname: user.fullname,
       email: user.email,
-      address: user.address,
-      phone: user.phone,
-      date_of_birth: user.date_of_birth,
-      avatar: user.avatar,
-      bio: user.bio,
-      favoriteGenres: user.favoriteGenres,
       role: user.role_id,
       accountType: user.accountTypeId,
       isActive: user.isActive !== false,
-      googleId: user.googleId ? true : false,
-      facebookId: user.facebookId ? true : false,
-      isVerified: user.isVerified,
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt
-    };
-
-    return responseHelper.successResponse(res, 'User retrieved successfully', userData);
+      updatedAt: user.updatedAt,
+      lastLogin: user.lastLogin || null,
+      avatar: user.avatar || null
+    });
   } catch (error) {
-    console.error('Error in getUserById:', error);
+    console.error(`Error getting user ${req.params.userId}:`, error);
     return responseHelper.serverErrorResponse(res, 'Failed to retrieve user');
   }
 };
 
 /**
- * Tạo người dùng mới (dành cho admin)
+ * Tạo người dùng mới
  */
 exports.createUser = async (req, res) => {
   try {
+    // Validate input
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return responseHelper.badRequestResponse(res, 'Validation failed', errors.array());
+      return responseHelper.validationErrorResponse(res, 'Validation failed', errors.array());
     }
-
-    const { fullname, email, password, role_id, accountTypeId, address, phone, date_of_birth } = req.body;
-
-    // Kiểm tra email đã tồn tại chưa
+    
+    const { fullname, email, password, role, accountType, isActive } = req.body;
+    
+    // Check if email already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return responseHelper.badRequestResponse(res, 'Email already in use');
+      return responseHelper.errorResponse(res, 'Email already in use', 400);
     }
-
-    // Kiểm tra role có tồn tại không
-    const role = await Role.findById(role_id);
-    if (!role) {
-      return responseHelper.badRequestResponse(res, 'Invalid role');
-    }
-
-    // Kiểm tra accountType có tồn tại không
-    const accountType = await AccountType.findById(accountTypeId);
-    if (!accountType) {
-      return responseHelper.badRequestResponse(res, 'Invalid account type');
-    }
-
+    
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // Tạo người dùng mới
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    
+    // Create new user
     const newUser = new User({
       fullname,
       email,
       password: hashedPassword,
-      role_id,
-      accountTypeId,
-      address: address || null,
-      phone: phone || null,
-      date_of_birth: date_of_birth || null,
-      isVerified: true // Admin created users are verified by default
+      role_id: role,
+      accountTypeId: accountType,
+      isActive: isActive !== undefined ? isActive : true
     });
-
+    
     await newUser.save();
-
-    // Response không bao gồm password
-    const userData = {
+    
+    return responseHelper.successResponse(res, 'User created successfully', {
       _id: newUser._id,
       fullname: newUser.fullname,
-      email: newUser.email,
-      role: role_id,
-      accountType: accountTypeId,
-      createdAt: newUser.createdAt
-    };
-
-    return responseHelper.createdResponse(res, 'User created successfully', userData);
+      email: newUser.email
+    }, 201);
   } catch (error) {
-    console.error('Error in createUser:', error);
+    console.error('Error creating user:', error);
     return responseHelper.serverErrorResponse(res, 'Failed to create user');
   }
 };
@@ -182,77 +153,46 @@ exports.createUser = async (req, res) => {
  */
 exports.updateUser = async (req, res) => {
   try {
-    const userId = req.params.userId;
-    const { fullname, email, role_id, accountTypeId, address, phone, date_of_birth, isActive, password } = req.body;
-
-    // Kiểm tra người dùng tồn tại
+    const { userId } = req.params;
+    const { fullname, email, password, role, accountType, isActive } = req.body;
+    
+    // Check if user exists
     const user = await User.findById(userId);
     if (!user) {
       return responseHelper.notFoundResponse(res, 'User not found');
     }
-
-    // Kiểm tra email có bị trùng không (nếu thay đổi email)
-    if (email && email !== user.email) {
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
-        return responseHelper.badRequestResponse(res, 'Email already in use');
+    
+    // Check if email is taken by another user
+    if (email !== user.email) {
+      const emailExists = await User.findOne({ email, _id: { $ne: userId } });
+      if (emailExists) {
+        return responseHelper.errorResponse(res, 'Email already in use by another user', 400);
       }
     }
-
-    // Kiểm tra role có tồn tại không (nếu thay đổi role)
-    if (role_id) {
-      const role = await Role.findById(role_id);
-      if (!role) {
-        return responseHelper.badRequestResponse(res, 'Invalid role');
-      }
-    }
-
-    // Kiểm tra accountType có tồn tại không (nếu thay đổi accountType)
-    if (accountTypeId) {
-      const accountType = await AccountType.findById(accountTypeId);
-      if (!accountType) {
-        return responseHelper.badRequestResponse(res, 'Invalid account type');
-      }
-    }
-
-    // Cập nhật thông tin người dùng
-    if (fullname) user.fullname = fullname;
-    if (email) user.email = email;
-    if (role_id) user.role_id = role_id;
-    if (accountTypeId) user.accountTypeId = accountTypeId;
-    if (address !== undefined) user.address = address;
-    if (phone !== undefined) user.phone = phone;
-    if (date_of_birth !== undefined) user.date_of_birth = date_of_birth;
-    if (isActive !== undefined) user.isActive = isActive;
-
-    // Cập nhật password nếu có
+    
+    // Update fields
+    user.fullname = fullname || user.fullname;
+    user.email = email || user.email;
+    user.role_id = role || user.role_id;
+    user.accountTypeId = accountType || user.accountTypeId;
+    user.isActive = isActive !== undefined ? isActive : user.isActive;
+    
+    // Only update password if provided
     if (password) {
-      user.password = await bcrypt.hash(password, 12);
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
     }
-
+    
     await user.save();
-
-    // Lấy thông tin đã cập nhật với populate
-    const updatedUser = await User.findById(userId)
-      .populate('role_id', 'name')
-      .populate('accountTypeId', 'name');
-
-    const userData = {
-      _id: updatedUser._id,
-      fullname: updatedUser.fullname,
-      email: updatedUser.email,
-      role: updatedUser.role_id,
-      accountType: updatedUser.accountTypeId,
-      address: updatedUser.address,
-      phone: updatedUser.phone,
-      date_of_birth: updatedUser.date_of_birth,
-      isActive: updatedUser.isActive !== false,
-      updatedAt: updatedUser.updatedAt
-    };
-
-    return responseHelper.successResponse(res, 'User updated successfully', userData);
+    
+    return responseHelper.successResponse(res, 'User updated successfully', {
+      _id: user._id,
+      fullname: user.fullname,
+      email: user.email,
+      isActive: user.isActive
+    });
   } catch (error) {
-    console.error('Error in updateUser:', error);
+    console.error(`Error updating user ${req.params.userId}:`, error);
     return responseHelper.serverErrorResponse(res, 'Failed to update user');
   }
 };
@@ -262,25 +202,19 @@ exports.updateUser = async (req, res) => {
  */
 exports.deleteUser = async (req, res) => {
   try {
-    const userId = req.params.userId;
-
-    // Kiểm tra người dùng tồn tại
+    const { userId } = req.params;
+    
+    // Check if user exists
     const user = await User.findById(userId);
     if (!user) {
       return responseHelper.notFoundResponse(res, 'User not found');
     }
-
-    // Không cho phép xóa chính mình
-    if (user._id.toString() === req.user._id.toString()) {
-      return responseHelper.forbiddenResponse(res, 'Cannot delete yourself');
-    }
-
-    // Xóa người dùng
+    
     await User.findByIdAndDelete(userId);
-
+    
     return responseHelper.successResponse(res, 'User deleted successfully');
   } catch (error) {
-    console.error('Error in deleteUser:', error);
+    console.error(`Error deleting user ${req.params.userId}:`, error);
     return responseHelper.serverErrorResponse(res, 'Failed to delete user');
   }
 };
@@ -290,48 +224,23 @@ exports.deleteUser = async (req, res) => {
  */
 exports.banUser = async (req, res) => {
   try {
-    const userId = req.params.userId;
-
-    // Kiểm tra người dùng tồn tại
+    const { userId } = req.params;
+    
+    // Check if user exists
     const user = await User.findById(userId);
     if (!user) {
       return responseHelper.notFoundResponse(res, 'User not found');
     }
-
-    // Không cho phép cấm chính mình
-    if (user._id.toString() === req.user._id.toString()) {
-      return responseHelper.forbiddenResponse(res, 'Cannot ban yourself');
-    }
-
-    // Cập nhật trạng thái thành không hoạt động - Sử dụng findByIdAndUpdate để đảm bảo cập nhật thành công
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { isActive: false },
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedUser) {
-      return responseHelper.notFoundResponse(res, 'Failed to update user status');
-    }
-
-    // Xác nhận lại trạng thái đã thay đổi
-    console.log(`User ${userId} banned successfully. isActive set to: ${updatedUser.isActive}`);
-
-    return res.status(200).json({
-      success: true,
-      statusCode: 200,
-      message: 'User banned successfully',
-      data: {
-        user: {
-          _id: updatedUser._id,
-          fullname: updatedUser.fullname,
-          email: updatedUser.email,
-          isActive: false
-        }
-      }
+    
+    user.isActive = false;
+    await user.save();
+    
+    return responseHelper.successResponse(res, 'User banned successfully', {
+      _id: user._id,
+      isActive: user.isActive
     });
   } catch (error) {
-    console.error('Error in banUser:', error);
+    console.error(`Error banning user ${req.params.userId}:`, error);
     return responseHelper.serverErrorResponse(res, 'Failed to ban user');
   }
 };
@@ -341,114 +250,133 @@ exports.banUser = async (req, res) => {
  */
 exports.unbanUser = async (req, res) => {
   try {
-    const userId = req.params.userId;
-
-    // Kiểm tra người dùng tồn tại
+    const { userId } = req.params;
+    
+    // Check if user exists
     const user = await User.findById(userId);
     if (!user) {
       return responseHelper.notFoundResponse(res, 'User not found');
     }
-
-    // Cập nhật trạng thái thành hoạt động - Sử dụng findByIdAndUpdate để đảm bảo cập nhật thành công
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { isActive: true },
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedUser) {
-      return responseHelper.notFoundResponse(res, 'Failed to update user status');
-    }
-
-    // Xác nhận lại trạng thái đã thay đổi
-    console.log(`User ${userId} unbanned successfully. isActive set to: ${updatedUser.isActive}`);
-
-    return res.status(200).json({
-      success: true,
-      statusCode: 200,
-      message: 'User unbanned successfully',
-      data: {
-        user: {
-          _id: updatedUser._id,
-          fullname: updatedUser.fullname,
-          email: updatedUser.email,
-          isActive: true
-        }
-      }
+    
+    user.isActive = true;
+    await user.save();
+    
+    return responseHelper.successResponse(res, 'User unbanned successfully', {
+      _id: user._id,
+      isActive: user.isActive
     });
   } catch (error) {
-    console.error('Error in unbanUser:', error);
+    console.error(`Error unbanning user ${req.params.userId}:`, error);
     return responseHelper.serverErrorResponse(res, 'Failed to unban user');
   }
 };
 
 /**
- * Thay đổi trạng thái hoạt động của người dùng (khóa/mở khóa)
+ * Bật tắt trạng thái tài khoản người dùng
  */
 exports.toggleUserActiveStatus = async (req, res) => {
   try {
-    const userId = req.params.userId;
-    const { isActive } = req.body; // Nhận giá trị isActive từ request body
-
-    // Kiểm tra người dùng tồn tại
+    const { userId } = req.params;
+    const { isActive } = req.body;
+    
+    // Check if user exists
     const user = await User.findById(userId);
     if (!user) {
       return responseHelper.notFoundResponse(res, 'User not found');
     }
-
-    // Không cho phép thay đổi trạng thái chính mình
-    if (user._id.toString() === req.user._id.toString()) {
-      return responseHelper.forbiddenResponse(res, 'Cannot change your own status');
-    }
-
-    // Cập nhật trạng thái hoạt động
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { isActive: isActive },
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedUser) {
-      return responseHelper.notFoundResponse(res, 'Failed to update user status');
-    }
-
-    // Xác nhận lại trạng thái đã thay đổi
-    console.log(`User ${userId} status changed successfully. isActive set to: ${updatedUser.isActive}`);
-
-    // Gửi thông báo thời gian thực tới người dùng về thay đổi trạng thái tài khoản
-    try {
-      const websocket = req.app.get('websocket');
-      if (websocket) {
-        websocket.broadcast({
-          type: 'account_status_changed',
-          userId: userId,
-          isActive: isActive,
-          message: isActive 
-            ? 'Tài khoản của bạn đã được mở khóa và hiện đang hoạt động bình thường.' 
-            : 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để được hỗ trợ.'
-        });
-        console.log(`Real-time notification sent to user ${userId} about account status change to ${isActive ? 'active' : 'locked'}`);
-      }
-    } catch (wsErr) {
-      console.error('Error sending WebSocket notification for account status change:', wsErr);
-    }
-
-    return res.status(200).json({
-      success: true,
-      statusCode: 200,
-      message: `User ${isActive ? 'activated' : 'deactivated'} successfully`,
-      data: {
-        user: {
-          _id: updatedUser._id,
-          fullname: updatedUser.fullname,
-          email: updatedUser.email,
-          isActive: updatedUser.isActive
-        }
-      }
+    
+    user.isActive = isActive;
+    await user.save();
+    
+    return responseHelper.successResponse(res, `User ${isActive ? 'activated' : 'deactivated'} successfully`, {
+      _id: user._id,
+      isActive: user.isActive
     });
   } catch (error) {
-    console.error('Error in toggleUserActiveStatus:', error);
+    console.error(`Error toggling user ${req.params.userId} status:`, error);
     return responseHelper.serverErrorResponse(res, 'Failed to toggle user status');
+  }
+};
+
+/**
+ * Upload avatar cho người dùng (dành cho admin)
+ */
+exports.uploadUserAvatar = async (req, res) => {
+  try {
+    console.log("=== ADMIN: UPLOAD USER AVATAR ===");
+    const { userId } = req.params;
+    console.log("⭐ Upload avatar for userId:", userId);
+    
+    // Kiểm tra xem có file được upload không
+    if (!req.file) {
+      console.log("❌ No file uploaded");
+      return responseHelper.errorResponse(res, "Không có file nào được gửi lên", 400);
+    }
+    
+    console.log("✅ Received file:", req.file);
+    console.log("File path:", req.file.path);
+    console.log("File mimetype:", req.file.mimetype);
+    console.log("File size:", req.file.size);
+    
+    // Kiểm tra xem người dùng có tồn tại không
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log("❌ User not found");
+      return responseHelper.errorResponse(res, "Người dùng không tồn tại", 404);
+    }
+    
+    // Import Cloudinary
+    const cloudinary = require('../config/cloudinary');
+    
+    // Upload file lên Cloudinary
+    console.log("☁️ Uploading to Cloudinary...");
+    const cloudinaryResult = await cloudinary.uploader.upload(req.file.path, {
+      folder: "movie-streaming/avatars",
+      public_id: `user_${userId}_${Date.now()}`,
+      resource_type: "image",
+      transformation: [
+        { width: 500, height: 500, crop: "limit" },
+        { quality: "auto" }
+      ]
+    });
+    
+    console.log("☁️ Cloudinary result:", cloudinaryResult.secure_url);
+    
+    // Xóa file tạm sau khi upload lên Cloudinary
+    const fs = require('fs');
+    try {
+      fs.unlinkSync(req.file.path);
+      console.log("✅ Temporary file deleted:", req.file.path);
+    } catch (err) {
+      console.log("⚠️ Could not delete temp file:", err);
+    }
+
+    // Nếu người dùng đã có Cloudinary ID cho avatar cũ, xóa nó
+    if (user.cloudinaryPublicId) {
+      try {
+        await cloudinary.uploader.destroy(user.cloudinaryPublicId);
+        console.log("☁️ Deleted old avatar from Cloudinary:", user.cloudinaryPublicId);
+      } catch (cloudinaryError) {
+        console.log("⚠️ Could not delete old avatar from Cloudinary:", cloudinaryError);
+      }
+    }
+
+    // Cập nhật đường dẫn avatar mới vào DB
+    user.avatar = cloudinaryResult.secure_url;
+    user.cloudinaryPublicId = cloudinaryResult.public_id;
+    
+    await user.save();
+    console.log("✅ Saved new avatar path to DB:", user.avatar);
+
+    // Trả về kết quả
+    return responseHelper.successResponse(res, "Upload avatar thành công", {
+      success: true,
+      avatarUrl: cloudinaryResult.secure_url,
+      userId: user._id
+    });
+    
+  } catch (error) {
+    console.error("❌ Error uploading avatar:", error);    return responseHelper.errorResponse(res, `Lỗi khi upload avatar: ${error.message}`, 500);
   }
 };
 
@@ -459,9 +387,15 @@ exports.getRoles = async (req, res) => {
   try {
     const roles = await Role.find().sort({ name: 1 });
     
-    return responseHelper.successResponse(res, 'Roles retrieved successfully', { roles });
+    return responseHelper.successResponse(res, 'Roles retrieved successfully', {
+      roles: roles.map(role => ({
+        _id: role._id,
+        name: role.name,
+        description: role.description
+      }))
+    });
   } catch (error) {
-    console.error('Error in getRoles:', error);
+    console.error('Error getting roles:', error);
     return responseHelper.serverErrorResponse(res, 'Failed to retrieve roles');
   }
 };
@@ -471,25 +405,28 @@ exports.getRoles = async (req, res) => {
  */
 exports.createRole = async (req, res) => {
   try {
-    const { name } = req.body;
-
-    if (!name) {
-      return responseHelper.badRequestResponse(res, 'Role name is required');
-    }
-
-    // Kiểm tra vai trò đã tồn tại chưa
+    const { name, description } = req.body;
+    
+    // Check if role already exists
     const existingRole = await Role.findOne({ name });
     if (existingRole) {
-      return responseHelper.badRequestResponse(res, 'Role already exists');
+      return responseHelper.errorResponse(res, 'Role with this name already exists', 400);
     }
-
-    // Tạo vai trò mới
-    const newRole = new Role({ name });
+    
+    const newRole = new Role({
+      name,
+      description
+    });
+    
     await newRole.save();
-
-    return responseHelper.createdResponse(res, 'Role created successfully', newRole);
+    
+    return responseHelper.successResponse(res, 'Role created successfully', {
+      _id: newRole._id,
+      name: newRole.name,
+      description: newRole.description
+    }, 201);
   } catch (error) {
-    console.error('Error in createRole:', error);
+    console.error('Error creating role:', error);
     return responseHelper.serverErrorResponse(res, 'Failed to create role');
   }
 };
@@ -499,32 +436,35 @@ exports.createRole = async (req, res) => {
  */
 exports.updateRole = async (req, res) => {
   try {
-    const roleId = req.params.roleId;
-    const { name } = req.body;
-
-    if (!name) {
-      return responseHelper.badRequestResponse(res, 'Role name is required');
-    }
-
-    // Kiểm tra vai trò tồn tại
+    const { roleId } = req.params;
+    const { name, description } = req.body;
+    
+    // Check if role exists
     const role = await Role.findById(roleId);
     if (!role) {
       return responseHelper.notFoundResponse(res, 'Role not found');
     }
-
-    // Kiểm tra tên vai trò đã tồn tại chưa
-    const existingRole = await Role.findOne({ name, _id: { $ne: roleId } });
-    if (existingRole) {
-      return responseHelper.badRequestResponse(res, 'Role name already exists');
+    
+    // Check if name is taken by another role
+    if (name !== role.name) {
+      const nameExists = await Role.findOne({ name, _id: { $ne: roleId } });
+      if (nameExists) {
+        return responseHelper.errorResponse(res, 'Role with this name already exists', 400);
+      }
     }
-
-    // Cập nhật vai trò
-    role.name = name;
+    
+    role.name = name || role.name;
+    role.description = description || role.description;
+    
     await role.save();
-
-    return responseHelper.successResponse(res, 'Role updated successfully', role);
+    
+    return responseHelper.successResponse(res, 'Role updated successfully', {
+      _id: role._id,
+      name: role.name,
+      description: role.description
+    });
   } catch (error) {
-    console.error('Error in updateRole:', error);
+    console.error(`Error updating role ${req.params.roleId}:`, error);
     return responseHelper.serverErrorResponse(res, 'Failed to update role');
   }
 };
@@ -534,26 +474,25 @@ exports.updateRole = async (req, res) => {
  */
 exports.deleteRole = async (req, res) => {
   try {
-    const roleId = req.params.roleId;
-
-    // Kiểm tra vai trò tồn tại
+    const { roleId } = req.params;
+    
+    // Check if role exists
     const role = await Role.findById(roleId);
     if (!role) {
       return responseHelper.notFoundResponse(res, 'Role not found');
     }
-
-    // Kiểm tra vai trò có đang được sử dụng không
+    
+    // Check if role is in use by any user
     const usersWithRole = await User.countDocuments({ role_id: roleId });
     if (usersWithRole > 0) {
-      return responseHelper.badRequestResponse(res, 'Cannot delete role because it is assigned to users');
+      return responseHelper.errorResponse(res, `Cannot delete role. It is assigned to ${usersWithRole} user(s).`, 400);
     }
-
-    // Xóa vai trò
+    
     await Role.findByIdAndDelete(roleId);
-
+    
     return responseHelper.successResponse(res, 'Role deleted successfully');
   } catch (error) {
-    console.error('Error in deleteRole:', error);
+    console.error(`Error deleting role ${req.params.roleId}:`, error);
     return responseHelper.serverErrorResponse(res, 'Failed to delete role');
   }
 };
@@ -565,9 +504,15 @@ exports.getAccountTypes = async (req, res) => {
   try {
     const accountTypes = await AccountType.find().sort({ name: 1 });
     
-    return responseHelper.successResponse(res, 'Account types retrieved successfully', { accountTypes });
+    return responseHelper.successResponse(res, 'Account types retrieved successfully', {
+      accountTypes: accountTypes.map(type => ({
+        _id: type._id,
+        name: type.name,
+        description: type.description
+      }))
+    });
   } catch (error) {
-    console.error('Error in getAccountTypes:', error);
+    console.error('Error getting account types:', error);
     return responseHelper.serverErrorResponse(res, 'Failed to retrieve account types');
   }
 };
