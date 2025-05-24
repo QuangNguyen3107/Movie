@@ -445,23 +445,18 @@ tbody tr td {
 
 .message-preview-table {
     color: #495057;
-    font-style: italic;
-    padding: 5px 10px;
-    background-color: #f8f9fa;
-    border-radius: 6px;
+    padding: 5px 0;
     display: inline-block;
     width: 100%;
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    border-left: 3px solid #0d6efd;
     transition: all 0.2s ease;
 }
 
 .message-preview-table:hover {
-    background-color: #e9ecef;
-    border-left-width: 5px;
+    color: #212529;
 }
 
 .reporter-info {
@@ -1441,15 +1436,14 @@ tr:hover td {
 
 .feedback-message-container {
     border-radius: 8px;
-    background-color: #f9f9f9;
+    background-color: #ffffff;
     position: relative;
-    border: 1px solid #e0e0e0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid #e9ecef;
     transition: all 0.2s ease;
 }
 
 .feedback-message-container:hover {
-    box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+    background-color: #fcfcfc;
 }
 
 .feedback-message-content {

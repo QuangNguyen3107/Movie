@@ -131,7 +131,7 @@ export const AdContextProvider = ({ children }) => {
         }
         
         // Kiểm tra đặc biệt cho gói premium 15k
-        const isPremium15k = benefits.isPremium15k === true || benefits.packageType === '6826f81c13eb3da4a8bc6ce3';
+        const isPremium15k = benefits.isPremium15k === true || benefits.packageType === '682f7d849c310399aa715c9d';
         
         if (isPremium15k) {
           console.log('%c[AdContext] PREMIUM 15K PACKAGE DETECTED!', 'color: #FF0000; font-size: 16px; font-weight: bold');

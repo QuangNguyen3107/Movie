@@ -11,7 +11,7 @@ import AdminFooter from '../Admin/Layout/AdminFooter';
 //import AdminNotifications từ '../Admin/AdminNotifications';
 import styles from '@/styles/Admin.module.css';
 import dynamic from 'next/dynamic';
-import { WebSocketProvider } from '@/contexts/WebSocketContext';
+import { WebSocketProvider } from '@/constants/WebSocketContext';
 
 // Import các thư viện JS của AdminLTE một cách tối ưu
 const AdminLTEScript = dynamic(() => import('admin-lte/dist/js/adminlte.min.js'), {

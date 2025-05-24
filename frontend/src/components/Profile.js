@@ -8,7 +8,8 @@ import {
   FaUser, FaHistory, FaHeart, FaBookmark, FaChartLine, FaEdit, FaTimes, FaSave, 
   FaCamera, FaSignInAlt, FaCheck, FaCalendarAlt, FaEnvelope, FaPhone, FaMapMarkerAlt,
   FaLock, FaShieldAlt, FaCrown, FaEllipsisH, FaTv, FaClock, FaStar, FaEye, FaFilm,
-  FaBars, FaSync, FaPlay, FaSignOutAlt, FaTrash, FaThumbsUp, FaThumbsDown, FaComment, FaCheckCircle, FaCalendarCheck
+  FaBars, FaSync, FaPlay, FaSignOutAlt, FaTrash, FaThumbsUp, FaThumbsDown, FaComment, 
+  FaCheckCircle, FaCalendarCheck, FaArrowLeft
 } from 'react-icons/fa';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -2375,10 +2376,16 @@ export default function ProfilePage() {
         pauseOnHover
         theme="dark"
       />
-      
-      {/* Header cho mobile */}
+        {/* Header cho mobile */}
       <header className="mobile-header">
         <div className="mobile-header-wrapper">
+          <button 
+            className="mobile-back-button"
+            onClick={() => router.back()}
+            aria-label="Quay lại"
+          >
+            <FaArrowLeft />
+          </button>
           <div className="mobile-user-info">
             <img 
               src={avatar} 
@@ -2601,16 +2608,34 @@ export default function ProfilePage() {
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
           box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
-        
-        .mobile-header-wrapper {
+          .mobile-header-wrapper {
           display: flex;
           align-items: center;
           justify-content: space-between;
         }
         
+        .mobile-back-button {
+          background: transparent;
+          border: none;
+          color: white;
+          font-size: 20px;
+          padding: 5px 10px;
+          cursor: pointer;
+          margin-right: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+        }
+        
+        .mobile-back-button:hover {
+          color: #e50914;
+        }
+        
         .mobile-user-info {
           display: flex;
           align-items: center;
+          flex: 1;
         }
         
         .mobile-avatar {
@@ -3100,9 +3125,20 @@ export default function ProfilePage() {
           .profile-sidebar {
             display: none;
           }
-          
-          .mobile-header {
+            .mobile-header {
             display: block;
+          }
+          
+          .mobile-user-text {
+            max-width: calc(100% - 120px); /* Space for avatar and button */
+            overflow: hidden;
+          }
+          
+          .mobile-user-name, 
+          .mobile-user-email {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
           }
           
           .profile-main {

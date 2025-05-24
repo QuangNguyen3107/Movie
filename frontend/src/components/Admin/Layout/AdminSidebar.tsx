@@ -13,7 +13,8 @@ import { useRouter } from 'next/router';  import {
   FaTimes,
   FaEnvelope,
   FaExclamationTriangle,
-  FaAd
+  FaAd,
+  FaBell
 } from 'react-icons/fa';
 import styles from '@/styles/AdminSidebar.module.css';
 import axios from 'axios';
@@ -115,8 +116,7 @@ const AdminSidebar = () => {
 
   const closeSidebar = () => {
     document.body.classList.remove('sidebar-open');
-  };
-  const menuItems: MenuItem[] = [
+  };  const menuItems: MenuItem[] = [
     { path: '/admin', icon: FaHome, label: 'Dashboard' },
     { path: '/admin/movies', icon: FaFilm, label: 'Movies' },
     { path: '/admin/upcoming-movies', icon: FaPlayCircle, label: 'Phim sắp ra mắt' },
@@ -126,6 +126,7 @@ const AdminSidebar = () => {
     { path: '/admin/feedback', icon: FaEnvelope, label: 'Góp ý người dùng', badge: unreadFeedbackCount },
     { path: '/admin/reports', icon: FaExclamationTriangle, label: 'Báo cáo lỗi' },
     { path: '/admin/advertisement', icon: FaAd, label: 'Quảng cáo' },
+    { path: '/admin/notifications/email', icon: FaBell, label: 'Gửi thông báo' },
   ];
 
   return (

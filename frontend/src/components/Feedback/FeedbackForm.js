@@ -98,17 +98,18 @@ const FeedbackForm = forwardRef(({ isOpen, onClose }, ref) => {  const { user, i
     } finally {
       setIsSubmitting(false);
     }
-  };
-  if (!isOpen) return null;
+  };  if (!isOpen) return null;
 
   return (
-    <div ref={ref} className="feedback-dropdown">
-      <div className="feedback-header">
-        <h6 className="m-0">Góp ý</h6>
-        <button className="btn-close-feedback" onClick={onClose}>
-          <FaTimes />
-        </button>
-      </div>
+    <>
+      <div className="feedback-overlay" onClick={onClose}></div>
+      <div ref={ref} className="feedback-dropdown">
+        <div className="feedback-header">
+          <h6 className="m-0">Góp ý</h6>
+          <button className="btn-close-feedback" onClick={onClose}>
+            <FaTimes />
+          </button>
+        </div>
       
       <div className="feedback-content">
         {submitSuccess ? (
@@ -123,112 +124,152 @@ const FeedbackForm = forwardRef(({ isOpen, onClose }, ref) => {  const { user, i
               <div className="feedback-error alert alert-danger py-2">
                 {formError}
               </div>
-            )}              <div className="mb-2">
+            )}            <div className="mb-3">
               <input
                 type="text"
                 name="name"
                 value={user?.fullname || user?.name || formData.name}
-                className="form-control form-control-sm bg-dark text-white border-secondary"
+                className="form-control form-control-md bg-dark text-white border-secondary"
                 placeholder="Tên người dùng"
                 readOnly={true}
-                style={{opacity: 1}}
+                style={{opacity: 1, fontSize: "16px"}}
               />
             </div>
             
-            <div className="mb-2">
+            <div className="mb-3">
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="form-control form-control-sm bg-dark text-white border-secondary"
+                className="form-control form-control-md bg-dark text-white border-secondary"
                 placeholder={user?.email || "Email"}
                 readOnly={!!user?.email}
+                style={{fontSize: "16px"}}
               />            </div>
               
-              <div className="mb-3">
+              <div className="mb-4">
               <textarea
                 name="message"
                 value={formData.message}
                 onChange={handleChange}
-                className="form-control form-control-sm bg-dark text-white border-secondary"
+                className="form-control form-control-md bg-dark text-white border-secondary"
                 placeholder="Nội dung"
-                rows="4"
+                rows="5"
+                style={{fontSize: "16px"}}
               ></textarea>
             </div>
             
             <button 
               type="submit" 
-              className="btn btn-danger btn-sm w-100"
+              className="btn btn-danger w-100 py-2"
               disabled={isSubmitting}
-            >
-              {isSubmitting ? (
+              style={{fontSize: "16px", fontWeight: 600}}
+            >{isSubmitting ? (
                 <>
-                  <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                  <span className="spinner-border spinner-border-md me-2" role="status" aria-hidden="true"></span>
                   Đang gửi...
                 </>
-              ) : 'Gửi góp ý'}
+              ) : 'GỬI GÓP Ý'}
             </button>
           </form>
         )}
       </div>
-      
-      <style jsx>{`        .feedback-dropdown {
-          position: absolute;
-          top: 55px;
-          right: 60px;
-          width: 320px;
+        <style jsx>{`        .feedback-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(0, 0, 0, 0.8);
+          backdrop-filter: blur(8px);
+          z-index: 1000;
+          animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        .feedback-dropdown {
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 600px;
+          max-width: 90vw;
           background-color: #212529;
-          border-radius: 8px;
-          box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+          border-radius: 12px;
+          box-shadow: 0 15px 40px rgba(0,0,0,0.6);
           z-index: 1001;
           padding: 0;
-          border: 1px solid rgba(255,255,255,0.1);
+          border: 1px solid rgba(255,255,255,0.15);
           overflow: hidden;
+          animation: scaleIn 0.3s ease-in-out;
         }
-          .feedback-dropdown:before {
-          content: '';
-          position: absolute;
-          top: -8px;
-          right: 60px;
-          width: 0;
-          height: 0;
-          border-left: 8px solid transparent;
-          border-right: 8px solid transparent;
-          border-bottom: 8px solid #212529;
+        
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        
+        @keyframes scaleIn {
+          from { 
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.9);
+          }
+          to { 
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+          }
         }
         
         @media (max-width: 992px) {
+          .feedback-dropdown {
+            width: 90%;
+            max-width: 500px;
+          }
+        }
+
+        /* Fix for mobile devices - ensure the feedback form displays properly */
+        @media (max-width: 576px) {
           .feedback-dropdown {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 90%;
-            max-width: 320px;
+            width: 95%;
+            max-width: 350px;
+            margin: 0;
           }
-          
-          .feedback-dropdown:before {
-            display: none;
+        }
+
+        /* Fix for extra small screens */
+        @media (max-width: 360px) {
+          .feedback-dropdown {
+            width: 95%;
+            max-width: 300px;
           }
         }
         
-        .feedback-header {
+        @media (max-width: 992px) {
+          .feedback-dropdown {
+            width: 90%;
+            max-width: 500px;
+          }
+        }          .feedback-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 10px 15px;
+          padding: 16px 24px;
           border-bottom: 1px solid rgba(255,255,255,0.1);
-          background-color: rgba(0,0,0,0.2);
+          background-color: rgba(0,0,0,0.3);
+          box-shadow: 0 2px 10px rgba(0,0,0,0.2);
         }
         
         .feedback-header h6 {
           font-weight: 600;
           color: #fff;
-        }
-        
-        .btn-close-feedback {
-          font-size: 14px;
+          font-size: 20px;
+          letter-spacing: 0.5px;
+        }          .btn-close-feedback {
+          font-size: 20px;
           color: #aaa;
           background: none;
           border: none;
@@ -237,21 +278,22 @@ const FeedbackForm = forwardRef(({ isOpen, onClose }, ref) => {  const { user, i
           display: flex;
           align-items: center;
           justify-content: center;
+          transition: all 0.2s ease;
         }
         
         .btn-close-feedback:hover {
           color: #fff;
+          transform: scale(1.1);
         }
         
         .feedback-content {
-          padding: 15px;
-          max-height: 400px;
+          padding: 24px;
+          max-height: 600px;
           overflow-y: auto;
-        }
-        
-        .feedback-error {
+        }          .feedback-error {
           font-size: 14px;
           margin-bottom: 15px;
+          border-radius: 6px;
         }
         
         .feedback-success {
@@ -259,30 +301,38 @@ const FeedbackForm = forwardRef(({ isOpen, onClose }, ref) => {  const { user, i
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 20px 15px;
+          padding: 40px 24px;
           text-align: center;
         }
         
         .success-icon {
-          font-size: 40px;
+          font-size: 50px;
           color: #28a745;
-          margin-bottom: 15px;
+          margin-bottom: 20px;
+          animation: pulse 1.5s infinite ease-in-out;
+        }
+        
+        @keyframes pulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.1); }
+          100% { transform: scale(1); }
         }
         
         .feedback-success p {
-          margin-bottom: 5px;
-          font-size: 16px;
+          margin-bottom: 10px;
+          font-size: 20px;
           font-weight: 600;
           color: #fff;
         }
         
         .success-message {
-          font-size: 14px !important;
+          font-size: 16px !important;
           font-weight: normal !important;
           color: #aaa !important;
         }
-      `}</style>
-    </div>  );
+      `}</style>    </div>
+    </>
+  );
 });
 
 export default FeedbackForm;

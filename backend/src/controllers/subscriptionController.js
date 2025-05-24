@@ -754,16 +754,34 @@ exports.getUserSubscriptions = async (req, res) => {
  */
 exports.getAllSubscriptions = async (req, res) => {
   try {
-    const subscriptions = await UserSubscription.find()
-      .populate("userId", "name email profilePicture")
+    // Apply filters if provided
+    let filters = {};
+    if (req.query.status) {
+      const statuses = req.query.status.split(',');
+      filters.status = { $in: statuses };
+    }
+    
+    const subscriptions = await UserSubscription.find(filters)
+      .populate("userId", "username email fullName fullname avatar")
       .populate("packageId")
       .populate("paymentId")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 });    // Process subscriptions to normalize user data
+    const processedSubscriptions = subscriptions.map(sub => {
+      const subscription = sub.toObject();
+      
+      // Normalize user data fields for consistency
+      if (subscription.userId) {
+        subscription.userId.fullName = subscription.userId.fullName || subscription.userId.fullname || subscription.userId.username || subscription.userId.name;
+        subscription.userId.avatar = subscription.userId.avatar || subscription.userId.profilePicture || '/img/avatar.png';
+      }
+      
+      return subscription;
+    });
 
     return responseHelper.successResponse(
       res,
       "Lấy danh sách đăng ký thành công",
-      subscriptions
+      processedSubscriptions
     );
   } catch (error) {
     console.error("Error in getAllSubscriptions:", error);

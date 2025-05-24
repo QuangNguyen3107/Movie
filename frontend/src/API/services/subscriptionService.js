@@ -152,8 +152,8 @@ const subscriptionService = {
       });
       
       console.log('%c[AdBenefits] API response:', 'color: #4CAF50; font-weight: bold', response.data);      
-      // Phát hiện gói Premium 15k (6826f81c13eb3da4a8bc6ce3)
-      const isPremiumPackage = response.data.data?.packageType === '6826f81c13eb3da4a8bc6ce3';
+      // Phát hiện gói Premium 15k (682f7d849c310399aa715c9d)
+      const isPremiumPackage = response.data.data?.packageType === '682f7d849c310399aa715c9d';
       
       if (isPremiumPackage) {
         console.log('%c[AdBenefits] GOI 15K PREMIUM DETECTED! Hiding all ads.', 'color: #FF0000; font-weight: bold; font-size: 16px;');

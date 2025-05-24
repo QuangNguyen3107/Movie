@@ -1,4 +1,4 @@
-// src/pages/admin/upcoming-movies/index.tsx
+// src/components/Admin/UpcomingMovies/index.tsx
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -7,7 +7,7 @@ import { FaPlus, FaEdit, FaTrash, FaSearch, FaFileCsv, FaEye, FaFileExport } fro
 import AdminLayout from '@/components/Layout/AdminLayout';
 import { getUpcomingMovies, deleteUpcomingMovie, releaseUpcomingMovie } from '@/services/admin/upcomingMovieService';
 import { UpcomingMovie } from '@/services/admin/upcomingMovieService';
-import Pagination from '@/components/Common/Pagination';
+import Pagination from '@/components/Admin/Common/Pagination';
 
 const UpcomingMoviesPage: React.FC = () => {
   const router = useRouter();

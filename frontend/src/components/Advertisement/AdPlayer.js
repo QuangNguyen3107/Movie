@@ -4,7 +4,7 @@ import adService from '@/API/services/adService';
 import styles from '../../styles/AdPlayer.module.css';
 import { useAdContext } from '@/context/AdContext'; // Import AdContext
 
-const AdPlayer = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
+const AdPlayerFixed = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
   const [ad, setAd] = useState(null);
   const [loading, setLoading] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState(0);
@@ -49,206 +49,186 @@ const AdPlayer = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
       return;
     }
 
-    const fetchAd = async () => {
+    const fetchRandomAd = async () => {
       try {
         setLoading(true);
-        const adData = await adService.getRandomVideoAd();
-        
-        // Kiểm tra lại nếu hideVideoAds đã thay đổi trong quá trình tải
-        if (hideVideoAds === true) {
-          console.log('%c[AdPlayer] Trạng thái Premium thay đổi trong quá trình tải - bỏ qua quảng cáo', 'color: #00FF00;');
-          onAdComplete();
-          return;
-        }
-        
-        if (adData) {
-          setAd(adData);
-          setTimeRemaining(adData.duration || 15);
-        } else {
-          // If no ad, complete immediately
-          onAdComplete();
-        }
+        // Lấy quảng cáo video ngẫu nhiên
+        const adData = await adService.getRandomAd('video');
+        console.log('[AdPlayer] Đã nhận quảng cáo:', adData);
+        setAd(adData);
       } catch (error) {
-        console.error('Error fetching video ad:', error);
-        onAdComplete(); // Skip on error
+        console.error('[AdPlayer] Lỗi khi tải quảng cáo:', error);
+        // Nếu lỗi, bỏ qua và chuyển đến nội dung
+        onAdComplete();
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAd();
-
-    // Cleanup timer on unmount
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
+    fetchRandomAd();
   }, [hideVideoAds, isAdContextLoading, onAdComplete]);
 
-  // Track impression when ad is viewed
   useEffect(() => {
-    const trackImpression = async () => {
-      if (ad && !adTracked) {
+    if (!ad || hideVideoAds === true) return;
+
+    // Khởi tạo bộ đếm thời gian cho quảng cáo
+    const adDuration = videoRef.current?.duration || 30;
+    setTimeRemaining(Math.ceil(adDuration));
+
+    // Theo dõi tiến trình của video
+    const handleTimeUpdate = () => {
+      if (!videoRef.current) return;
+      
+      const remaining = Math.ceil(videoRef.current.duration - videoRef.current.currentTime);
+      setTimeRemaining(remaining);
+
+      // Nếu còn 75% thời gian video và chưa được theo dõi, ghi lại lượt xem
+      if (!adTracked && videoRef.current.currentTime > videoRef.current.duration * 0.25) {
         try {
-          await adService.trackAdImpression(ad._id);
+          // Ghi lại lượt xem quảng cáo
+          adService.trackAdView(ad._id);
           setAdTracked(true);
+          console.log('[AdPlayer] Đã ghi lại lượt xem quảng cáo');
         } catch (error) {
-          console.error('Error tracking ad impression:', error);
+          console.error('[AdPlayer] Lỗi khi ghi lượt xem:', error);
         }
       }
     };
 
-    trackImpression();
-  }, [ad, adTracked]);
-  // Setup video event listeners and countdown timer
-  useEffect(() => {
-    if (!ad || !videoRef.current) return;
-
-    const videoElement = videoRef.current;
-    
-    // Start the video when it's ready
-    const handleCanPlay = () => {
-      videoElement.play().catch(err => {
-        console.error('Error playing video ad:', err);
-        onAdComplete(); // Skip on error
-      });
-    };
-
-    // Handle video completion
-    const handleEnded = () => {
+    // Khi video kết thúc
+    const handleVideoEnded = () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
       onAdComplete();
     };
 
-    // Setup countdown timer
-    timerRef.current = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current);
-          return 0;
-        }
-        return prev - 1;
-      });
-
-      // Update skip countdown
-      if (allowSkip && skipCountdownRef.current > 0) {
+    // Bắt đầu bộ đếm cho nút bỏ qua
+    if (allowSkip && skipDelay > 0) {
+      skipCountdownRef.current = skipDelay;
+      timerRef.current = setInterval(() => {
         skipCountdownRef.current -= 1;
-        if (skipCountdownRef.current === 0) {
+        if (skipCountdownRef.current <= 0) {
           setCanSkip(true);
+          clearInterval(timerRef.current);
         }
-      }
-    }, 1000);
+      }, 1000);
+    } else if (allowSkip && skipDelay === 0) {
+      setCanSkip(true);
+    }
 
-    // Add video event listeners
-    videoElement.addEventListener('canplay', handleCanPlay);
-    videoElement.addEventListener('ended', handleEnded);
+    // Thêm các event listeners
+    const videoElement = videoRef.current;
+    if (videoElement) {
+      videoElement.addEventListener('timeupdate', handleTimeUpdate);
+      videoElement.addEventListener('ended', handleVideoEnded);
+    }
 
-    // Cleanup
+    // Clean up
     return () => {
-      videoElement.removeEventListener('canplay', handleCanPlay);
-      videoElement.removeEventListener('ended', handleEnded);
-      
+      if (videoElement) {
+        videoElement.removeEventListener('timeupdate', handleTimeUpdate);
+        videoElement.removeEventListener('ended', handleVideoEnded);
+      }
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
     };
-  }, [ad, onAdComplete, allowSkip, skipDelay]);
+  }, [ad, allowSkip, hideVideoAds, onAdComplete, skipDelay]);
 
-  // Handle skipping the ad
-  const handleSkip = async () => {
-    if (!canSkip || !ad) return;
-    
-    try {
-      // Track the skip
-      await adService.trackAdSkip(ad._id);
-    } catch (error) {
-      console.error('Error tracking ad skip:', error);
-    }
-    
-    // Complete and move to content
-    onAdComplete();
-  };
-
-  // Handle clicking on the ad
-  const handleAdClick = async () => {
-    if (!ad) return;
-    
-    try {
-      // Track the click
-      await adService.trackAdClick(ad._id);
-      
-      // Open the link in a new tab
-      window.open(ad.link, '_blank');
-      
-      // Pause the video when clicking through
+  // Xử lý khi user bỏ qua quảng cáo
+  const handleSkip = () => {
+    if (canSkip) {
       if (videoRef.current) {
         videoRef.current.pause();
       }
-    } catch (error) {
-      console.error('Error tracking ad click:', error);
-      // Still open the link even if tracking fails
-      window.open(ad.link, '_blank');
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      onAdComplete();
     }
   };
 
-  if (loading) {
+  // Nếu người dùng là Premium hoặc quảng cáo đang tải
+  if (hideVideoAds === true || isAdContextLoading) {
+    return null; // Không hiển thị gì cả
+  }
+
+  if (loading && !ad) {
     return (
       <div className={styles.adPlayerContainer}>
-        <div className={styles.loadingSpinner}>
-          <div className="spinner-border text-light" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
+        <div className={styles.adLoading}>
+          <div className={styles.spinner}></div>
+          <p>Đang tải quảng cáo...</p>
         </div>
       </div>
     );
   }
 
   if (!ad) {
+    // Nếu không có quảng cáo, chuyển đến nội dung chính
+    onAdComplete();
     return null;
-  }  return (
+  }
+
+  return (
     <div className={styles.adPlayerContainer}>
-      <div className={styles.videoWrapper}>
-        <div className={styles.adClickArea} onClick={handleAdClick}>
-          <video 
-            ref={videoRef}
-            className={styles.adVideo}
-            src={ad.content}
-            muted={false}
-            playsInline
-            preload="auto"
-            aria-label={`Advertisement from ${ad.advertiser}`}
-          />
+      <div className={styles.adOverlay}>
+        <span className={styles.adBadge}>
+          Quảng cáo
+        </span>
+        
+        {allowSkip && (
+          <button 
+            className={`${styles.skipButton} ${canSkip ? styles.skipButtonActive : styles.skipButtonDisabled}`}
+            onClick={handleSkip}
+            disabled={!canSkip}
+          >
+            <FaForward />
+            <span>
+              {canSkip ? 'Bỏ qua' : `Bỏ qua sau ${skipCountdownRef.current}s`}
+            </span>
+          </button>
+        )}
+        
+        <div className={styles.adCountdown}>
+          {timeRemaining > 0 && `Quảng cáo kết thúc sau: ${timeRemaining}s`}
         </div>
         
-        <div className={styles.adOverlay}>
-          <div className={styles.adInfo}>
-            <span className={styles.adLabel}>Quảng cáo</span>
-            <span className={styles.adTimer}>{timeRemaining}s</span>
-          </div>
-            <div className={styles.adDetails}>
-            <p className={styles.adTitle}>{ad.name}</p>
-            <p className={styles.adAdvertiser}>{ad.advertiser}</p>
-          </div>  
-          
-          {allowSkip && (
-            <button 
-              className={`${styles.skipButton} ${canSkip ? styles.canSkip : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSkip();
+        <div className={styles.adInfoOverlay}>
+          <h3>{ad.title}</h3>
+          {ad.callToAction && (
+            <a 
+              href={ad.targetUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className={styles.adCTA}
+              onClick={() => {
+                try {
+                  // Ghi lại lượt click quảng cáo
+                  adService.trackAdClick(ad._id);
+                  console.log('[AdPlayer] Đã ghi lại lượt click quảng cáo');
+                } catch (error) {
+                  console.error('[AdPlayer] Lỗi khi ghi lượt click:', error);
+                }
               }}
-              disabled={!canSkip}
-              aria-label="Skip advertisement"
             >
-              <FaForward className={styles.skipIcon} />
-              <span>{canSkip ? 'Bỏ qua' : `Bỏ qua sau ${skipCountdownRef.current}s`}</span>
-            </button>
+              {ad.callToAction}
+            </a>
           )}
         </div>
       </div>
+      
+      <video 
+        ref={videoRef}
+        className={styles.adVideo}
+        src={ad.mediaUrl}
+        autoPlay
+        muted={false}
+        controls={false}
+      />
     </div>
   );
 };
 
-export default AdPlayer;
-
+export default AdPlayerFixed;

@@ -1,6 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import { RoleForAdmin, createRoleByAdmin, updateRoleByAdmin } from '@/API/services/admin/userAdminService';
-import { FaSave, FaTimes, FaPlus, FaTimes as FaDelete } from 'react-icons/fa';
+import { FaSave, FaTimes, FaPlus, FaTrash } from 'react-icons/fa';
+import axiosInstance from '@/API/config/axiosConfig';
+import { API_URL } from '@/config/API';
+
+// Extended RoleForAdmin interface to include permissions
+interface RoleForAdmin {
+  _id: string;
+  name: string;
+  description: string;
+  permissions: string[];
+}
+
+// Functions to create and update roles
+const createRoleByAdmin = async (roleData: { name: string; description: string; permissions: string[] }) => {
+  try {
+    const response = await axiosInstance.post(`${API_URL}/admin/roles`, roleData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating role:', error);
+    throw error;
+  }
+};
+
+const updateRoleByAdmin = async (id: string, roleData: { name: string; description: string; permissions: string[] }) => {
+  try {
+    const response = await axiosInstance.put(`${API_URL}/admin/roles/${id}`, roleData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating role:', error);
+    throw error;
+  }
+};
 
 interface RoleFormProps {
   show: boolean;
@@ -219,14 +249,13 @@ const RoleForm: React.FC<RoleFormProps> = ({
                         ) : (
                           formData.permissions.map((permission) => (
                             <div key={permission} className="badge bg-primary p-2 m-1" style={{ display: 'inline-flex', alignItems: 'center' }}>
-                              {permission}
-                              <button
+                              {permission}                              <button
                                 type="button"
                                 className="btn btn-xs btn-link text-white ml-1 p-0"
                                 onClick={() => handleRemovePermission(permission)}
                                 style={{ fontSize: '10px' }}
                               >
-                                <FaDelete />
+                                <FaTrash />
                               </button>
                             </div>
                           ))

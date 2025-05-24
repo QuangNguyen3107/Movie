@@ -285,18 +285,9 @@ export function HistoryContent({ inProfilePage = false }) {
                           <span className="history-type">
                             {item.movieData.type === 'series' ? 'Phim bộ' : 'Phim lẻ'}
                           </span>
-                          
-                          {item.movieData.year && (
+                            {item.movieData.year && (
                             <span className="history-year">
                               {item.movieData.year}
-                            </span>
-                          )}
-                          
-                          {item.movieData.category && item.movieData.category.length > 0 && (
-                            <span className="history-category">
-                              {typeof item.movieData.category === 'string' 
-                                ? item.movieData.category 
-                                : item.movieData.category.join(', ')}
                             </span>
                           )}
                           

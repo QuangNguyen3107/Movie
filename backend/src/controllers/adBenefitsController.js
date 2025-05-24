@@ -55,19 +55,19 @@ exports.getAdBenefits = async (req, res) => {
       const packageName = (userSubscription.packageId.name || '').toLowerCase();
       
       // HARDCODE ID GÓI PREMIUM 15K từ Database
-      const PREMIUM_PACKAGE_ID = '6826f81c13eb3da4a8bc6ce3';
+      const PREMIUM_PACKAGE_ID = '682f7d849c310399aa715c9d';
       
       console.log(`[AD BENEFITS] Checking package ID: ${packageId}`);
       console.log(`[AD BENEFITS] Is Premium 15k Package? ${packageId === PREMIUM_PACKAGE_ID}`);
       
       // Package 1: Hide only homepage ads - Basic gói 10k (Cơ bản)
       if ((process.env.PACKAGE_TYPE_1 && packageId === process.env.PACKAGE_TYPE_1) || 
-          packageName.includes('basic') || packageId === '6826f81c13eb3da4a8bc6cde' || 
+          packageName.includes('basic') || packageId === '682f7d849c310399aa715c98' || 
           packageName.includes('standard')) {
         console.log(`[AD BENEFITS] Applying Basic package benefits (hide homepage ads only)`);
         hideHomepageAds = true;
       }
-      // Package 2: Hide all ads (homepage + video) - Premium gói 15k ID: 6826f81c13eb3da4a8bc6ce3
+      // Package 2: Hide all ads (homepage + video) - Premium gói 15k ID: 682f7d849c310399aa715c9d
       else if ((process.env.PACKAGE_TYPE_2 && packageId === process.env.PACKAGE_TYPE_2) || 
                packageId === PREMIUM_PACKAGE_ID ||
                packageName.includes('premium') || 

@@ -6,14 +6,15 @@ import styles from '@/styles/Advertisement.module.css';
 import { useAdContext } from '@/context/AdContext';
 
 /**
- * Displays a banner advertisement
+ * Displays multiple banner advertisements in a fixed layout
  * @param {Object} props
  * @param {string} props.position - Position of the banner (top or bottom)
+ * @param {number} props.maxAds - Maximum number of ads to display (default: 3)
  */
-const BannerAd = ({ position = 'top' }) => {
-  const [ad, setAd] = useState(null);
+const BannerAd = ({ position = 'top', maxAds = 3 }) => {
+  const [ads, setAds] = useState([]);
   const [closed, setClosed] = useState(false);
-  const [adTracked, setAdTracked] = useState(false);
+  const [adsTracked, setAdsTracked] = useState({});
   const { hideHomepageAds, isLoading } = useAdContext();
   
   // Log when ad visibility changes
@@ -23,62 +24,78 @@ const BannerAd = ({ position = 'top' }) => {
       isLoading 
     });
   }, [hideHomepageAds, isLoading, position]);
-  
-  // Fetch the appropriate ad based on position
+
+  // Fetch the appropriate ads based on position
   useEffect(() => {
-    const fetchAd = async () => {
+    const fetchAds = async () => {
+      // Always log the current position and ad visibility at the beginning
+      console.log(`%c[BannerAd ${position}] Starting ad fetch with hideHomepageAds=${hideHomepageAds}`, 'color: purple; font-weight: bold');
+      
       // First, wait if the AdContext is still loading its settings
       if (isLoading) {
         console.log(`%c[BannerAd ${position}] AdContext is loading. Waiting to fetch ad...`, 'color: orange; font-weight: bold');
-        setAd(null); // Clear any existing ad while context loads
+        setAds([]); // Clear any existing ads while context loads
         return;
       }
 
-      // Now, AdContext is loaded, check if ads should be hidden
+      // Now, AdContext is loaded, check if ads should be hidden for ANY position
+      // Force both top AND bottom banner ads to be hidden if user is premium
       if (hideHomepageAds) {
-        console.log(`%c[BannerAd ${position}] Homepage ads hidden due to premium subscription (AdContext loaded).`, 'color: green; font-weight: bold');
-        setAd(null); // Ensure ad is cleared if it was previously shown
+        console.log(`%c[BannerAd ${position}] Homepage ads hidden due to premium subscription (position: ${position}).`, 'color: green; font-weight: bold');
+        setAds([]); // Ensure ads are cleared if they were previously shown
         return;
       }
 
       // If AdContext is loaded and ads are not hidden, proceed to fetch
-      console.log(`%c[BannerAd ${position}] AdContext loaded, fetching ad...`, 'color: blue; font-weight: bold');
+      console.log(`%c[BannerAd ${position}] AdContext loaded, fetching ads...`, 'color: blue; font-weight: bold');
       try {
-        let adData;
-        if (position === 'top') {
-          adData = await adService.getTopBannerAd();
-        } else {
-          adData = await adService.getBottomBannerAd();
+        // Double check that we still want to show ads based on premium status
+        if (hideHomepageAds) {
+          console.log(`%c[BannerAd ${position}] Premium user detected, not fetching ads`, 'color: red; font-weight: bold');
+          return;  
         }
         
-        if (adData) {
-          setAd(adData);
+        console.log(`%c[BannerAd ${position}] Getting multiple ${position.toUpperCase()} banner ads...`, 'color: blue;');
+        const adsData = await adService.getMultipleBannerAds(position, maxAds);
+        
+        console.log(`%c[BannerAd ${position}] Ads data received:`, 'color: blue;', adsData ? `${adsData.length} ads exist` : 'No ads available');
+        
+        if (adsData && adsData.length > 0) {
+          console.log(`%c[BannerAd ${position}] Setting ads data`, 'color: green;');
+          setAds(adsData);
+        } else {
+          console.log(`%c[BannerAd ${position}] No ads to set`, 'color: orange;');
         }
       } catch (error) {
-        console.error(`Error fetching ${position} banner ad:`, error);
+        console.error(`Error fetching ${position} banner ads:`, error);
       }
     };    
-    fetchAd();
-  }, [position, hideHomepageAds, isLoading]);
+    fetchAds();
+  }, [position, hideHomepageAds, isLoading, maxAds]);
 
-  // Track impression when ad is viewed
+  // Track impression when ads are viewed
   useEffect(() => {
-    const trackImpression = async () => {
-      if (ad && !adTracked) {
-        try {
-          await adService.trackAdImpression(ad._id);
-          setAdTracked(true);
-        } catch (error) {
-          console.error('Error tracking ad impression:', error);
+    const trackImpressions = async () => {
+      for (const ad of ads) {
+        if (!adsTracked[ad._id]) {
+          try {
+            await adService.trackAdImpression(ad._id);
+            setAdsTracked(prev => ({ ...prev, [ad._id]: true }));
+          } catch (error) {
+            console.error('Error tracking ad impression:', error);
+          }
         }
       }
     };
 
-    trackImpression();
-  }, [ad, adTracked]);
+    if (ads.length > 0) {
+      trackImpressions();
+    }
+  }, [ads, adsTracked]);
 
-  // Handle ad click
-  const handleAdClick = async () => {
+  // Handle ad click for a specific ad
+  const handleAdClick = async (adId) => {
+    const ad = ads.find(a => a._id === adId);
     if (!ad) return;
     
     try {
@@ -91,24 +108,42 @@ const BannerAd = ({ position = 'top' }) => {
     }
   };
 
-  // Handle closing the ad
+  // Handle closing the ads
   const handleClose = () => {
     setClosed(true);
   };
 
-  // Don't render if there's no ad or it's been closed
-  if (!ad || closed) {
+  // Add more detailed logging before deciding whether to render
+  const shouldRender = ads.length > 0 && !closed;
+  console.log(`%c[BannerAd ${position}] Render decision:`, 'color: purple;', {
+    hasAds: ads.length,
+    isClosed: closed,
+    willRender: shouldRender,
+    position
+  });
+
+  // Don't render if there are no ads or it's been closed
+  if (!shouldRender) {
     return null;
   }
+
   return (
     <div className={`${styles.bannerContainer} ${styles[position]} ${styles.fadeIn}`}>
       <div className={styles.bannerContent}>
-        <div className={styles.bannerImage} onClick={handleAdClick}>
-          <img src={ad.content} alt={ad.name} />
-          <div className={styles.adOverlay}>
-            <span className={styles.adLabel}>Quảng cáo</span>
-            <span className={styles.advertiserName}>{ad.advertiser}</span>
-          </div>
+        <div className={styles.multiAdContainer}>
+          {ads.map(ad => (
+            <div 
+              key={ad._id} 
+              className={styles.bannerImage} 
+              onClick={() => handleAdClick(ad._id)}
+            >
+              <img src={ad.content} alt={ad.name} />
+              <div className={styles.adOverlay}>
+                <span className={styles.adLabel}>Quảng cáo</span>
+                <span className={styles.advertiserName}>{ad.advertiser}</span>
+              </div>
+            </div>
+          ))}
         </div>
         <button 
           className={styles.closeButton} 

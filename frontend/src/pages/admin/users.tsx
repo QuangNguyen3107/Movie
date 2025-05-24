@@ -15,10 +15,9 @@ const AdminUsersPage = () => {
   const [roles, setRoles] = useState([]);
   const [accountTypes, setAccountTypes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [showUserForm, setShowUserForm] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [formMode, setFormMode] = useState('create');
+  const [error, setError] = useState(null);  const [showUserForm, setShowUserForm] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -274,7 +273,7 @@ const AdminUsersPage = () => {
   };
 
   // Count users by role
-  const getUserCountByRole = (roleName) => {
+  const getUserCountByRole = (roleName: any) => {
     if (!Array.isArray(users)) return 0;
     return users.filter(user => {
       if (!user || !user.role) return false;
@@ -296,9 +295,8 @@ const AdminUsersPage = () => {
       </Head>
 
       <div className="user-admin-dashboard">
-        <section className="content-header">
-          <div className="container-fluid">
-            <div className="row mb-3">
+        <section className="content-header">      <div className="container-fluid">
+            <div className="row mb-4">
               <div className="col-sm-6">
                 <h1 className="page-title">Quản lý Người dùng</h1>
                 <p className="text-muted">Quản lý tài khoản người dùng, phân quyền và trạng thái</p>
@@ -306,10 +304,10 @@ const AdminUsersPage = () => {
               <div className="col-sm-6 d-flex justify-content-end align-items-center">
                 <button 
                   type="button" 
-                  className="btn btn-primary"
+                  className="btn btn-primary d-flex align-items-center"
                   onClick={handleAddNewUser}
                 >
-                  <FaUserPlus className="mr-2" /> Thêm người dùng
+                  <FaUserPlus style={{ marginRight: '8px' }} /> Thêm người dùng
                 </button>
               </div>
             </div>
@@ -317,11 +315,10 @@ const AdminUsersPage = () => {
         </section>
 
         <section className="content">
-          <div className="container-fluid">
-            {/* User Statistics Cards */}
+          <div className="container-fluid">            {/* User Statistics Cards */}
             <div className="row mb-4">
-              <div className="col-lg-3 col-md-6 col-sm-6 col-12">
-                <div className="info-box bg-white shadow-sm">
+              <div className="col-lg-3 col-md-6 col-sm-6 col-12 mb-3">
+                <div className="info-box d-flex align-items-center">
                   <span className="info-box-icon bg-info">
                     <FaUsers />
                   </span>
@@ -331,8 +328,8 @@ const AdminUsersPage = () => {
                   </div>
                 </div>
               </div>
-              <div className="col-lg-3 col-md-6 col-sm-6 col-12">
-                <div className="info-box bg-white shadow-sm">
+              <div className="col-lg-3 col-md-6 col-sm-6 col-12 mb-3">
+                <div className="info-box d-flex align-items-center">
                   <span className="info-box-icon bg-danger">
                     <FaUserShield />
                   </span>
@@ -342,8 +339,8 @@ const AdminUsersPage = () => {
                   </div>
                 </div>
               </div>
-              <div className="col-lg-3 col-md-6 col-sm-6 col-12">
-                <div className="info-box bg-white shadow-sm">
+              <div className="col-lg-3 col-md-6 col-sm-6 col-12 mb-3">
+                <div className="info-box d-flex align-items-center">
                   <span className="info-box-icon bg-warning">
                     <FaUserCog />
                   </span>
@@ -353,8 +350,8 @@ const AdminUsersPage = () => {
                   </div>
                 </div>
               </div>
-              <div className="col-lg-3 col-md-6 col-sm-6 col-12">
-                <div className="info-box bg-white shadow-sm">
+              <div className="col-lg-3 col-md-6 col-sm-6 col-12 mb-3">
+                <div className="info-box d-flex align-items-center">
                   <span className="info-box-icon bg-secondary">
                     <FaUserAlt />
                   </span>
@@ -364,22 +361,22 @@ const AdminUsersPage = () => {
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* User Table Card */}
-            <div className="card shadow-sm">
+            </div>            {/* User Table Card */}
+            <div className="card">              <div className="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h5 className="mb-0 fw-bold">Danh sách người dùng</h5>
+              </div>
               <div className="card-body p-0">
                 {loading && (
                   <div className="text-center p-5">
                     <div className="spinner-border text-primary" role="status">
                       <span className="sr-only">Đang tải...</span>
                     </div>
-                    <p className="mt-2 text-muted">Đang tải danh sách người dùng...</p>
+                    <p className="mt-3 text-muted">Đang tải danh sách người dùng...</p>
                   </div>
                 )}
                 
                 {error && (
-                  <div className="alert alert-danger m-3" role="alert">
+                  <div className="alert alert-danger m-3 rounded-3" role="alert">
                     <strong>Lỗi!</strong> {error}
                   </div>
                 )}
@@ -387,21 +384,26 @@ const AdminUsersPage = () => {
                 {!loading && !error && (
                   <>
                     {Array.isArray(users) && users.length > 0 ? (
-                      <UserTable 
-                        users={users} 
-                        onEdit={handleEditUser} 
-                        onDelete={handleDeleteUser}
-                        onBanUser={handleBanUser}
-                      />
+                      <div className="table-responsive">
+                        <UserTable 
+                          users={users} 
+                          onEdit={handleEditUser} 
+                          onDelete={handleDeleteUser}
+                          onBanUser={handleBanUser}
+                        />
+                      </div>
                     ) : (
-                      <div className="text-center p-5">
-                        <p>Không có người dùng nào.</p>
+                      <div className="text-center py-5">
+                        <div className="mb-3">
+                          <FaUsers size={40} className="text-muted" />
+                        </div>
+                        <p className="text-muted">Không có người dùng nào.</p>
                       </div>
                     )}
                   </>
                 )}
               </div>
-              <div className="card-footer bg-light d-flex justify-content-between align-items-center">
+              <div className="card-footer d-flex justify-content-between align-items-center">
                 <small className="text-muted">
                   Hiển thị {Array.isArray(users) ? users.length : 0} trên tổng số {pagination.totalUsers} người dùng
                 </small>
@@ -427,83 +429,480 @@ const AdminUsersPage = () => {
           onClose={handleUserFormClose}
           onSave={handleUserFormSave}
         />
-      )}
-
-      <style jsx>{`
+      )}      <style jsx>{`
         .user-admin-dashboard {
-          animation: fadeIn 0.3s ease-in-out;
+          animation: fadeIn 0.5s ease-in-out;
+          padding: 0 1.5rem;
+          background-color: #f9fafb;
+          min-height: calc(100vh - 60px);
         }
         
         @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .content-header {
+          position: relative;
+          margin-bottom: 1.5rem;
+          padding-top: 1.5rem;
         }
         
         .page-title {
-          font-size: 1.75rem;
-          font-weight: 600;
-          margin-bottom: 0.5rem;
-          color: #212529;
+          font-size: 2rem;
+          font-weight: 800;
+          margin-bottom: 0.75rem;
+          color: #111827;
+          letter-spacing: -0.75px;
+          position: relative;
+          display: inline-block;
+          background: linear-gradient(to right, #111827, #374151);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        .page-title:after {
+          content: '';
+          position: absolute;
+          bottom: -10px;
+          left: 0;
+          height: 5px;
+          width: 60px;
+          background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+          border-radius: 10px;
+          animation: expandWidth 0.8s ease-out forwards;
+        }
+        
+        @keyframes expandWidth {
+          from { width: 0; }
+          to { width: 60px; }
+        }
+        
+        .text-muted {
+          color: #64748b !important;
+          font-size: 1rem;
+          font-weight: 400;
+          line-height: 1.6;
+          opacity: 0.9;
         }
         
         .info-box {
-          border-radius: 0.5rem;
-          min-height: 90px;
-          transition: transform 0.2s, box-shadow 0.2s;
+          border-radius: 1.25rem;
+          min-height: 120px;
+          transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+          background-color: #fff;
+          overflow: hidden;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04), 0 6px 15px rgba(0, 0, 0, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.8);
+          position: relative;
+          padding: 0.5rem;
+          backdrop-filter: blur(10px);
+          isolation: isolate;
+        }
+        
+        .info-box::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          background: rgba(255, 255, 255, 0.7);
+          border-radius: inherit;
         }
         
         .info-box:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
+          transform: translateY(-7px);
+          box-shadow: 0 20px 30px rgba(0, 0, 0, 0.08), 0 15px 20px rgba(0, 0, 0, 0.04) !important;
+          border-color: rgba(255, 255, 255, 0.9);
         }
         
         .info-box-icon {
-          height: 70px;
-          width: 70px;
-          font-size: 1.5rem;
+          height: 80px;
+          width: 80px;
+          font-size: 1.75rem;
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 0.5rem;
+          border-radius: 20px;
           color: white;
+          margin: 12px;
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .info-box-icon::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(255, 255, 255, 0.2);
+          mask: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 50%);
+          -webkit-mask: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 50%);
+        }
+        
+        .bg-info {
+          background: linear-gradient(135deg, #0284c7, #38bdf8);
+        }
+        
+        .bg-danger {
+          background: linear-gradient(135deg, #dc2626, #f87171);
+        }
+        
+        .bg-warning {
+          background: linear-gradient(135deg, #d97706, #fbbf24);
+        }
+        
+        .bg-secondary {
+          background: linear-gradient(135deg, #4b5563, #9ca3af);
         }
         
         .info-box-content {
-          padding: 10px 10px 10px 0;
+          padding: 18px 18px 18px 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
         }
         
         .info-box-text {
           display: block;
-          font-size: 0.9rem;
+          font-size: 0.85rem;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          color: #666;
-          font-weight: 500;
+          color: #64748b;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 8px;
+          opacity: 0.9;
         }
         
         .info-box-number {
           display: block;
-          font-weight: 700;
-          font-size: 1.5rem;
-          color: #333;
+          font-weight: 800;
+          font-size: 2.25rem;
+          color: #111827;
+          line-height: 1.1;
+          letter-spacing: -0.5px;
+          background: linear-gradient(to right, #111827, #374151);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
         }
         
         .card {
-          margin-bottom: 1.5rem;
+          margin-bottom: 2rem;
           border: none;
-          border-radius: 0.5rem;
+          border-radius: 1.25rem;
           overflow: hidden;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04), 0 6px 20px rgba(0, 0, 0, 0.03);
+          background-color: #fff;
+          transition: all 0.3s ease;
+          position: relative;
+          backdrop-filter: blur(10px);
+        }
+        
+        .card:hover {
+          box-shadow: 0 15px 35px rgba(0, 0, 0, 0.06), 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+        
+        .card-header {
+          background-color: #fff;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+          padding: 1.5rem 1.75rem;
+          position: relative;
+        }
+        
+        .card-header::after {
+          content: '';
+          position: absolute;
+          bottom: -1px;
+          left: 0;
+          height: 1px;
+          width: 100%;
+          background: linear-gradient(90deg, #e5e7eb 0%, rgba(229, 231, 235, 0.3) 100%);
+        }
+        
+        .card-header h5 {
+          font-size: 1.35rem;
+          color: #111827;
+          font-weight: 700;
+          letter-spacing: -0.5px;
+        }
+        
+        .card-body {
+          padding: 0;
         }
         
         .card-footer {
-          padding: 0.75rem 1.25rem;
+          padding: 1.25rem 1.75rem;
           border-top: 1px solid rgba(0, 0, 0, 0.06);
+          background: linear-gradient(to bottom, rgba(248,250,252,0.8) 0%, rgba(248,250,252,1) 100%);
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
         }
         
         .spinner-border {
-          width: 3rem;
-          height: 3rem;
+          width: 3.5rem;
+          height: 3.5rem;
+          border-width: 0.3em;
+          border-color: #e0f2fe;
+          border-right-color: #0ea5e9;
+          animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        /* Buttons styling */
+        .btn {
+          border-radius: 12px;
+          padding: 0.7rem 1.75rem;
+          font-weight: 600;
+          transition: all 0.3s;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          position: relative;
+          overflow: hidden;
+          z-index: 1;
+        }
+        
+        .btn::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(180deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 100%);
+          z-index: -1;
+        }
+        
+        .btn-primary {
+          background: linear-gradient(135deg, #0ea5e9, #0284c7);
+          border: none;
+          color: white;
+        }
+        
+        .btn-primary:hover {
+          background: linear-gradient(135deg, #0284c7, #0369a1);
+          transform: translateY(-3px);
+          box-shadow: 0 8px 15px rgba(13, 110, 253, 0.25);
+        }
+        
+        .btn-primary:active {
+          transform: translateY(-1px);
+          box-shadow: 0 5px 10px rgba(13, 110, 253, 0.2);
+        }
+        
+        /* Table styling improvements */
+        .table-responsive {
+          border-radius: 0.75rem;
+          overflow: hidden;
+          box-shadow: 0 0 0 1px rgba(0,0,0,0.03);
+        }
+        
+        table {
+          border-collapse: separate;
+          border-spacing: 0;
+          width: 100%;
+          margin-bottom: 0;
+        }
+        
+        th {
+          font-weight: 600;
+          color: #4b5563;
+          border-bottom: 2px solid #e5e7eb;
+          padding: 16px 24px;
+          text-transform: uppercase;
+          font-size: 0.75rem;
+          letter-spacing: 0.6px;
+          background-color: #f9fafb;
+          position: sticky;
+          top: 0;
+          z-index: 10;
+        }
+        
+        td {
+          padding: 18px 24px;
+          border-bottom: 1px solid #f1f5f9;
+          color: #1f2937;
+          vertical-align: middle;
+          font-size: 0.925rem;
+          transition: background 0.15s ease;
+        }
+        
+        tr:last-child td {
+          border-bottom: none;
+        }
+        
+        tr:hover td {
+          background-color: rgba(241, 245, 249, 0.7);
+        }
+        
+        /* Status badge styling */
+        .badge {
+          padding: 0.4em 0.85em;
+          border-radius: 50rem;
+          font-weight: 600;
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          line-height: 1.2;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+        }
+        
+        .badge-success {
+          background-color: rgba(16, 185, 129, 0.12);
+          color: #059669;
+          border: 1px solid rgba(16, 185, 129, 0.25);
+        }
+        
+        .badge-danger {
+          background-color: rgba(239, 68, 68, 0.12);
+          color: #dc2626;
+          border: 1px solid rgba(239, 68, 68, 0.25);
+        }
+        
+        /* Empty state styling */
+        .empty-state {
+          padding: 5rem 2rem;
+          text-align: center;
+          background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+          border-radius: 1rem;
+        }
+        
+        .empty-state-icon {
+          font-size: 4rem;
+          color: #cbd5e1;
+          margin-bottom: 1.5rem;
+          opacity: 0.8;
+        }
+        
+        /* Loading state styling */
+        .loading-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 4rem 2rem;
+          text-align: center;
+          background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+          border-radius: 1rem;
+        }
+
+        .loading-message {
+          margin-top: 1.5rem;
+          font-weight: 500;
+          color: #64748b;
+          font-size: 1.1rem;
+        }
+
+        /* Alert styling */
+        .alert {
+          border: none;
+          border-radius: 12px;
+          padding: 1.25rem 1.5rem;
+          margin-bottom: 1.5rem;
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .alert-danger {
+          background-color: #fef2f2;
+          color: #b91c1c;
+          border-left: 4px solid #ef4444;
+        }
+
+        .alert-danger strong {
+          font-weight: 600;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 991px) {
+          .info-box {
+            margin-bottom: 1.5rem;
+          }
+          
+          .info-box-number {
+            font-size: 1.75rem;
+          }
+          
+          .page-title {
+            font-size: 1.75rem;
+          }
+        }
+        
+        @media (max-width: 768px) {
+          .card-header {
+            padding: 1.25rem;
+          }
+          
+          th, td {
+            padding: 14px 16px;
+            font-size: 0.875rem;
+          }
+          
+          .info-box-icon {
+            height: 65px;
+            width: 65px;
+            font-size: 1.5rem;
+          }
+        }
+        
+        @media (max-width: 576px) {
+          .user-admin-dashboard {
+            padding: 0 1rem;
+          }
+          
+          .card-footer {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+          }
+          
+          .card-footer > :last-child {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+          }
+          
+          .page-title {
+            font-size: 1.5rem;
+          }
+          
+          .btn {
+            padding: 0.6rem 1.25rem;
+            font-size: 0.9rem;
+          }
+          
+          .info-box {
+            min-height: 100px;
+          }
+          
+          .info-box-icon {
+            height: 55px;
+            width: 55px;
+            font-size: 1.25rem;
+            margin: 10px;
+          }
+          
+          .info-box-text {
+            font-size: 0.75rem;
+          }
+          
+          .info-box-number {
+            font-size: 1.5rem;
+          }
         }
       `}</style>
     </>
@@ -511,7 +910,7 @@ const AdminUsersPage = () => {
 };
 
 // Thêm getLayout để sử dụng AdminLayout
-AdminUsersPage.getLayout = (page) => {
+AdminUsersPage.getLayout = (page: React.ReactNode) => {
   return <AdminLayout>{page}</AdminLayout>;
 };
 

@@ -519,7 +519,8 @@ const FeedbackPage = () => {
                           <h5 className="m-0 text-truncate movie-subject">Góp ý từ người dùng</h5>
                           {!item.isRead && <span className="badge badge-danger">Mới</span>}
                         </div>
-                        <div className="card-body">                          <div className="user-info-container">
+                        <div className="card-body">                          
+                          <div className="user-info-container">
                             <img 
                               src={getAvatarUrl(item.user)} 
                               alt={`Avatar của ${item.name}`}
@@ -547,7 +548,8 @@ const FeedbackPage = () => {
                             </p>
                           </div>
                           
-                          <div className="card-meta">                            <span className={`badge ${
+                          <div className="card-meta">                            
+                            <span className={`badge ${
                               item.status === 'pending' ? 'badge-warning' : 
                               item.status === 'processed' ? 'badge-primary' : 
                               'badge-success'

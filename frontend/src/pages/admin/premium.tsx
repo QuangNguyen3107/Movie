@@ -573,6 +573,7 @@ const AdminPremiumPage: NextPageWithLayout<AdminPremiumPageProps> = () => {
     };
   }, [activeTab, loading, fetchSubscriptions]);
   
+  
   // Handle approving a subscription
   const handleApproveSubscription = async (subscriptionId: string) => {
     try {

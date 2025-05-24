@@ -33,6 +33,14 @@ const options = {
             {
                 name: "Favorites",
                 description: "API quản lý phim yêu thích"
+            },
+            {
+                name: "Email Notifications",
+                description: "API quản lý và gửi thông báo email đến người dùng"
+            },
+            {
+                name: "Bulk Email",
+                description: "API gửi email hàng loạt đến người dùng"
             }
             // Thêm các tag khác nếu cần
         ],
@@ -326,7 +334,10 @@ const options = {
         }
         // --- HẾT PHẦN THÊM ---
     },
-    apis: ["./src/routes/*.js"], // Quét tất cả các file trong routes để lấy API Docs
+    apis: [
+        "./src/routes/*.js", // Quét tất cả các file trong routes để lấy API Docs
+        "./src/docs/*.js"    // Quét tất cả các file trong docs để lấy API Docs
+    ],
 };
 
 const swaggerSpec = swaggerJsdoc(options);

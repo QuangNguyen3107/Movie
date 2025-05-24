@@ -70,7 +70,7 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }) {
     
     // Không kiểm tra account status cho các trang auth, admin và search
     if (isAuthPage || isAdminPage || isSearchPage) {
-      return component;vc
+      return component;
     }
     
     const AccountStatusWrapper = withAccountStatus(() => component);
@@ -81,13 +81,14 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }) {
   return (
     <SessionProvider session={session}>
       <AuthProvider>
-        <AdContextProvider>
+        <AdContextProvider>          
           <Head>
             <title>Đồ án Nhóm 6</title>
             <meta name="description" content="Xem phim trực tuyến miễn phí HD" />
             <meta name="viewport" content="width=device-width, initial-scale=1" />
-            <link rel="icon" href="/favicon.ico" />
-          </Head>          <NetworkStatusBar />
+            <link rel="icon" href="/img/icons.png" />
+          </Head>          
+          <NetworkStatusBar />
           <OfflineNotice />
           {getWrappedComponent()}
         </AdContextProvider>

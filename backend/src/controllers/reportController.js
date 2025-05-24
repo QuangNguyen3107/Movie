@@ -21,14 +21,14 @@ exports.getReports = async (req, res) => {
     // Áp dụng điều kiện lọc nếu có
     if (type) query.type = type;
     if (status) query.status = status;
-    
-    // Tìm kiếm theo reason hoặc description
+      // Tìm kiếm theo reason, description hoặc tên phim
     if (search) {
       query.$or = [
         { reason: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+        { description: { $regex: search, $options: 'i' } },
+        { 'movieInfo.name': { $regex: search, $options: 'i' } } // Thêm tìm kiếm theo tên phim
       ];
-    }    const options = {
+    }const options = {
       page: parseInt(page),
       limit: parseInt(limit),
       sort: { createdAt: -1 },
