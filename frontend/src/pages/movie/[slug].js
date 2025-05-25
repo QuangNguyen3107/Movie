@@ -15,7 +15,9 @@ import movieViewService from "../../API/services/movieViewService"; // Import th
 import favoritesService from "../../API/services/favoritesService"; // Import the favorites service
 import watchlistService from "../../API/services/watchlistService"; // Import the watchlist service
 import AdPlayer from "../../components/Advertisement/AdPlayer"; // Import AdPlayer component
+import AdPlayerFixed from "../../components/Advertisement/AdPlayer"; // Import AdPlayerFixed component
 import adService from "../../API/services/adService"; // Import ad service
+import { useAdContext } from "../../context/AdContext"; // Import AdContext
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import RatingStats from '../../components/Movie/RatingStats';

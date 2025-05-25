@@ -87,6 +87,7 @@ app.use('/api/upcoming-movies', publicUpcomingMovieRoutes); // Thêm route công
 app.use("/api/admin", adminMovieRoutes); // Sửa lại đúng đường dẫn admin movie routes
 app.use("/api/admin", adminRoutes); // Thêm route quản lý người dùng, vai trò và loại tài khoản
 app.use("/api/admin", adminSearchRoutes); // Thêm route tìm kiếm admin với Elasticsearch
+app.use("/api/admin", adminRatingRoutes); // Thêm route quản lý đánh giá phim
 app.use("/api/admin/upcoming-movies", upcomingMovieRoutes); // Thêm route quản lý phim sắp ra mắt
 app.use("/api/admin/dashboard", dashboardRoutes);
 app.use("/api/admin/notifications", notificationEmailRoutes); // Thêm route gửi thông báo email

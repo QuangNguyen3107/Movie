@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import movieService from "../API/services/movieService";
 import searchSuggestionService from "../API/services/searchSuggestionService";
 import { useAuth } from "../utils/auth";
-import AdminLayout from "../components/layouts/AdminLayout";
+import AdminLayout from "../components/Layout/AdminLayout";
 import Swal from 'sweetalert2';
 
 // Hàm debounce tự triển khai

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FaArrowLeft, FaSave, FaInfoCircle, FaFilm, FaCamera, FaEye, FaPlus, FaCopyright, FaClosedCaptioning, FaArrowUp } from 'react-icons/fa';
 import { useRouter } from 'next/router';
 import Image from 'next/image';
@@ -126,44 +126,44 @@ const AddMovie = () => {
   };
 
   // Thêm hàm xử lý nhập mảng (categories và countries) ngăn cách bởi dấu phẩy
-  const handleArrayTextInput = (field: string, value: string) => {
-    // Chuyển đổi chuỗi thành mảng bằng cách tách theo dấu phẩy
-    const arrayValue = value.split(',').map(item => item.trim()).filter(item => item);
-    setMovie(prev => ({
-      ...prev,
-      [field]: arrayValue
-    }));
-      // Xóa lỗi nếu đã nhập dữ liệu
-    if (arrayValue.length > 0 && validationErrors[field]) {
-      const newErrors = { ...validationErrors };
-      delete newErrors[field];
-      setValidationErrors(newErrors);
-    }
-  };
+  // const handleArrayTextInput = (field: string, value: string) => {
+  //   // Chuyển đổi chuỗi thành mảng bằng cách tách theo dấu phẩy
+  //   const arrayValue = value.split(',').map(item => item.trim()).filter(item => item);
+  //   setMovie(prev => ({
+  //     ...prev,
+  //     [field]: arrayValue
+  //   }));
+  //     // Xóa lỗi nếu đã nhập dữ liệu
+  //   if (arrayValue.length > 0 && validationErrors[field]) {
+  //     const newErrors = { ...validationErrors };
+  //     delete newErrors[field];
+  //     setValidationErrors(newErrors);
+  //   }
+  // };
   // Hàm định dạng mảng thành chuỗi
-  const getArrayAsString = (array: string[] | string): string => {
-    if (Array.isArray(array)) {
-      return array.join(', ');
-    } 
-    return array || '';
-  };  // Lấy danh sách danh mục
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await axios.get('/categories');
-        if (response.data && response.data.data) {
-          setCategories(response.data.data);
-        }
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-        toast.error('Không thể tải danh sách thể loại phim');
-      }
-    };
+  // const getArrayAsString = (array: string[] | string): string => {
+  //   if (Array.isArray(array)) {
+  //     return array.join(', ');
+  //   } 
+  //   return array || '';
+  // };  // Lấy danh sách danh mục
+  // useEffect(() => {
+  //   const fetchCategories = async () => {
+  //     try {
+  //       const response = await axios.get('/categories');
+  //       if (response.data && response.data.data) {
+  //         setCategories(response.data.data);
+  //       }
+  //     } catch (error) {
+  //       console.error('Error fetching categories:', error);
+  //       toast.error('Không thể tải danh sách thể loại phim');
+  //     }
+  //   };
 
-    fetchCategories();
+  //   fetchCategories();
     
-    // Khởi tạo dữ liệu cho đạo diễn và diễn viên phổ biến
-  }, []);
+  //   // Khởi tạo dữ liệu cho đạo diễn và diễn viên phổ biến
+  // }, []);
   
   // Handle scroll event to show/hide back to top button
   useEffect(() => {

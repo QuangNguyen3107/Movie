@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from '@/styles/AdminUpcomingMovies.module.css';
 import { Table, Button, Spinner, Form, InputGroup, Row, Col, Card, Alert, Badge, Modal } from 'react-bootstrap';
-import { FaPlus, FaEdit, FaTrash, FaSearch, FaEye, FaFileExport, FaPaperPlane } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaSearch, FaEye, FaPaperPlane } from 'react-icons/fa';
 import AdminLayout from '@/components/Layout/AdminLayout';
 import { getUpcomingMovies, deleteUpcomingMovie, releaseUpcomingMovie } from '@/services/admin/upcomingMovieService';
 import { UpcomingMovie } from '@/services/admin/upcomingMovieService';
@@ -117,9 +117,8 @@ const UpcomingMoviesPage: React.FC = () => {
     <AdminLayout>
       <div className="content-wrapper">
         <section className="content-header">
-          <div className="container-fluid">            <Row>
-              <Col>
-                <h1>Quản lý Phim Sắp Ra Mắt</h1>
+          <div className="container-fluid">            <Row>              <Col>
+                <h1 style={{ color: '#000' }}>Quản lý Phim Sắp Ra Mắt</h1>
               </Col>
               <Col xs="auto">
                 <Link href="/admin/movies" passHref>
@@ -140,18 +139,14 @@ const UpcomingMoviesPage: React.FC = () => {
               </Alert>
             )}
 
-            <Card className="mb-4">
-              <Card.Header className="bg-primary text-white d-flex justify-content-between align-items-center">
-                <h3 className="card-title">Danh sách phim sắp ra mắt</h3>
+            <Card className="mb-4">              <Card.Header className="bg-primary d-flex justify-content-between align-items-center">
+                <h3 className="card-title text-dark">Danh sách phim sắp ra mắt</h3>
                 <div>
                   <Link href="/admin/upcoming-movies/new" passHref>
                     <Button variant="success" size="sm" className="me-2">
                       <FaPlus className="me-1" /> Thêm Phim
                     </Button>
                   </Link>
-                  <Button variant="light" size="sm" onClick={exportToCsv}>
-                    <FaFileExport className="me-1" /> Xuất Excel
-                  </Button>
                 </div>
               </Card.Header>
               <Card.Body>
@@ -193,16 +188,17 @@ const UpcomingMoviesPage: React.FC = () => {
                 ) : upcomingMovies.length > 0 ? (
                   <>
                     <div className="table-responsive">                      
-                      <Table striped bordered hover className={styles['movie-table']}>                        <thead>
-                          <tr>
-                            <th className="text-center" width="5%">ID</th>
-                            <th width="35%">Tên phim</th>
-                            <th width="30%">Thông tin</th>
-                            <th className="text-center" width="15%">Ngày phát hành</th>
-                            <th className="text-center" width="15%">Thao tác</th>
+                      <Table striped bordered hover className={styles['movie-table']}>                        
+                        <thead>                          <tr>
+                            <th className="text-center" style={{ width: "5%" }}>ID</th>
+                            <th style={{ width: "35%" }}>Tên phim</th>
+                            <th style={{ width: "30%" }}>Thông tin</th>
+                            <th className="text-center" style={{ width: "15%" }}>Ngày phát hành</th>
+                            <th className="text-center" style={{ width: "15%" }}>Thao tác</th>
                           </tr>
                         </thead>
-                        <tbody>                          {upcomingMovies.map((movie, index) => (
+                        <tbody>                          {
+                        upcomingMovies.map((movie, index) => (
                             <tr key={movie._id}>
                               <td className="text-center">
                                 {(page - 1) * limit + index + 1}
@@ -248,7 +244,8 @@ const UpcomingMoviesPage: React.FC = () => {
                                     <Button variant="outline-warning" size="sm" title="Sửa" className={styles['action-btn']}>
                                       <FaEdit />
                                     </Button>
-                                  </Link>                                  <Button
+                                  </Link>                                  
+                                  <Button
                                     variant="outline-danger"
                                     size="sm"
                                     title="Xóa"
@@ -256,7 +253,8 @@ const UpcomingMoviesPage: React.FC = () => {
                                     onClick={() => handleDeleteClick(movie)}
                                   >
                                     <FaTrash />
-                                  </Button>                                  {!movie.is_released && (
+                                  </Button>                                  
+                                  {!movie.is_released && (
                                     <Button
                                       variant="outline-success"
                                       size="sm"

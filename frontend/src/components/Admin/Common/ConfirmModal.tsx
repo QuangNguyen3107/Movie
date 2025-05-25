@@ -27,7 +27,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
         <div className="modal-content">
           <div className="modal-header">
             <h5 className="modal-title">{title}</h5>
-            <button type="button" className="close" onClick={onCancel}>
+            <button type="button" className="close" onClick={onCancel} title="Close">
               <span aria-hidden="true">&times;</span>
             </button>
           </div>

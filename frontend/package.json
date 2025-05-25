@@ -46,10 +46,13 @@
     "react-toastify": "^11.0.5",
     "slick-carousel": "^1.8.1",
     "socket.io": "^4.8.1",
+    "sweetalert2": "^11.21.2",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@types/jquery": "^3.5.32",
+    "@types/lru-cache": "^5.1.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

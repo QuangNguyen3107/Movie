@@ -1,6 +1,13 @@
 // src/pages/admin/movies.tsx
 'use client';
 
+// Khai báo kiểu cho đối tượng window toàn cục
+declare global {
+  interface Window {
+    searchTimeout?: NodeJS.Timeout;
+  }
+}
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { 
   FaPlus, 
@@ -29,7 +36,8 @@ import {
   FaCheckCircle,
   FaExternalLinkAlt,
   FaSave,
-  FaBolt
+  FaBolt,
+  FaUser
 } from 'react-icons/fa';
 import styles from '../../styles/AdminMovies.module.css';
 import darkStyles from '../../styles/AdminMoviesDark.module.css';
@@ -100,12 +108,13 @@ interface Movie {
     }>;
   }[];
   createdAt: string;
-  updatedAt: string;
+  updatedAt: string;  
   expiryDate?: string;
   rating: number;
   vote_count: number;
   slug: string;
   isHidden?: boolean;
+  userRating?: number;
 }
 
 interface DeleteModalProps {
@@ -390,20 +399,20 @@ const MovieDetailModal: React.FC<MovieDetailModalProps> = ({ isOpen, movie, onCl
     return arr;
   };
 
-  const formatCategory = (category: any[] | any | undefined): string => {
-    if (!category) return 'Chưa phân loại';
+  // const formatCategory = (category: any[] | any | undefined): string => {
+  //   if (!category) return 'Chưa phân loại';
     
-    if (Array.isArray(category)) {
-      return category.map(cat => {
-        if (typeof cat === 'object' && cat !== null && cat.name) {
-          return cat.name;
-        }
-        return cat.toString();
-      }).join(', ');
-    }
+  //   if (Array.isArray(category)) {
+  //     return category.map(cat => {
+  //       if (typeof cat === 'object' && cat !== null && cat.name) {
+  //         return cat.name;
+  //       }
+  //       return cat.toString();
+  //     }).join(', ');
+  //   }
     
-    return category.toString();
-  };
+  //   return category.toString();
+  // };
     const handleCopyLink = (text: string, type: string) => {
     navigator.clipboard.writeText(text)
       .then(() => {
@@ -440,6 +449,77 @@ const MovieDetailModal: React.FC<MovieDetailModalProps> = ({ isOpen, movie, onCl
     setErrorMessage('');
   };
 
+  // Xử lý lưu danh sách tập phim
+  const handleSaveEpisodes = async () => {
+    if (!movie || !movie._id) return;
+    
+    try {
+      setSaving(true);
+      
+      // Gọi API để cập nhật episodes
+      const response = await axiosInstance.put(`/admin/movies/${movie._id}/episodes`, {
+        episodes: episodes
+      });
+      
+      if (response.data && response.data.success) {
+        toast.success('Lưu đường dẫn phim thành công!');
+        
+        // Cập nhật dữ liệu phim với episodes mới
+        if (fullMovieData) {
+          setFullMovieData({
+            ...fullMovieData,
+            episodes: episodes
+          });
+        }
+        
+        // Tắt chế độ chỉnh sửa
+        setIsEditing(false);
+      } else {
+        toast.error('Không thể lưu đường dẫn phim: ' + (response.data?.message || 'Lỗi không xác định'));
+      }
+    } catch (error) {
+      console.error('Lỗi khi lưu đường dẫn phim:', error);
+      toast.error('Không thể lưu đường dẫn phim');
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  // Xử lý thêm tập phim mới vào server
+  const handleAddEpisode = (serverIndex: number) => {
+    const updatedEpisodes = [...episodes];
+    const newEpisode = {
+      name: `Tập ${updatedEpisodes[serverIndex].server_data.length + 1}`,
+      slug: `tap-${updatedEpisodes[serverIndex].server_data.length + 1}`,
+      filename: '',
+      link_embed: '',
+      link_m3u8: ''
+    };
+    
+    updatedEpisodes[serverIndex].server_data.push(newEpisode);
+    setEpisodes(updatedEpisodes);
+  };
+  
+  // Xử lý xóa tập phim
+  const handleDeleteEpisode = (serverIndex: number, episodeIndex: number) => {
+    const updatedEpisodes = [...episodes];
+    updatedEpisodes[serverIndex].server_data.splice(episodeIndex, 1);
+    setEpisodes(updatedEpisodes);
+  };
+    // Xử lý thay đổi thông tin tập phim
+  const handleEpisodeChange = (serverIndex: number, episodeIndex: number, field: 'name' | 'slug' | 'filename' | 'link_embed' | 'link_m3u8', value: string) => {
+    const updatedEpisodes = [...episodes];
+    updatedEpisodes[serverIndex].server_data[episodeIndex][field] = value;
+    setEpisodes(updatedEpisodes);
+  };
+  
+  // Xử lý xóa server
+  const handleDeleteServer = (serverIndex: number) => {
+    const updatedEpisodes = [...episodes];
+    updatedEpisodes.splice(serverIndex, 1);
+    setEpisodes(updatedEpisodes);
+  };
+  
   const combinedStyles = {
     ...styles,
     ...ratingStyles,
@@ -948,7 +1028,8 @@ const MovieDetailModal: React.FC<MovieDetailModalProps> = ({ isOpen, movie, onCl
                       <div className={combinedStyles.ratingSummary}>
                         <div className={combinedStyles.ratingOverview}>                          
                           <h4 className={combinedStyles.ratingTitle}>Tổng quan đánh giá</h4>                          <div className={combinedStyles.ratingDetails}>
-                            <div className={combinedStyles.averageRatingBig}>                              {ratingStats.averageRating.toFixed(1)}
+                            <div className={combinedStyles.averageRatingBig}>                              
+                              {ratingStats.averageRating.toFixed(1)}
                               <span className={combinedStyles.outOf}>/10</span>
                             </div>
                             <div className={combinedStyles.ratingStarsBig}>
@@ -973,10 +1054,9 @@ const MovieDetailModal: React.FC<MovieDetailModalProps> = ({ isOpen, movie, onCl
                             )}
                           </div>
                         </div>
-                        
-                        <div className={combinedStyles.ratingDistribution}>
+                          <div className={combinedStyles.ratingDistribution}>
                           <h4 className={combinedStyles.distributionTitle}>Phân bố đánh giá</h4>
-                          {[5, 4, 3, 2, 1].map(stars => {
+                          {[10, 9, 8, 7, 6, 5, 4, 3, 2, 1].map(stars => {
                             const count = ratingStats.userRatingsStats[stars] || 0;
                             const percentage = ratingStats.ratingCount > 0 
                               ? (count / ratingStats.ratingCount) * 100 
@@ -984,7 +1064,7 @@ const MovieDetailModal: React.FC<MovieDetailModalProps> = ({ isOpen, movie, onCl
                               
                             return (
                               <div key={stars} className={combinedStyles.ratingBar}>
-                                <div className={combinedStyles.starCount}>{stars} sao</div>
+                                <div className={combinedStyles.starCount}>{stars} điểm</div>
                                 <div className={combinedStyles.barContainer}>
                                   <div 
                                     className={combinedStyles.barFill}
@@ -1618,13 +1698,8 @@ const MoviesAdmin = () => {
     }
   }, [moviesPerPage, sortField, sortDirection, selectedCategory, filterStatus, filterYear, filterType]);
 
-  // Add searchTimeout to window type
-  declare global {
-    interface Window {
-      searchTimeout?: NodeJS.Timeout;
-    }
-  }
 
+  
   useEffect(() => {
     if (searchQuery === '') {
       fetchMovies(currentPage);
@@ -1813,15 +1888,15 @@ const MoviesAdmin = () => {
     ...(theme === 'dark' ? darkStyles : {})
   };
 
-  const handleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
-    setCurrentPage(1);
-  };
+  // const handleSort = (field: string) => {
+  //   if (sortField === field) {
+  //     setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+  //   } else {
+  //     setSortField(field);
+  //     setSortDirection('asc');
+  //   }
+  //   setCurrentPage(1);
+  // };
 
   const handlePerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setMoviesPerPage(parseInt(e.target.value));
@@ -2074,12 +2149,13 @@ const MoviesAdmin = () => {
                         )
                       }
                     </div>                  
-                  </td>
-                  <td onClick={() => setDetailModal({ isOpen: true, movie })} className={combinedStyles.ratingColumn}>
+                  </td>                  <td onClick={() => setDetailModal({ isOpen: true, movie })} className={combinedStyles.ratingColumn}>
                     <div className={combinedStyles.ratingDisplay}>
-                      <div className={styles.ratingStars}>
-                        {renderStars(movie.rating || 0, styles)}
-                      </div>                      <div className={combinedStyles.ratingInfo}>
+                      <div className={combinedStyles.ratingStarsBig}>
+                              {renderStars(movie.rating || 0, combinedStyles)}
+                            </div>                    
+                      
+                      <div className={combinedStyles.ratingInfo}>
                         <span className={`${styles.ratingValue} ${movie.rating <= 0 ? styles.lowRating : ''}`}>
                           {(movie.rating || 0).toFixed(1)}
                           <span className={styles.ratingScale}>/10</span>

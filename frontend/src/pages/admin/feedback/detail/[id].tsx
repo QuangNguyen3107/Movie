@@ -5,7 +5,7 @@ import { useRouter } from 'next/router';
 import AdminLayout from '@/components/Layout/AdminLayout';
 import axios from 'axios';
 import {
-  FaEnvelope, FaUser, FaArrowLeft, FaCheck,
+  FaEnvelope, FaArrowLeft, 
   FaClock, FaReply, FaTrash, FaCheckCircle,
   FaEdit, FaCalendarAlt, FaExclamationTriangle,
   FaEye, FaHistory
@@ -558,10 +558,9 @@ const FeedbackDetailPage = () => {
                                     </div>
                                     <div className="timeline-body">
                                       <div className="activity-message">{item.message}</div>
-                                    </div>
-                                    <div className="timeline-footer">
+                                    </div>                                      <div className="timeline-footer">
                                       <span className="text-muted small">
-                                        <FaHistory className="me-1" /> Hoạt động {index === feedback.responseHistory.length - 1 ? 'đầu tiên' : `#${feedback.responseHistory.length - index}`}
+                                        <FaHistory className="me-1" /> Hoạt động {feedback.responseHistory && index === feedback.responseHistory.length - 1 ? 'đầu tiên' : feedback.responseHistory ? `#${feedback.responseHistory.length - index}` : ''}
                                       </span>
                                     </div>
                                   </div>
@@ -569,7 +568,7 @@ const FeedbackDetailPage = () => {
                               ))
                             }
                           </ul>                        </div>
-                        {!feedback.responseHistory || feedback.responseHistory.length === 0 ? (
+                        {!feedback.responseHistory || feedback.responseHistory?.length === 0 ? (
                         <div className="p-4 text-center text-muted">
                           <div className="d-flex flex-column align-items-center">
                             <div className="empty-state-icon mb-3">

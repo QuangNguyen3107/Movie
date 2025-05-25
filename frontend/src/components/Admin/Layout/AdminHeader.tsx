@@ -3,8 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
-  FaBars, 
-  FaBell, 
+  FaBars,  
   FaCog, 
   FaUser, 
   FaSignOutAlt 
@@ -88,20 +87,20 @@ const AdminHeader = () => {
     }
   };
 
-  const toggleNotifications = () => {
-    setShowNotifications(!showNotifications);
-    if (showDropdown) setShowDropdown(false);
-  };
+  // const toggleNotifications = () => {
+  //   setShowNotifications(!showNotifications);
+  //   if (showDropdown) setShowDropdown(false);
+  // };
 
   const toggleUserDropdown = () => {
     setShowDropdown(!showDropdown);
     if (showNotifications) setShowNotifications(false);
   };
 
-  const handleNotificationClose = () => {
-    setShowNotifications(false);
-    fetchUnreadCount(); // Refresh count after closing dropdown
-  };
+  // const handleNotificationClose = () => {
+  //   setShowNotifications(false);
+  //   fetchUnreadCount(); // Refresh count after closing dropdown
+  // };
 
   const getPageTitle = () => {
     const path = router.pathname;

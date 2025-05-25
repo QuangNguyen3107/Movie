@@ -6,27 +6,128 @@ import Head from 'next/head';
 import UserTable from '@/components/Admin/Users/UserTable';
 import UserForm from '@/components/Admin/Users/UserForm';
 import PaginationComponent from '@/components/Admin/Common/Pagination';
-import { getUsersForAdmin, deleteUserByAdmin, toggleUserActiveStatus, getRolesForAdmin, getAccountTypesForAdmin } from '@/API/services/admin/userAdminService';
+import { 
+  getUsersForAdmin, 
+  deleteUserByAdmin, 
+  toggleUserActiveStatus, 
+  getRolesForAdmin, 
+  getAccountTypesForAdmin
+} from '@/API/services/admin/userAdminService';
 import { FaUserPlus, FaUsers, FaUserShield, FaUserAlt, FaUserCog } from 'react-icons/fa';
 import AdminLayout from '@/components/Layout/AdminLayout';
 
+// Basic type definitions for this component
+interface UserForAdmin {
+  _id: string;
+  fullname: string;
+  email: string;
+  username?: string;
+  role: any;
+  accountType?: any;
+  isActive: boolean;
+  createdAt?: any;
+  updatedAt?: any;
+  password?: string;
+  avatar?: string;
+  [key: string]: any;
+}
+
+interface RoleForAdmin {
+  _id: string;
+  name: string;
+  description: string;
+  permissions?: string[];
+}
+
+interface AccountTypeForAdmin {
+  _id: string;
+  name: string;
+  description: string;
+}
+
+// Type for UserTable component
+interface UserTableUser {
+  _id: string;
+  fullname: string;
+  email: string;
+  role: string | { name: string; _id: string };
+  accountType?: string | { name: string; _id: string };
+  status?: string;
+  createdAt: string;
+  isActive?: boolean;
+  avatar?: string;
+}
+
+interface PaginationData {
+  currentPage: number;
+  totalPages: number;
+  totalUsers: number;
+  limit: number;
+}
+
+// Add interface for user statistics
+interface UserStats {
+  totalUsers: number;
+  adminCount: number;
+  moderatorCount: number;
+  userCount: number;
+  bannedCount: number;
+}
+
+// Convert UserForAdmin to User type for UserTable component
+interface UserTableUser {
+  _id: string;
+  fullname: string;
+  email: string;
+  role: string | { name: string; _id: string };
+  accountType?: string | { name: string; _id: string };
+  status?: string;
+  createdAt: string;
+  isActive?: boolean;
+  avatar?: string;
+}
+
+// Extended UserForAdmin interface for UserForm component compatibility
+interface ExtendedUserForAdmin {
+  _id: string;
+  fullname: string;
+  email: string;
+  avatar?: string;
+  role: string | { _id: string; name: string };
+  accountType: string | { _id: string; name: string };
+  isActive: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+  [key: string]: any;
+}
+
 const AdminUsersPage = () => {
-  const [users, setUsers] = useState([]);
-  const [roles, setRoles] = useState([]);
-  const [accountTypes, setAccountTypes] = useState([]);
+  const [users, setUsers] = useState<UserForAdmin[]>([]);
+  const [roles, setRoles] = useState<RoleForAdmin[]>([]);
+  const [accountTypes, setAccountTypes] = useState<AccountTypeForAdmin[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);  const [showUserForm, setShowUserForm] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showUserForm, setShowUserForm] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
-  const [pagination, setPagination] = useState({
+  const [pagination, setPagination] = useState<PaginationData>({
     currentPage: 1,
     totalPages: 1,
     totalUsers: 0,
     limit: 10,
   });
+  
+  // Add state for user statistics
+  const [userStats, setUserStats] = useState<UserStats>({
+    totalUsers: 0,
+    adminCount: 0,
+    moderatorCount: 0,
+    userCount: 0,
+    bannedCount: 0,
+  });
 
   // WebSocket connection for real-time updates
-  const wsRef = useRef(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
   // Fetch users with pagination
   const fetchUsers = useCallback(async (page = 1, limit = 10) => {
@@ -41,13 +142,11 @@ const AdminUsersPage = () => {
         limit, 
         _t: Date.now() 
       };
-      
-      // Gọi API để lấy danh sách người dùng mới nhất
-      const responseData = await getUsersForAdmin(params);
+        // Gọi API để lấy danh sách người dùng mới nhất
+      const responseData = await getUsersForAdmin(params) as any;
       
       console.log("Nhận được dữ liệu người dùng mới:", responseData);
-      
-      if (responseData && Array.isArray(responseData.users)) {
+        if (responseData && Array.isArray(responseData.users)) {
         // Cập nhật state với dữ liệu mới
         setUsers(responseData.users);
         setPagination({
@@ -73,7 +172,37 @@ const AdminUsersPage = () => {
     }
   }, []);
 
-  // Fetch roles and account types
+  // Fetch user statistics (all users to count by role)
+  const fetchUserStats = useCallback(async () => {
+    try {
+      // Fetch all users without pagination to get accurate stats
+      const allUsersData = await getUsersForAdmin({ page: 1, limit: 1000 }) as any; // Get a large number to cover all users
+      
+      if (allUsersData && Array.isArray(allUsersData.users)) {
+        const allUsers = allUsersData.users;
+          const stats = {
+          totalUsers: allUsersData.total || allUsers.length,
+          adminCount: allUsers.filter((user: any) => {
+            const userRole = typeof user.role === 'string' ? user.role : ((user.role as any)?.name || '');
+            return userRole.toLowerCase() === 'admin';
+          }).length,
+          moderatorCount: allUsers.filter((user: any) => {
+            const userRole = typeof user.role === 'string' ? user.role : ((user.role as any)?.name || '');
+            return userRole.toLowerCase() === 'moderator';
+          }).length,
+          userCount: allUsers.filter((user: any) => {
+            const userRole = typeof user.role === 'string' ? user.role : ((user.role as any)?.name || '');
+            return userRole.toLowerCase() === 'user';
+          }).length,
+          bannedCount: allUsers.filter((user: any) => user && user.isActive === false).length,
+        };
+        
+        setUserStats(stats);
+      }
+    } catch (err) {
+      console.error('Failed to fetch user stats:', err);
+    }
+  }, []);
   const fetchRolesAndAccountTypes = useCallback(async () => {
     try {
       const [rolesData, accountTypesData] = await Promise.all([
@@ -130,22 +259,28 @@ const AdminUsersPage = () => {
           // Handle user_updated notifications - for Premium subscription approvals
           if (data.type === 'user_updated' && data.userId && data.changes) {
             console.log('Cập nhật thông tin người dùng:', data.userId, data.changes);
-            
-            // Update the specific user in the local state
+              // Update the specific user in the local state
             setUsers(prevUsers => {
               return prevUsers.map(user => {
                 if (user._id === data.userId) {
-                  return {
+                  const updatedUser = {
                     ...user,
-                    ...data.changes,
-                    // If we're changing accountType to VIP, also update role name in UI
-                    ...(data.changes.accountType === 'VIP' && { 
-                      role: {
-                        ...user.role,
-                        name: data.changes.role || user.role?.name || 'VIP'
-                      }
-                    })
+                    ...data.changes
                   };
+                    // If we're changing accountType to VIP, also update role name in UI
+                  if (data.changes.accountType === 'VIP') {
+                    const currentRole = user.role;
+                    if (typeof currentRole === 'object' && currentRole && 'name' in currentRole) {
+                      updatedUser.role = {
+                        ...currentRole,
+                        name: data.changes.role || (currentRole as any).name || 'VIP'
+                      };
+                    } else {
+                      updatedUser.role = data.changes.role || 'VIP';
+                    }
+                  }
+                  
+                  return updatedUser;
                 }
                 return user;
               });
@@ -180,25 +315,46 @@ const AdminUsersPage = () => {
       }
     };
   }, []); // Empty dependency array means this runs once on mount
-
   useEffect(() => {
     fetchUsers(pagination.currentPage, pagination.limit);
     fetchRolesAndAccountTypes();
-  }, [pagination.currentPage, pagination.limit, fetchUsers, fetchRolesAndAccountTypes]);
-
-  const handlePageChange = (newPage) => {
+    fetchUserStats(); // Add this to fetch stats on component mount
+  }, [pagination.currentPage, pagination.limit, fetchUsers, fetchRolesAndAccountTypes, fetchUserStats]);
+  const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
       setPagination(prev => ({ ...prev, currentPage: newPage }));
     }
+  };  // Convert UserForAdmin to UserTableUser type for UserTable
+  const convertToUserTableType = (users: UserForAdmin[]): UserTableUser[] => {
+    return users.map(user => ({
+      _id: user._id,
+      fullname: user.fullname,
+      email: user.email,
+      role: user.role as string | { name: string; _id: string },
+      accountType: user.accountType as string | { name: string; _id: string } | undefined,
+      createdAt: user.createdAt instanceof Date 
+        ? user.createdAt.toISOString() 
+        : (user.createdAt as string || new Date().toISOString()),
+      isActive: user.isActive,
+      avatar: (user as any).avatar
+    }));
+  };  const handleEditUserTable = (user: UserTableUser) => {
+    // Find the full user data from our users array
+    const fullUser = users.find(u => u._id === user._id);
+    if (fullUser) {
+      // Convert to format expected by UserForm
+      const userForForm = {
+        ...fullUser,
+        role: fullUser.role,
+        accountType: fullUser.accountType,
+        avatar: fullUser.avatar
+      };
+      setSelectedUser(userForForm);
+      setFormMode('edit');
+      setShowUserForm(true);
+    }
   };
-
-  const handleEditUser = (user) => {
-    setSelectedUser(user);
-    setFormMode('edit');
-    setShowUserForm(true);
-  };
-
-  const handleDeleteUser = async (userId) => {
+  const handleDeleteUser = async (userId: string) => {
     if (!userId) {
       setError('Invalid user ID');
       return;
@@ -206,8 +362,9 @@ const AdminUsersPage = () => {
 
     try {
       await deleteUserByAdmin(userId);
-      // Refresh user list after successful deletion
+      // Refresh user list and stats after successful deletion
       fetchUsers(pagination.currentPage, pagination.limit);
+      fetchUserStats(); // Refresh stats
     } catch (err) {
       let errorMessage = 'Failed to delete user';
       if (err instanceof Error) {
@@ -217,7 +374,7 @@ const AdminUsersPage = () => {
     }
   };
 
-  const handleBanUser = async (userId, isActive) => {
+  const handleBanUser = async (userId: string, isActive: boolean) => {
     if (!userId) {
       setError('Invalid user ID');
       return;
@@ -239,10 +396,10 @@ const AdminUsersPage = () => {
       
       // Hiển thị thông báo thành công
       alert(`Đã ${isActive ? 'mở khóa' : 'khóa'} tài khoản người dùng thành công!`);
-      
-      // Để đồng bộ hóa dữ liệu, tải lại danh sách người dùng
+        // Để đồng bộ hóa dữ liệu, tải lại danh sách người dùng và stats
       setTimeout(() => {
         fetchUsers(pagination.currentPage, pagination.limit);
+        fetchUserStats(); // Refresh stats after ban/unban
       }, 500);
     } catch (err) {
       let errorMessage = `Không thể ${isActive ? 'mở khóa' : 'khóa'} tài khoản người dùng`;
@@ -265,27 +422,28 @@ const AdminUsersPage = () => {
     setShowUserForm(false);
     setSelectedUser(null);
   };
-
   const handleUserFormSave = () => {
-    // Refresh user list after form save
+    // Refresh user list and stats after form save
     fetchUsers(pagination.currentPage, pagination.limit);
+    fetchUserStats(); // Refresh stats after user creation/update
     handleUserFormClose();
-  };
-
-  // Count users by role
+  };// Count users by role - now uses userStats instead of current page users
   const getUserCountByRole = (roleName: any) => {
-    if (!Array.isArray(users)) return 0;
-    return users.filter(user => {
-      if (!user || !user.role) return false;
-      const userRoleName = typeof user.role === 'string' ? user.role : (user.role.name || '');
-      return userRoleName.toLowerCase() === roleName.toLowerCase();
-    }).length;
+    switch (roleName.toLowerCase()) {
+      case 'admin':
+        return userStats.adminCount;
+      case 'moderator':
+        return userStats.moderatorCount;
+      case 'user':
+        return userStats.userCount;
+      default:
+        return 0;
+    }
   };
 
-  // Count banned users
+  // Count banned users - now uses userStats
   const getBannedUserCount = () => {
-    if (!Array.isArray(users)) return 0;
-    return users.filter(user => user && user.isActive === false).length;
+    return userStats.bannedCount;
   };
 
   return (
@@ -321,10 +479,9 @@ const AdminUsersPage = () => {
                 <div className="info-box d-flex align-items-center">
                   <span className="info-box-icon bg-info">
                     <FaUsers />
-                  </span>
-                  <div className="info-box-content">
+                  </span>                  <div className="info-box-content">
                     <span className="info-box-text">Tổng người dùng</span>
-                    <span className="info-box-number">{pagination.totalUsers || 0}</span>
+                    <span className="info-box-number">{userStats.totalUsers || 0}</span>
                   </div>
                 </div>
               </div>
@@ -384,10 +541,9 @@ const AdminUsersPage = () => {
                 {!loading && !error && (
                   <>
                     {Array.isArray(users) && users.length > 0 ? (
-                      <div className="table-responsive">
-                        <UserTable 
-                          users={users} 
-                          onEdit={handleEditUser} 
+                      <div className="table-responsive">                        <UserTable
+                          users={convertToUserTableType(users)}
+                          onEdit={handleEditUserTable}
                           onDelete={handleDeleteUser}
                           onBanUser={handleBanUser}
                         />
@@ -402,10 +558,9 @@ const AdminUsersPage = () => {
                     )}
                   </>
                 )}
-              </div>
-              <div className="card-footer d-flex justify-content-between align-items-center">
+              </div>              <div className="card-footer d-flex justify-content-between align-items-center">
                 <small className="text-muted">
-                  Hiển thị {Array.isArray(users) ? users.length : 0} trên tổng số {pagination.totalUsers} người dùng
+                  Hiển thị {Array.isArray(users) ? users.length : 0} trên tổng số {userStats.totalUsers} người dùng
                 </small>
                 <PaginationComponent
                   currentPage={pagination.currentPage}

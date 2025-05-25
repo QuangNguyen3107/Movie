@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -8,25 +8,46 @@ import axios from 'axios';
 import { 
   FaArrowLeft, FaCheck, FaTimes, FaFilm, FaUser, FaComment, 
   FaExclamationTriangle, FaClock, FaCheckCircle, FaEnvelope, 
-  FaCalendarAlt, FaEdit, FaTrash
+  FaCalendarAlt, FaEdit, FaTrash, FaEye
 } from 'react-icons/fa';
 import styles from '@/styles/AdminDashboard.module.css';
 
+interface UserInfo {
+  _id: string;
+  name: string;
+  email: string;
+}
+
+interface MovieInfo {
+  id: string;
+  name: string;
+  slug?: string;
+  thumb?: string;
+  episode?: string;
+}
+
+interface Report {
+  _id: string;
+  contentType: 'Movie' | 'User' | 'Comment' | string;
+  reason: string;
+  status: 'pending' | 'in-progress' | 'resolved' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
+  description: string;
+  adminNotes?: string;
+  userId?: UserInfo;
+  movieInfo?: MovieInfo;
+}
+
 const ReportDetailPage = () => {
-  const [report, setReport] = useState(null);
+  const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [adminNote, setAdminNote] = useState('');
   const [statusUpdating, setStatusUpdating] = useState(false);
   const router = useRouter();
   const { id } = router.query;
 
-  useEffect(() => {
-    if (id) {
-      fetchReportDetail(id);
-    }
-  }, [id]);
-
-  const fetchReportDetail = async (reportId) => {
+  const fetchReportDetail = useCallback(async (reportId: string | string[] | undefined) => {
     try {
       setLoading(true);
       const token = localStorage.getItem('auth_token');
@@ -52,9 +73,14 @@ const ReportDetailPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
-  const handleUpdateStatus = async (status) => {
+  useEffect(() => {
+    if (id) {
+      fetchReportDetail(id);
+    }
+  }, [id, fetchReportDetail]);
+  const handleUpdateStatus = async (status: 'pending' | 'in-progress' | 'resolved' | 'rejected') => {
     try {
       setStatusUpdating(true);
       const token = localStorage.getItem('auth_token');
@@ -67,14 +93,14 @@ const ReportDetailPage = () => {
           adminNotes: adminNote
         },
         { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response.data.success) {
-        setReport({
-          ...report,
-          status,
-          adminNotes: adminNote
-        });
+      );      if (response.data.success) {
+        if (report) {
+          setReport({
+            ...report,
+            status,
+            adminNotes: adminNote
+          });
+        }
         alert('Cập nhật trạng thái báo cáo thành công');
       } else {
         alert('Có lỗi xảy ra khi cập nhật trạng thái');
@@ -112,7 +138,7 @@ const ReportDetailPage = () => {
   };
 
   // Hiển thị icon tương ứng với content type
-  const getContentTypeIcon = (contentType) => {
+  const getContentTypeIcon = (contentType: string) => {
     switch(contentType) {
       case 'Movie':
         return <FaFilm />;
@@ -126,7 +152,7 @@ const ReportDetailPage = () => {
   };
 
   // Hiển thị badge tương ứng với trạng thái
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status: string) => {
     switch(status) {
       case 'resolved':
         return <span className="badge badge-success px-2 py-1"><FaCheckCircle className="mr-1" /> Đã giải quyết</span>;
@@ -140,7 +166,7 @@ const ReportDetailPage = () => {
   };
 
   // Format thời gian
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('vi-VN', {
       day: '2-digit',
@@ -460,7 +486,7 @@ const ReportDetailPage = () => {
 };
 
 // Thêm getLayout để sử dụng AdminLayout
-ReportDetailPage.getLayout = (page) => {
+ReportDetailPage.getLayout = (page: React.ReactElement) => {
   return <AdminLayout>{page}</AdminLayout>;
 };
 
