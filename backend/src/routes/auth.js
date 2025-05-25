@@ -1148,4 +1148,162 @@ router.post("/facebook-login", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     summary: Gửi email quên mật khẩu
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: "user@example.com"
+ *     responses:
+ *       200:
+ *         description: Email đặt lại mật khẩu đã được gửi
+ *       400:
+ *         description: Email không tồn tại
+ *       500:
+ *         description: Lỗi hệ thống
+ */
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: "Email là bắt buộc" });
+    }
+
+    // Tìm người dùng theo email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ error: "Email không tồn tại trong hệ thống" });
+    }
+
+    // Tạo token reset password
+    const crypto = require('crypto');
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    
+    // Lưu token và thời gian hết hạn (15 phút)
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // 15 phút
+    await user.save();
+
+    // Gửi email
+    const { transporter } = require('../config/email');
+    
+    const resetURL = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`;
+    
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Đặt lại mật khẩu - Movie Streaming',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333; text-align: center;">Đặt lại mật khẩu</h2>
+          <p>Xin chào,</p>
+          <p>Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản Movie Streaming của mình.</p>
+          <p>Vui lòng nhấp vào liên kết bên dưới để đặt lại mật khẩu:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetURL}" style="background-color: #4CAF50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Đặt lại mật khẩu</a>
+          </div>
+          <p>Liên kết này sẽ hết hạn sau 15 phút.</p>
+          <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>
+          <hr style="margin: 30px 0;">
+          <p style="color: #666; font-size: 12px;">Đây là email tự động, vui lòng không trả lời.</p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    
+    res.status(200).json({ 
+      success: true,
+      message: "Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư của bạn." 
+    });
+  } catch (error) {
+    console.error("Lỗi gửi email quên mật khẩu:", error);
+    res.status(500).json({ error: "Lỗi hệ thống khi gửi email" });
+  }
+});
+
+/**
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     summary: Đặt lại mật khẩu với token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 example: "abc123xyz789"
+ *               newPassword:
+ *                 type: string
+ *                 example: "newpassword123"
+ *               confirmPassword:
+ *                 type: string
+ *                 example: "newpassword123"
+ *     responses:
+ *       200:
+ *         description: Mật khẩu đã được đặt lại thành công
+ *       400:
+ *         description: Token không hợp lệ hoặc mật khẩu không khớp
+ *       500:
+ *         description: Lỗi hệ thống
+ */
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { token, newPassword, confirmPassword } = req.body;
+    
+    if (!token || !newPassword || !confirmPassword) {
+      return res.status(400).json({ error: "Tất cả các trường đều bắt buộc" });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ error: "Mật khẩu xác nhận không khớp" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: "Mật khẩu phải có ít nhất 6 ký tự" });
+    }
+
+    // Tìm người dùng với token hợp lệ và chưa hết hạn
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: "Token không hợp lệ hoặc đã hết hạn" });
+    }
+
+    // Cập nhật mật khẩu
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    res.status(200).json({ 
+      success: true,
+      message: "Mật khẩu đã được đặt lại thành công" 
+    });
+  } catch (error) {
+    console.error("Lỗi đặt lại mật khẩu:", error);
+    res.status(500).json({ error: "Lỗi hệ thống khi đặt lại mật khẩu" });
+  }
+});
+
 module.exports = router;

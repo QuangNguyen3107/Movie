@@ -37,7 +37,8 @@ import {
   FaExternalLinkAlt,
   FaSave,
   FaBolt,
-  FaUser
+  FaUser,
+  FaDownload
 } from 'react-icons/fa';
 import styles from '../../styles/AdminMovies.module.css';
 import darkStyles from '../../styles/AdminMoviesDark.module.css';
@@ -46,7 +47,8 @@ import { useTheme } from 'next-themes';
 import { useRouter } from 'next/router';  
 import { toast } from 'react-toastify';
 import AdminLayout from '../../components/Layout/AdminLayout';
-import axiosInstance from '../../API/config/axiosConfig'; 
+import CrawlModal from '../../components/Admin/CrawlModal';
+import axiosInstance from '../../API/config/axiosConfig';
 
 import { 
   getMoviesForAdmin, 
@@ -160,8 +162,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, movie, onClose, onCon
           </button>
         </div>
       </div>
-    </div>
-  );
+    </div>  );
 }
 
 interface MovieDetailModalProps {
@@ -195,8 +196,7 @@ const renderStars = (rating: number, styles: Record<string, string>) => {
 };
 
 const MovieDetailModal: React.FC<MovieDetailModalProps> = ({ isOpen, movie, onClose }) => {
-  if (!isOpen || !movie) return null;
-  
+  // Move all hooks to the top, before any early returns
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('info');
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
@@ -218,13 +218,12 @@ const MovieDetailModal: React.FC<MovieDetailModalProps> = ({ isOpen, movie, onCl
       link_embed: string;
       link_m3u8: string;
     }>;
-  }[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
+  }[]>([]);  const [isEditing, setIsEditing] = useState(false);
   const [newServerName, setNewServerName] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [saving, setSaving] = useState(false);
-    // Function reference for handling rating synchronization
-  // Implementation is below to avoid duplicate declarations
+  
+  // Move all useEffect hooks before early return
   useEffect(() => {
     if (isOpen && movie) {
       const fetchFullMovieData = async () => {
@@ -337,6 +336,8 @@ const MovieDetailModal: React.FC<MovieDetailModalProps> = ({ isOpen, movie, onCl
     
     fetchRatings();
   }, [isOpen, movie, activeTab]);
+    // Early return check after all hooks are declared
+  if (!isOpen || !movie) return null;
   
   // Handle sync ratings for current movie
   const handleSyncRatings = async () => {
@@ -383,10 +384,8 @@ const MovieDetailModal: React.FC<MovieDetailModalProps> = ({ isOpen, movie, onCl
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
-      });
-      
-      return `${timeString} ${formattedDateString}`;
-    } catch (_) {
+      });      return `${timeString} ${formattedDateString}`;
+    } catch {
       return 'Không xác định';
     }
   };
@@ -1458,19 +1457,18 @@ const MoviesAdmin = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalMovies, setTotalMovies] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [movies, setMovies] = useState<Movie[]>([]);
+  const [loading, setLoading] = useState(true);  const [movies, setMovies] = useState<Movie[]>([]);
   const [syncingAllRatings, setSyncingAllRatings] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; movie: Movie | null }>({
     isOpen: false,
     movie: null
-  });
-  const [detailModal, setDetailModal] = useState<{ isOpen: boolean; movie: Movie | null }>({
+  });  const [detailModal, setDetailModal] = useState<{ isOpen: boolean; movie: Movie | null }>({
     isOpen: false,
     movie: null
   });
+  const [crawlModalOpen, setCrawlModalOpen] = useState(false);
   const [sortField, setSortField] = useState<string>('updatedAt');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [moviesPerPage, setMoviesPerPage] = useState(10);
@@ -1905,8 +1903,7 @@ const MoviesAdmin = () => {
   const scrollToTop = () => {
     topRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-  
-  const handleSyncAllRatings = async () => {
+    const handleSyncAllRatings = async () => {
     try {
       setSyncingAllRatings(true);
       const loadingToast = toast.loading('Đang đồng bộ tất cả đánh giá...');
@@ -1923,8 +1920,7 @@ const MoviesAdmin = () => {
       toast.error('Không thể đồng bộ đánh giá');
     } finally {
       setSyncingAllRatings(false);
-    }
-  };
+    }  };
 
   return (
     <div className={combinedStyles.container}>
@@ -2062,8 +2058,8 @@ const MoviesAdmin = () => {
             title="Làm mới dữ liệu"
           >
             <FaSync />
-          </button>
-        </div>          <div className={combinedStyles.actionButtons}>            <button 
+          </button>        </div>          <div className={combinedStyles.actionButtons}>
+            <button 
               className={`${combinedStyles.syncAllRatingsButton} ${combinedStyles.highlightedButton}`}
               onClick={handleSyncAllRatings}
               disabled={syncingAllRatings}
@@ -2071,6 +2067,15 @@ const MoviesAdmin = () => {
             >
               <FaStar className={combinedStyles.starIcon} /> <FaSync className={syncingAllRatings ? combinedStyles.spinningIcon : ''} />
               <span>{syncingAllRatings ? 'Đang đồng bộ...' : 'Đồng bộ tất cả đánh giá'}</span>
+            </button>
+            
+            <button 
+              className={`${combinedStyles.crawlButton} ${combinedStyles.highlightedButton}`}
+              onClick={() => setCrawlModalOpen(true)}
+              title="Crawl phim từ nguồn bên ngoài"
+            >
+              <FaDownload className={combinedStyles.crawlIcon} /> 
+              <span>Crawl Phim</span>
             </button>
             
             <button className={combinedStyles.addButton} onClick={handleAddMovie}>
@@ -2305,13 +2310,16 @@ const MoviesAdmin = () => {
         isOpen={detailModal.isOpen}
         movie={detailModal.movie}
         onClose={() => setDetailModal({ isOpen: false, movie: null })}
-      />
-
-      <DeleteModal
+      />      <DeleteModal
         isOpen={deleteModal.isOpen}
         movie={deleteModal.movie}
         onClose={() => setDeleteModal({ isOpen: false, movie: null })}
         onConfirm={handleDeleteConfirm}
+      />
+
+      <CrawlModal
+        isOpen={crawlModalOpen}
+        onClose={() => setCrawlModalOpen(false)}
       />
     </div>
   );

@@ -683,6 +683,113 @@ const MovieCategory = ({ title, endpoint, showTopMovies = true }) => {
             ></iframe>
           </div>
         </div>
+      )}      {loading && featuredMovies.length === 0 && (
+        <div className="featured-movies mb-4">
+          <div 
+            className="position-relative featured-container" 
+            style={{ 
+              height: windowWidth < 480 ? '450px' : windowWidth < 768 ? '500px' : '800px',
+              width: '100%',
+              overflow: 'hidden',
+              background: '#181818'
+            }}
+          >
+            {/* Backdrop skeleton with subtle animation */}
+            <div className="position-absolute top-0 start-0 w-100 h-100" style={{ opacity: 0.4 }}>
+              <Skeleton height="100%" width="100%" />
+            </div>
+            
+            {/* Gradient overlay for more depth */}
+            <div 
+              className="position-absolute top-0 start-0 w-100 h-100"
+              style={{
+                background: 'linear-gradient(90deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.7) 100%)',
+                zIndex: 2
+              }}
+            />
+              {/* Movie cards carousel */}
+            <div className="d-flex justify-content-center align-items-center h-100" style={{ zIndex: 3, position: 'relative' }}>
+              {[...Array(5)].map((_, index) => {
+                // Calculate position relative to center (index 2)
+                const totalItems = 5;
+                let position = index - 2; // Center card is at index 2, so position will be -2, -1, 0, 1, 2
+                
+                let zIndex = 4 - Math.abs(position);
+                let scale = position === 0 ? 1 : 1 - Math.abs(position) * 0.2;
+                
+                let translateX = position * (
+                  windowWidth < 480 ? 100 : 
+                  windowWidth < 768 ? 150 : 
+                  250
+                );
+                
+                let opacity = 1 - Math.abs(position) * 0.2;
+                
+                let visibility = 
+                  windowWidth < 480 ? (Math.abs(position) <= 0 ? 'visible' : 'hidden') :
+                  windowWidth < 768 ? (Math.abs(position) <= 1 ? 'visible' : 'hidden') :
+                  (Math.abs(position) <= 2 ? 'visible' : 'hidden');
+                
+                let rotation = position * (
+                  windowWidth < 480 ? -3 : 
+                  windowWidth < 768 ? -5 : 
+                  -15
+                );
+                
+                return (
+                  <div 
+                    key={`featured-skeleton-${index}`}
+                    className="position-absolute"                    style={{ 
+                      width: windowWidth < 480 ? '220px' : windowWidth < 768 ? '280px' : '400px',
+                      visibility,
+                      zIndex,
+                      transform: `translateX(${translateX}px) scale(${scale}) rotateY(${rotation}deg)`,
+                      transition: 'all 0.5s ease',
+                      left: '50%',
+                      marginLeft: windowWidth < 480 ? '-110px' : windowWidth < 768 ? '-140px' : '-200px',
+                      transformStyle: 'preserve-3d',
+                      perspective: '1000px',
+                      opacity
+                    }}
+                  >
+                    <div className="card bg-dark border-0" style={{
+                      boxShadow: position === 0 
+                        ? '0 10px 30px rgba(128, 128, 128, 0.3)' 
+                        : '0 5px 15px rgba(0, 0, 0, 0.5)'
+                    }}>
+                      {/* Movie poster skeleton */}
+                      <div className="position-relative" style={{ borderRadius: '15px 15px 0 0', overflow: 'hidden' }}>
+                        <Skeleton
+                          height={windowWidth < 480 ? '330px' : windowWidth < 768 ? '400px' : '600px'} 
+                          borderRadius="15px 15px 0 0"
+                        />
+                      </div>
+                      
+
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            {/* Pagination dots skeleton */}
+            <div className="position-absolute bottom-0 start-50 translate-middle-x mb-4" style={{ zIndex: 10 }}>
+              <div className="d-flex gap-2">
+                {[...Array(5)].map((_, index) => (
+                  <div
+                    key={`indicator-skeleton-${index}`}
+                    style={{                      width: index === 0 ? '30px' : '10px',
+                      height: '10px',
+                      borderRadius: '5px',
+                      background: index === 0 ? 'rgba(128, 128, 128, 0.7)' : 'rgba(255, 255, 255, 0.3)',
+                      transition: 'all 0.3s ease'
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {featuredMovies.length > 0 && (
