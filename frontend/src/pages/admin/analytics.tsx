@@ -22,6 +22,7 @@ import {
   ArcElement,
 } from 'chart.js';
 import AdminLayout from '@/components/Layout/AdminLayout';
+import AdminRoute from '@/components/ProtectedRoute/AdminRoute';
 
 // Register ChartJS components
 ChartJS.register(
@@ -277,11 +278,9 @@ const AdminAnalyticsPage: React.FC = () => {
       animateScale: true,
       animateRotate: true,
       duration: 1500 // Animation lâu hơn để thấy rõ
-    }
-  };
-
+    }  };
   return (
-    <AdminLayout>
+    <>
       <Head>
         <title>Analytics - Movie Streaming Admin</title>
       </Head>
@@ -626,11 +625,18 @@ const AdminAnalyticsPage: React.FC = () => {
           margin: -1px;
           overflow: hidden;
           clip: rect(0, 0, 0, 0);
-          white-space: nowrap;
-          border: 0;
-        }
+          white-space: nowrap;          border: 0;        }
       `}</style>
-    </AdminLayout>
+    </>
+  );
+};
+
+// Thêm getLayout để sử dụng AdminLayout với bảo vệ admin
+AdminAnalyticsPage.getLayout = (page: React.ReactElement) => {
+  return (
+    <AdminRoute>
+      <AdminLayout>{page}</AdminLayout>
+    </AdminRoute>
   );
 };
 

@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import AdminLayout from '@/components/Layout/AdminLayout';
+import AdminRoute from '@/components/ProtectedRoute/AdminRoute';
 import axios from 'axios';
 import {
   FaEye, FaCheck, FaTimes, FaFilter, FaExclamationTriangle,
@@ -904,9 +905,13 @@ const FeedbackPage = () => {
   );
 };
 
-// Thêm getLayout để sử dụng AdminLayout
+// Thêm getLayout để sử dụng AdminLayout với bảo vệ admin
 FeedbackPage.getLayout = (page: React.ReactNode) => {
-  return <AdminLayout>{page}</AdminLayout>;
+  return (
+    <AdminRoute>
+      <AdminLayout>{page}</AdminLayout>
+    </AdminRoute>
+  );
 };
 
 export default FeedbackPage;

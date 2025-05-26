@@ -7,9 +7,6 @@ import {
   FaTrash, 
   FaVideo, 
   FaImage, 
-  FaEye, 
-  FaCheck, 
-  FaTimes, 
   FaUndo 
 } from 'react-icons/fa';
 import adService from '@/API/services/adService';

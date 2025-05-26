@@ -307,6 +307,12 @@ export default function AuthForm({ onSubmit, isLoading, error, message, isSignup
                                             <><FaFacebook /> Continue with Facebook</>
                                         )}
                                     </button>
+                                </div>                            )}
+                              {!isSignup && (
+                                <div className="forgot-password-link">
+                                    <Link href="/auth/forgot-password" legacyBehavior>
+                                        <a>Forgot your password?</a>
+                                    </Link>
                                 </div>
                             )}
                             
@@ -874,10 +880,43 @@ export default function AuthForm({ onSubmit, isLoading, error, message, isSignup
 
                 .google {
                     background: rgba(179, 0, 0, 0.49);
+                }                .facebook {
+                    background: rgba(4, 71, 186, 0.65);
                 }
 
-                .facebook {
-                    background: rgba(4, 71, 186, 0.65);
+                .forgot-password-link {
+                    margin-top: 15px;
+                    text-align: center;
+                }
+
+                .forgot-password-link a {
+                    color: #b0b0b0;
+                    text-decoration: none;
+                    font-size: 14px;
+                    cursor: pointer;
+                    position: relative;
+                    padding-bottom: 2px;
+                    transition: color 0.3s ease;
+                }
+
+                .forgot-password-link a:hover {
+                    color: #fff;
+                }
+
+                .forgot-password-link a:after {
+                    content: '';
+                    position: absolute;
+                    width: 0;
+                    height: 1px;
+                    bottom: 0;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: linear-gradient(90deg, transparent, #b0b0b0, transparent);
+                    transition: width 0.3s ease;
+                }
+
+                .forgot-password-link a:hover:after {
+                    width: 100%;
                 }
 
                 .switch-auth {

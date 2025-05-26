@@ -6,6 +6,10 @@ export const endpoints = {
     related: (category, limit) => `${API_URL}/movies?category=${category}&limit=${limit}`,
     search: (query) => `${API_URL}/movies/search?q=${query}`
   },
+  crawl: {
+    movies: () => `${API_URL}/crawl/movies`,
+    moviesAll: () => `${API_URL}/crawl/moviesall`
+  },
   history: {
     getAll: (limit = 10, page = 1) => `${API_URL}/history?limit=${limit}&page=${page}`,
     add: () => `${API_URL}/history`,

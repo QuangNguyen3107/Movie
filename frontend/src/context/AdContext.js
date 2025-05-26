@@ -1,5 +1,6 @@
 // Ad Context to manage advertisement visibility based on user subscriptions
 import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
+import { useRouter } from 'next/router';
 import subscriptionService from '../API/services/subscriptionService';
 
 // Create the context with default values
@@ -15,6 +16,8 @@ const AdContext = createContext({
 export const useAdContext = () => useContext(AdContext);
 
 export const AdContextProvider = ({ children }) => {
+  const router = useRouter();
+  
   // State to track ad visibility settings with proper defaults
   const [adSettings, setAdSettings] = useState({
     hideHomepageAds: false,
@@ -29,6 +32,9 @@ export const AdContextProvider = ({ children }) => {
   // Sử dụng ref để theo dõi việc fetch benefits
   const isFetchingRef = useRef(false);
   const benefitsTimeoutRef = useRef(null);
+
+  // Check if current page should never show ads
+  const isNoAccessPage = router.pathname === '/noaccess';
 
   // Check if user is authenticated - và chỉ chạy 1 lần khi mount
   useEffect(() => {
@@ -199,9 +205,18 @@ export const AdContextProvider = ({ children }) => {
       }
     };
   }, [isAuthenticated]); // Phụ thuộc vào trạng thái xác thực
+  // Apply overrides for special pages that should never show ads
+  const finalAdSettings = {
+    ...adSettings,
+    // Force hide all ads on noaccess page
+    hideHomepageAds: isNoAccessPage ? true : adSettings.hideHomepageAds,
+    hideVideoAds: isNoAccessPage ? true : adSettings.hideVideoAds,
+  };
+
+  console.log(`[AdContext] Final ad settings for ${router.pathname}:`, finalAdSettings);
 
   return (
-    <AdContext.Provider value={adSettings}>
+    <AdContext.Provider value={finalAdSettings}>
       {children}
     </AdContext.Provider>
   );

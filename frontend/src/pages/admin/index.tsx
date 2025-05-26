@@ -9,6 +9,7 @@ import { FaFilm, FaChartLine, FaUserPlus, FaChartPie, FaArrowRight, FaEye, FaEdi
 import { getDashboardStats, getAnalyticsData, getFeedbackStats } from '@/API/services/admin/dashboardService';
 import { getReportStats } from '@/API/services/admin/reportService'; 
 import AdminLayout from '@/components/Layout/AdminLayout';
+import AdminRoute from '@/components/ProtectedRoute/AdminRoute';
 import dynamic from 'next/dynamic';
 
 // Dynamically import charts to prevent server-side rendering errors
@@ -781,9 +782,13 @@ const [feedbackData, setFeedbackData] = useState({
   );
 };
 
-// Thêm getLayout để sử dụng AdminLayout
+// Thêm getLayout để sử dụng AdminLayout với bảo vệ admin
 AdminDashboardPage.getLayout = (page: React.ReactElement) => {
-  return <AdminLayout>{page}</AdminLayout>;
+  return (
+    <AdminRoute>
+      <AdminLayout>{page}</AdminLayout>
+    </AdminRoute>
+  );
 };
 
 export default AdminDashboardPage;

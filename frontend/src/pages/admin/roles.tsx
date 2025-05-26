@@ -3,6 +3,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
+import AdminRoute from '../../components/ProtectedRoute/AdminRoute';
+import AdminLayout from '@/components/Layout/AdminLayout';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import { getRolesForAdmin } from '@/API/services/admin/userAdminService';
 import RoleForm from '@/components/Admin/Users/RoleForm';
@@ -229,7 +231,15 @@ const AdminRolesPage: React.FC = () => {
         onConfirm={handleDeleteRole}
         onCancel={() => setShowDeleteModal(false)}
       />
-    </>
+    </>  );
+};
+
+// Thêm getLayout để sử dụng AdminLayout với bảo vệ admin
+AdminRolesPage.getLayout = (page: React.ReactElement) => {
+  return (
+    <AdminRoute>
+      <AdminLayout>{page}</AdminLayout>
+    </AdminRoute>
   );
 };
 

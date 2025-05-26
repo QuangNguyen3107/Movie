@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import AdminRoute from '../../components/ProtectedRoute/AdminRoute';
 import styles from '@/styles/AdminReports.module.css';
 import AdminLayout from '@/components/Layout/AdminLayout';
 import { 
@@ -1172,9 +1173,13 @@ const ReportsPage = () => {  // State cho dữ liệu và bộ lọc
   );
 };
 
-// Thêm getLayout để sử dụng AdminLayout
+// Thêm getLayout để sử dụng AdminLayout với bảo vệ admin
 ReportsPage.getLayout = (page: React.ReactElement) => {
-  return <AdminLayout>{page}</AdminLayout>;
+  return (
+    <AdminRoute>
+      <AdminLayout>{page}</AdminLayout>
+    </AdminRoute>
+  );
 };
 
 export default ReportsPage;

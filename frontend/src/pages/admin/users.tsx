@@ -15,6 +15,7 @@ import {
 } from '@/API/services/admin/userAdminService';
 import { FaUserPlus, FaUsers, FaUserShield, FaUserAlt, FaUserCog } from 'react-icons/fa';
 import AdminLayout from '@/components/Layout/AdminLayout';
+import AdminRoute from '@/components/ProtectedRoute/AdminRoute';
 
 // Basic type definitions for this component
 interface UserForAdmin {
@@ -1064,9 +1065,13 @@ const AdminUsersPage = () => {
   );
 };
 
-// Thêm getLayout để sử dụng AdminLayout
+// Thêm getLayout để sử dụng AdminLayout với bảo vệ admin
 AdminUsersPage.getLayout = (page: React.ReactNode) => {
-  return <AdminLayout>{page}</AdminLayout>;
+  return (
+    <AdminRoute>
+      <AdminLayout>{page}</AdminLayout>
+    </AdminRoute>
+  );
 };
 
 export default AdminUsersPage;
