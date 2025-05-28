@@ -8,7 +8,8 @@ import {
   FaUser, FaHistory, FaHeart, FaBookmark, FaChartLine, FaEdit, FaTimes, FaSave, 
   FaCamera, FaSignInAlt, FaCheck, FaCalendarAlt, FaEnvelope, FaPhone, FaMapMarkerAlt,
   FaLock, FaShieldAlt, FaCrown, FaEllipsisH, FaTv, FaClock, FaStar, FaEye, FaFilm,
-  FaBars, FaSync, FaPlay, FaSignOutAlt, FaTrash, FaThumbsUp, FaThumbsDown, FaComment, FaCheckCircle, FaCalendarCheck
+  FaBars, FaSync, FaPlay, FaSignOutAlt, FaTrash, FaThumbsUp, FaThumbsDown, FaComment, 
+  FaCheckCircle, FaCalendarCheck, FaArrowLeft
 } from 'react-icons/fa';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -1560,27 +1561,25 @@ export default function ProfilePage() {
               ))}
             </div>
           </div>
-        </motion.div>
-
-        <motion.div variants={itemVariants} className="stats-section">
-          <h3 className="stats-title">Phân bố thể loại</h3>
-          {statsData.genreDistribution && statsData.genreDistribution.length > 0 ? (
-            <div className="genre-distribution">
-              {statsData.genreDistribution.map((genre, index) => (
-                <div key={index} className="genre-stat">
-                  <div className="genre-name">{genre.name}</div>
-                  <div className="genre-bar-container">
+        </motion.div>        <motion.div variants={itemVariants} className="stats-section">
+          <h3 className="stats-title">Phân bố thể loại</h3>          {statsData.genreDistribution && statsData.genreDistribution.length > 0 ? (
+            <div className="genre-distribution-vertical">
+              {statsData.genreDistribution.slice(0, 8).map((genre, index) => (                <div key={index} className="genre-stat-vertical">
+                  <div className="genre-column-container">
                     <div 
-                      className="genre-bar" 
+                      className="genre-column" 
                       style={{ 
-                        width: `${genre.value}%`,
+                        height: `${genre.value}%`,
                         background: index === 0
-                          ? 'linear-gradient(to right, #e50914, #ff5757)'
-                          : `rgba(${180 - index * 20}, ${70 + index * 20}, ${90 + index * 10}, 0.8)`
+                          ? 'linear-gradient(to top, #e50914, #ff5757)'
+                          : `rgba(${180 - index * 20}, ${70 + index * 20}, ${90 + index * 10}, 0.8)`,
+                        '--column-height': `${genre.value}%`
                       }}
-                    ></div>
-                    <span className="genre-value">{genre.value}%</span>
+                    >
+                      <span className="genre-value-vertical">{genre.value}%</span>
+                    </div>
                   </div>
+                  <div className="genre-name-vertical">{genre.name}</div>
                 </div>
               ))}
             </div>
@@ -1860,59 +1859,101 @@ export default function ProfilePage() {
             margin-top: 10px;
             font-size: 14px;
             color: #aaa;
-          }
-          
-          .genre-distribution {
+          }            .genre-distribution-vertical {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 12px;
-            padding: 20px;
-          }
-          
-          .genre-stat {
-            margin-bottom: 15px;
-          }
-          
-          .genre-stat:last-child {
-            margin-bottom: 0;
-          }
-          
-          .genre-name {
-            font-size: 14px;
-            margin-bottom: 5px;
+            padding: 20px 20px 40px 20px;
             display: flex;
-            justify-content: space-between;
-          }
-          
-          .genre-bar-container {
-            height: 16px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
+            justify-content: space-around;
+            align-items: flex-end;
+            height: 280px;
             position: relative;
-            overflow: hidden;
           }
           
-          .genre-bar {
+          .genre-stat-vertical {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 12%;
             height: 100%;
-            border-radius: 8px;
-            transition: width 1s ease;
+            position: relative;
           }
           
-          .genre-value {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 12px;
-            font-weight: bold;
-            color: white;
-            text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+          .genre-column-container {
+            width: 100%;
+            max-width: 60px;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            height: 200px;
           }
+          
+          .genre-column {
+            width: 100%;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.3s ease;
+            position: absolute;
+            bottom: 0;
+            min-height: 20px;
+            max-width: 60px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            animation: columnGrow 1s ease-out forwards;
+          }
+          
+          @keyframes columnGrow {
+            from { height: 0%; }
+            to { height: var(--column-height); }
+          }
+          
+          .genre-column:hover {
+            filter: brightness(1.2);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+          }
+          
+          .genre-name-vertical {
+            font-size: 12px;
+            margin-top: 8px;
+            color: #ffffff;
+            text-align: center;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+            position: absolute;
+            bottom: -30px;
+            left: 0;
+            width: 100%;
+          }
+            .genre-value-vertical {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            opacity: 1;
+            font-weight: bold;
+            white-space: nowrap;
+          }
+          
+          .genre-column:hover .genre-value-vertical {
+            background: rgba(0, 0, 0, 0.9);
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+          }
+            /* This section was consolidated with the other media queries */
           
           .empty-stats {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 12px;
-            padding: 40px 20px;
+            padding: 20px;
             text-align: center;
+            height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
           
           .empty-stats-message {
@@ -1926,6 +1967,55 @@ export default function ProfilePage() {
             font-size: 40px;
             color: rgba(255, 255, 255, 0.2);
             margin-bottom: 15px;
+          }
+          
+          /* Responsive styling for genre distribution */
+          @media (max-width: 768px) {
+            .genre-distribution-vertical {
+              height: 220px;
+              padding: 15px 10px 35px 10px;
+            }
+            
+            .genre-column-container {
+              height: 160px;
+            }
+            
+            .genre-stat-vertical {
+              width: 14%;
+            }
+            
+            .genre-name-vertical {
+              font-size: 10px;
+              margin-top: 6px;
+            }
+            
+            .empty-stats {
+              height: 220px;
+            }
+          }
+          
+          @media (max-width: 576px) {
+            .genre-distribution-vertical {
+              height: 180px;
+              padding: 15px 5px 35px 5px;
+            }
+            
+            .genre-column-container {
+              height: 130px;
+            }
+            
+            .genre-stat-vertical {
+              width: 16%;
+            }
+            
+            .genre-name-vertical {
+              font-size: 9px;
+              margin-top: 4px;
+            }
+            
+            .empty-stats {
+              height: 180px;
+            }
           }
           
           .empty-stats-message p {
@@ -2286,10 +2376,16 @@ export default function ProfilePage() {
         pauseOnHover
         theme="dark"
       />
-      
-      {/* Header cho mobile */}
+        {/* Header cho mobile */}
       <header className="mobile-header">
         <div className="mobile-header-wrapper">
+          <button 
+            className="mobile-back-button"
+            onClick={() => router.back()}
+            aria-label="Quay lại"
+          >
+            <FaArrowLeft />
+          </button>
           <div className="mobile-user-info">
             <img 
               src={avatar} 
@@ -2512,16 +2608,34 @@ export default function ProfilePage() {
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
           box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
-        
-        .mobile-header-wrapper {
+          .mobile-header-wrapper {
           display: flex;
           align-items: center;
           justify-content: space-between;
         }
         
+        .mobile-back-button {
+          background: transparent;
+          border: none;
+          color: white;
+          font-size: 20px;
+          padding: 5px 10px;
+          cursor: pointer;
+          margin-right: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+        }
+        
+        .mobile-back-button:hover {
+          color: #e50914;
+        }
+        
         .mobile-user-info {
           display: flex;
           align-items: center;
+          flex: 1;
         }
         
         .mobile-avatar {
@@ -3011,9 +3125,20 @@ export default function ProfilePage() {
           .profile-sidebar {
             display: none;
           }
-          
-          .mobile-header {
+            .mobile-header {
             display: block;
+          }
+          
+          .mobile-user-text {
+            max-width: calc(100% - 120px); /* Space for avatar and button */
+            overflow: hidden;
+          }
+          
+          .mobile-user-name, 
+          .mobile-user-email {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
           }
           
           .profile-main {

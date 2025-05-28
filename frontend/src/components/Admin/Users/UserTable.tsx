@@ -67,11 +67,10 @@ const UserTable: React.FC<UserTableProps> = ({ users = [], onEdit, onDelete, onB
       setShowDeleteModal(false);
     }
   };
-
   const handleBanConfirm = () => {
     if (selectedUser && selectedUser._id) {
       // Truyền newActiveState (đã được lưu trong state) cho hàm onBanUser
-      onBanUser(selectedUser._id, newActiveState);
+      onBanUser(selectedUser._id, newActiveState as boolean);
       setShowBanModal(false);
     }
   };
@@ -216,12 +215,14 @@ const UserTable: React.FC<UserTableProps> = ({ users = [], onEdit, onDelete, onB
     if (compareA > compareB) return sortDirection === 'asc' ? 1 : -1;
     return 0;
   });
-
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   const getAvatarUrl = (user: User) => {
     if (!user || !user.avatar) return null;
-    if (user.avatar.startsWith('http')) return user.avatar;
-    return `${baseUrl}${user.avatar}`;
+    if (typeof user.avatar === 'string') {
+      if (user.avatar.startsWith('http')) return user.avatar;
+      return `${baseUrl}${user.avatar}`;
+    }
+    return null;
   }
 
   return (
@@ -339,10 +340,9 @@ const UserTable: React.FC<UserTableProps> = ({ users = [], onEdit, onDelete, onB
                     <tr key={user._id} className={isUserInactive ? 'banned-user' : ''}>
                       <td>
                         <div className="d-flex align-items-center">
-                          <div className="user-avatar mr-3">
-                            {getAvatarUrl(user) ? (
+                          <div className="user-avatar mr-3">                            {getAvatarUrl(user) ? (
                               <img 
-                                src={getAvatarUrl(user)} 
+                                src={getAvatarUrl(user) || '/img/avatar.png'} 
                                 alt={user.fullname || 'User'} 
                                 className="avatar-img"
                                 onError={(e) => {
@@ -436,9 +436,7 @@ const UserTable: React.FC<UserTableProps> = ({ users = [], onEdit, onDelete, onB
         cancelText="Hủy"
         onConfirm={handleDeleteConfirm}
         onCancel={() => setShowDeleteModal(false)}
-      />
-
-      {/* Ban/Unban Confirmation Modal */}
+      />      {/* Ban/Unban Confirmation Modal */}
       <ConfirmModal
         show={showBanModal}
         title={action === 'ban' ? "Xác nhận khóa tài khoản" : "Xác nhận mở khóa tài khoản"}
@@ -448,7 +446,6 @@ const UserTable: React.FC<UserTableProps> = ({ users = [], onEdit, onDelete, onB
             : `Bạn có chắc chắn muốn mở khóa tài khoản người dùng "${selectedUser?.fullname || ''}"? Người dùng sẽ có thể đăng nhập và sử dụng hệ thống bình thường.`
         }
         confirmText={action === 'ban' ? "Khóa tài khoản" : "Mở khóa tài khoản"}
-        confirmButtonVariant={action === 'ban' ? "warning" : "success"}
         cancelText="Hủy"
         onConfirm={handleBanConfirm}
         onCancel={() => setShowBanModal(false)}

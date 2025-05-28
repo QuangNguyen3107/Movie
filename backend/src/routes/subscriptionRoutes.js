@@ -123,6 +123,30 @@ router.get('/current',
   }
 );
 
+// Lấy thông tin về quyền lợi ẩn quảng cáo dựa trên gói đăng ký
+router.get('/ad-benefits', 
+  verifyToken, 
+  (req, res) => {
+    try {
+      // Import controller properly to ensure it's loaded correctly
+      const adBenefitsController = require('../controllers/adBenefitsController');
+      
+      // Check if user object exists and log properly
+      const userId = req.user ? (req.user._id || req.user.userId || req.user.id) : 'undefined';
+      console.log('[Route] Calling ad-benefits endpoint for user:', userId);
+      
+      // Pass to controller - it will handle authentication validation
+      adBenefitsController.getAdBenefits(req, res);
+    } catch (error) {
+      console.error('[Route] Error in ad-benefits endpoint:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Internal server error when checking ad benefits'
+      });
+    }
+  }
+);
+
 // Lấy lịch sử đăng ký
 router.get('/history', 
   verifyToken, 

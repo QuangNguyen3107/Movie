@@ -29,7 +29,11 @@ const userSchema = new Schema(
         googleId: { type: String, default: null },
         facebookId: { type: String, default: null },
         isVerified: { type: Boolean, default: false }, // Trạng thái xác thực email
-        isActive: { type: Boolean, default: true } // Trạng thái hoạt động của tài khoản (true: đang hoạt động, false: bị khóa)
+        isActive: { type: Boolean, default: true }, // Trạng thái hoạt động của tài khoản (true: đang hoạt động, false: bị khóa)
+        
+        // Trường cho reset mật khẩu
+        resetPasswordToken: { type: String, default: null },
+        resetPasswordExpires: { type: Date, default: null }
     },
     { timestamps: true }
 );

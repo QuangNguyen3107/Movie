@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FaForward } from 'react-icons/fa';
 import adService from '@/API/services/adService';
 import styles from '../../styles/AdPlayer.module.css';
+import { useAdContext } from '@/context/AdContext'; // Import AdContext
 
 const AdPlayer = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
   const [ad, setAd] = useState(null);
@@ -11,13 +12,55 @@ const AdPlayer = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
   const [adTracked, setAdTracked] = useState(false);
   const videoRef = useRef(null);
   const timerRef = useRef(null);
+  const skipCountdownRef = useRef(skipDelay);
+  const { hideVideoAds, isLoading: isAdContextLoading } = useAdContext(); // Use AdContext
 
-  // Fetch a random video ad
+  // Kiểm tra người dùng Premium để bỏ qua quảng cáo
   useEffect(() => {
+    // Nếu người dùng là Premium và có quyền ẩn quảng cáo
+    if (hideVideoAds === true) {
+      console.log('%c[AdPlayer] PREMIUM USER DETECTED - SKIPPING AD!', 'color: #00FF00; font-weight: bold; font-size: 14px');
+      // Dừng video nếu đang chạy
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.src = ""; // Xóa nguồn video
+      }
+      
+      // Xóa timer nếu có
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      
+      // Gọi onComplete để bỏ qua quảng cáo
+      onAdComplete();
+    }
+  }, [hideVideoAds, onAdComplete]);
+
+  // Fetch a random video ad - chỉ khi người dùng không phải Premium
+  useEffect(() => {
+    // Nếu là người dùng Premium, bỏ qua việc tải quảng cáo
+    if (hideVideoAds === true) {
+      return;
+    }
+
+    // Nếu AdContext đang tải, đợi
+    if (isAdContextLoading) {
+      console.log('%c[AdPlayer] AdContext đang tải, đợi...', 'color: #FFA500; font-weight: bold');
+      return;
+    }
+
     const fetchAd = async () => {
       try {
         setLoading(true);
         const adData = await adService.getRandomVideoAd();
+        
+        // Kiểm tra lại nếu hideVideoAds đã thay đổi trong quá trình tải
+        if (hideVideoAds === true) {
+          console.log('%c[AdPlayer] Trạng thái Premium thay đổi trong quá trình tải - bỏ qua quảng cáo', 'color: #00FF00;');
+          onAdComplete();
+          return;
+        }
+        
         if (adData) {
           setAd(adData);
           setTimeRemaining(adData.duration || 15);
@@ -41,7 +84,7 @@ const AdPlayer = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
         clearInterval(timerRef.current);
       }
     };
-  }, [onAdComplete]);
+  }, [hideVideoAds, isAdContextLoading, onAdComplete]);
 
   // Track impression when ad is viewed
   useEffect(() => {
@@ -58,7 +101,6 @@ const AdPlayer = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
 
     trackImpression();
   }, [ad, adTracked]);
-
   // Setup video event listeners and countdown timer
   useEffect(() => {
     if (!ad || !videoRef.current) return;
@@ -88,9 +130,12 @@ const AdPlayer = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
         return prev - 1;
       });
 
-      // Enable skip after delay
-      if (allowSkip && timeRemaining === skipDelay) {
-        setCanSkip(true);
+      // Update skip countdown
+      if (allowSkip && skipCountdownRef.current > 0) {
+        skipCountdownRef.current -= 1;
+        if (skipCountdownRef.current === 0) {
+          setCanSkip(true);
+        }
       }
     }, 1000);
 
@@ -107,7 +152,7 @@ const AdPlayer = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
         clearInterval(timerRef.current);
       }
     };
-  }, [ad, onAdComplete, allowSkip, skipDelay, timeRemaining]);
+  }, [ad, onAdComplete, allowSkip, skipDelay]);
 
   // Handle skipping the ad
   const handleSkip = async () => {
@@ -146,55 +191,46 @@ const AdPlayer = ({ onAdComplete, allowSkip = true, skipDelay = 5 }) => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className={styles.adPlayerContainer}>
-        <div className={styles.loadingSpinner}>
-          <div className="spinner-border text-light" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
+
 
   if (!ad) {
     return null;
-  }
-
-  return (
+  }  return (
     <div className={styles.adPlayerContainer}>
-      <div className={styles.videoWrapper} onClick={handleAdClick}>
-        <video 
-          ref={videoRef}
-          className={styles.adVideo}
-          src={ad.content}
-          muted={false}
-          playsInline
-          preload="auto"
-          aria-label={`Advertisement from ${ad.advertiser}`}
-        />
+      <div className={styles.videoWrapper}>
+        <div className={styles.adClickArea} onClick={handleAdClick}>
+          <video 
+            ref={videoRef}
+            className={styles.adVideo}
+            src={ad.content}
+            muted={false}
+            playsInline
+            preload="auto"
+            aria-label={`Advertisement from ${ad.advertiser}`}
+          />
+        </div>
         
         <div className={styles.adOverlay}>
           <div className={styles.adInfo}>
             <span className={styles.adLabel}>Quảng cáo</span>
-            <span className={styles.adTimer}>{timeRemaining}s</span>
           </div>
-          
-          <div className={styles.adDetails}>
+            <div className={styles.adDetails}>
             <p className={styles.adTitle}>{ad.name}</p>
             <p className={styles.adAdvertiser}>{ad.advertiser}</p>
-          </div>
+          </div>  
           
           {allowSkip && (
             <button 
               className={`${styles.skipButton} ${canSkip ? styles.canSkip : ''}`}
-              onClick={handleSkip}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSkip();
+              }}
               disabled={!canSkip}
               aria-label="Skip advertisement"
             >
               <FaForward className={styles.skipIcon} />
-              <span>{canSkip ? 'Bỏ qua' : `Bỏ qua sau ${skipDelay - (ad.duration - timeRemaining)}s`}</span>
+              <span>{canSkip ? 'Bỏ qua' : `Bỏ qua sau ${skipCountdownRef.current}s`}</span>
             </button>
           )}
         </div>

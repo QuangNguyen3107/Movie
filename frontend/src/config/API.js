@@ -6,6 +6,10 @@ export const endpoints = {
     related: (category, limit) => `${API_URL}/movies?category=${category}&limit=${limit}`,
     search: (query) => `${API_URL}/movies/search?q=${query}`
   },
+  crawl: {
+    movies: () => `${API_URL}/crawl/movies`,
+    moviesAll: () => `${API_URL}/crawl/moviesall`
+  },
   history: {
     getAll: (limit = 10, page = 1) => `${API_URL}/history?limit=${limit}&page=${page}`,
     add: () => `${API_URL}/history`,
@@ -38,11 +42,12 @@ export const endpoints = {
       getById: (id) => `${API_URL}/admin/users/${id}`,
       create: () => `${API_URL}/admin/users`,
       update: (id) => `${API_URL}/admin/users/${id}`,
-      delete: (id) => `${API_URL}/admin/users/${id}`,
+      delete: (id) => `${API_URL}/admin/users/${id}`,      
       updateRole: (id) => `${API_URL}/admin/users/${id}/role`,
       ban: (id) => `${API_URL}/admin/users/${id}/ban`,
       unban: (id) => `${API_URL}/admin/users/${id}/unban`,
-      toggleStatus: (id) => `${API_URL}/admin/users/${id}/toggle-status`
+      toggleStatus: (id) => `${API_URL}/admin/users/${id}/toggle-status`,
+      uploadAvatar: (id) => `${API_URL}/admin/users/${id}/avatar`
     },
     roles: {
       getAll: () => `${API_URL}/admin/roles`

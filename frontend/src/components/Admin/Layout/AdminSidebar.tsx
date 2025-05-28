@@ -6,14 +6,13 @@ import { useRouter } from 'next/router';  import {
   FaHome, 
   FaFilm, 
   FaUsers, 
-  FaChartBar, 
   FaCrown,
-  FaCog,
   FaPlayCircle,
   FaTimes,
   FaEnvelope,
   FaExclamationTriangle,
-  FaAd
+  FaAd,
+  FaBell
 } from 'react-icons/fa';
 import styles from '@/styles/AdminSidebar.module.css';
 import axios from 'axios';
@@ -115,17 +114,16 @@ const AdminSidebar = () => {
 
   const closeSidebar = () => {
     document.body.classList.remove('sidebar-open');
-  };
-  const menuItems: MenuItem[] = [
+  };  const menuItems: MenuItem[] = [
     { path: '/admin', icon: FaHome, label: 'Dashboard' },
     { path: '/admin/movies', icon: FaFilm, label: 'Movies' },
     { path: '/admin/upcoming-movies', icon: FaPlayCircle, label: 'Phim sắp ra mắt' },
     { path: '/admin/users', icon: FaUsers, label: 'Users' },
-    { path: '/admin/analytics', icon: FaChartBar, label: 'Analytics' },
     { path: '/admin/premium', icon: FaCrown, label: 'Premium', badge: pendingPremiumCount },
     { path: '/admin/feedback', icon: FaEnvelope, label: 'Góp ý người dùng', badge: unreadFeedbackCount },
     { path: '/admin/reports', icon: FaExclamationTriangle, label: 'Báo cáo lỗi' },
     { path: '/admin/advertisement', icon: FaAd, label: 'Quảng cáo' },
+    { path: '/admin/notifications/email', icon: FaBell, label: 'Gửi thông báo' },
   ];
 
   return (

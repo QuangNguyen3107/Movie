@@ -32,63 +32,31 @@ async function addPremiumPackages() {
     // Danh sách các gói cần thêm
     const packages = [
       {
-        name: 'Starter',
-        description: 'Gói khởi đầu với chi phí thấp, phù hợp cho người dùng mới',
-        price: 15000,
-        durationDays: 7, // 7 ngày
+        name: 'Cơ bản',
+        description: 'Không hiển thị quảng cáo ở màn hình chính',
+        price: 10000,
+        durationDays: 30,
         features: [
-          'Xem phim không quảng cáo',
-          'Chất lượng HD',
+          'Không hiển thị quảng cáo ở màn hình chính',
+          'Trải nghiệm giao diện tốt hơn',
           'Hỗ trợ trên mọi thiết bị'
         ],
         isActive: true,
         discount: 0
       },
       {
-        name: 'Basic',
-        description: 'Gói cơ bản với đầy đủ tính năng trong 30 ngày',
-        price: 49000,
-        durationDays: 30, // 30 ngày
+        name: 'Premium',
+        description: 'Trải nghiệm không quảng cáo hoàn toàn khi xem phim',
+        price: 15000,
+        durationDays: 30,
         features: [
-          'Xem phim không quảng cáo',
-          'Chất lượng HD',
-          'Hỗ trợ trên mọi thiết bị',
-          'Xem offline'
+          'Không hiển thị quảng cáo ở màn hình chính',
+          'Không hiển thị video quảng cáo khi bấm vào nút play để xem phim',
+          'Trải nghiệm xem phim tốt nhất',
+          'Hỗ trợ trên mọi thiết bị'
         ],
         isActive: true,
         discount: 0
-      },
-      {
-        name: 'Pro',
-        description: 'Gói Premium đầy đủ trong 90 ngày với giá ưu đãi',
-        price: 129000,
-        durationDays: 90, // 90 ngày
-        features: [
-          'Xem phim không quảng cáo',
-          'Chất lượng HD',
-          'Hỗ trợ trên mọi thiết bị',
-          'Xem offline',
-          'Nội dung độc quyền'
-        ],
-        isActive: true,
-        discount: 10
-      },
-      {
-        name: 'VIP',
-        description: 'Gói cao cấp nhất với đầy đủ đặc quyền trong 365 ngày',
-        price: 399000,
-        durationDays: 365, // 365 ngày
-        features: [
-          'Xem phim không quảng cáo',
-          'Chất lượng HD & 4K',
-          'Hỗ trợ trên mọi thiết bị',
-          'Xem offline',
-          'Nội dung độc quyền',
-          'Ưu tiên xem phim mới',
-          'Hỗ trợ khách hàng VIP 24/7'
-        ],
-        isActive: true,
-        discount: 20
       }
     ];
 

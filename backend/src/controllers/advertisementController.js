@@ -164,28 +164,52 @@ exports.deleteAdvertisement = async (req, res) => {
 // Get random advertisement by type
 exports.getRandomAd = async (req, res) => {
   try {
-    const { type = 'video' } = req.query;
-    const ad = await Advertisement.getRandomAd(type);
+    const { type = 'video', limit } = req.query;
     
-    if (!ad) {
-      return res.status(404).json({
-        success: false,
-        message: 'No active advertisements found for this type'
+    // Check if we need to return multiple ads
+    if (limit && parseInt(limit) > 1) {
+      const ads = await Advertisement.getMultipleRandomAds(type, parseInt(limit));
+      
+      if (!ads || ads.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'No active advertisements found for this type'
+        });
+      }
+      
+      // Log impressions for each ad
+      for (const ad of ads) {
+        await ad.logImpression();
+      }
+      
+      res.status(200).json({
+        success: true,
+        advertisements: ads
+      });
+    } else {
+      // Original behavior - get a single ad
+      const ad = await Advertisement.getRandomAd(type);
+      
+      if (!ad) {
+        return res.status(404).json({
+          success: false,
+          message: 'No active advertisements found for this type'
+        });
+      }
+      
+      // Log impression
+      await ad.logImpression();
+      
+      res.status(200).json({
+        success: true,
+        advertisement: ad
       });
     }
-    
-    // Log impression
-    await ad.logImpression();
-    
-    res.status(200).json({
-      success: true,
-      advertisement: ad
-    });
   } catch (error) {
-    console.error('Error fetching random advertisement:', error);
+    console.error('Error fetching random advertisement(s):', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching random advertisement',
+      message: 'Error fetching random advertisement(s)',
       error: error.message
     });
   }

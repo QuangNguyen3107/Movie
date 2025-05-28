@@ -3,30 +3,36 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../utils/auth';
-import authService from '../../API/services/authService';
 import AccountLockedBanner from '../Alert/AccountLockedBanner';
 import { BannerAd } from '../Advertisement';
+import { useAdContext } from '../../context/AdContext';
 
 export default function Layout({ children }) {
   const router = useRouter();
-  const { isAuthenticated, isAccountLocked, showAccountLockedBanner } = useAuth();
+  const {  showAccountLockedBanner } = useAuth();
+  const { hideHomepageAds } = useAdContext();
   const [showAds, setShowAds] = useState(true);
   
   // Check if current path is an auth page (login or signup)
   const isAuthPage = router.pathname.startsWith('/auth/');
   const isAdminPage = router.pathname.startsWith('/admin/');
   const isMoviePage = router.pathname.startsWith('/movie/');
-  
-  // Only show ads on specific pages
+  // Only show ads on specific pages and if the user is not premium
   useEffect(() => {
-    // Don't show ads on auth, admin, or account pages
+    // Don't show ads on auth, admin, account, payment, or noaccess pages
+    // Also don't show ads if user has premium benefits
     const shouldShowAds = !isAuthPage && 
                           !isAdminPage && 
                           !router.pathname.startsWith('/account/') &&
-                          !router.pathname.startsWith('/payment/');
-    
+                          !router.pathname.startsWith('/payment/') &&
+                          router.pathname !== '/noaccess' &&
+                          router.pathname !== '/profile' &&
+                           router.pathname !== '/premium' &&
+                            router.pathname !== '/search' &&
+                          !hideHomepageAds;
+    console.log('[Layout] Should show ads:', shouldShowAds, 'hideHomepageAds:', hideHomepageAds, 'pathname:', router.pathname);
     setShowAds(shouldShowAds);
-  }, [router.pathname, isAuthPage, isAdminPage]);
+  }, [router.pathname, isAuthPage, isAdminPage, hideHomepageAds]);
     // Track scrolling to adjust for fixed-position banner and ads
   useEffect(() => {
     const updateBodyPadding = () => {

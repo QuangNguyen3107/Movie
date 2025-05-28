@@ -15,7 +15,9 @@ import movieViewService from "../../API/services/movieViewService"; // Import th
 import favoritesService from "../../API/services/favoritesService"; // Import the favorites service
 import watchlistService from "../../API/services/watchlistService"; // Import the watchlist service
 import AdPlayer from "../../components/Advertisement/AdPlayer"; // Import AdPlayer component
+import AdPlayerFixed from "../../components/Advertisement/AdPlayer"; // Import AdPlayerFixed component
 import adService from "../../API/services/adService"; // Import ad service
+import { useAdContext } from "../../context/AdContext"; // Import AdContext
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import RatingStats from '../../components/Movie/RatingStats';
@@ -44,10 +46,259 @@ const checkCommentLimit = (username) => {
   };
 };
 
+const ActorCard = ({ actorName }) => {
+  const [actorImage, setActorImage] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const imageBaseUrl = process.env.NEXT_PUBLIC_TMDB_IMAGE_URL || 'https://image.tmdb.org/t/p/w500';
+  const profilePlaceholder = '/img/user-avatar.png';
+  
+  // If actor name is empty, don't render anything
+  if (!actorName || actorName.trim() === '') {
+    return null;
+  }
+  
+  // Fetch actor image on component mount
+  useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+    
+    const fetchActorImage = async () => {
+      try {
+        // Check if actor name exists and has at least 2 characters
+        if (!actorName || actorName.length < 2) {
+          setLoading(false);
+          return;
+        }
+        
+        // Check if we've already tried to fetch this image in this session
+        const sessionImageCache = JSON.parse(sessionStorage.getItem('actorImageCache') || '{}');
+        if (sessionImageCache[actorName.toLowerCase()]) {
+          if (sessionImageCache[actorName.toLowerCase()] !== 'notfound') {
+            setActorImage(sessionImageCache[actorName.toLowerCase()]);
+          }
+          setLoading(false);
+          return;
+        }
+        
+        // Check if actor ID is cached first
+        const actorCache = JSON.parse(localStorage.getItem('actorCache') || '{}');
+        let actorId = actorCache[actorName.toLowerCase()];
+        
+        if (!actorId) {
+          // Search for actor on TMDB
+          const response = await axios.get(`${process.env.NEXT_PUBLIC_TMDB_BASE_URL || 'https://api.themoviedb.org/3'}/search/person`, {
+            params: {
+              query: actorName,
+              include_adult: false,
+              language: 'vi-VN,en-US',
+              page: 1,
+              api_key: process.env.NEXT_PUBLIC_TMDB_API_KEY
+            },
+            headers: {
+              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_TMDB_AUTH_TOKEN}`,
+              'accept': 'application/json'
+            },
+            signal: controller.signal
+          });
+          
+          if (isMounted && response.data.results && response.data.results.length > 0) {
+            actorId = response.data.results[0].id;
+            
+            // Cache the actor ID for future use
+            const updatedCache = JSON.parse(localStorage.getItem('actorCache') || '{}');
+            updatedCache[actorName.toLowerCase()] = actorId;
+            localStorage.setItem('actorCache', JSON.stringify(updatedCache));
+            
+            // Get the profile path
+            if (response.data.results[0].profile_path) {
+              const imagePath = `${imageBaseUrl}${response.data.results[0].profile_path}`;
+              setActorImage(imagePath);
+              
+              // Cache the image path in session storage
+              const imageCache = JSON.parse(sessionStorage.getItem('actorImageCache') || '{}');
+              imageCache[actorName.toLowerCase()] = imagePath;
+              sessionStorage.setItem('actorImageCache', JSON.stringify(imageCache));
+            } else {
+              // Mark as not found in session cache to avoid repeated lookups
+              const imageCache = JSON.parse(sessionStorage.getItem('actorImageCache') || '{}');
+              imageCache[actorName.toLowerCase()] = 'notfound';
+              sessionStorage.setItem('actorImageCache', JSON.stringify(imageCache));
+            }
+          }
+        } else {
+          // If we have the actor ID already, get their details directly
+          const personResponse = await axios.get(`${process.env.NEXT_PUBLIC_TMDB_BASE_URL || 'https://api.themoviedb.org/3'}/person/${actorId}`, {
+            params: {
+              api_key: process.env.NEXT_PUBLIC_TMDB_API_KEY,
+              language: 'vi-VN,en-US',
+            },
+            headers: {
+              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_TMDB_AUTH_TOKEN}`,
+              'accept': 'application/json'
+            },
+            signal: controller.signal
+          });
+          
+          if (isMounted && personResponse.data.profile_path) {
+            const imagePath = `${imageBaseUrl}${personResponse.data.profile_path}`;
+            setActorImage(imagePath);
+            
+            // Cache the image path in session storage
+            const imageCache = JSON.parse(sessionStorage.getItem('actorImageCache') || '{}');
+            imageCache[actorName.toLowerCase()] = imagePath;
+            sessionStorage.setItem('actorImageCache', JSON.stringify(imageCache));
+          } else if (isMounted) {
+            // Mark as not found in session cache to avoid repeated lookups
+            const imageCache = JSON.parse(sessionStorage.getItem('actorImageCache') || '{}');
+            imageCache[actorName.toLowerCase()] = 'notfound';
+            sessionStorage.setItem('actorImageCache', JSON.stringify(imageCache));
+          }
+        }
+      } catch (error) {
+        if (!axios.isCancel(error)) {
+          console.error(`Error fetching actor image for ${actorName}:`, error);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+    
+    fetchActorImage();
+    
+    // Cleanup function to prevent memory leaks and state updates on unmounted components
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [actorName, imageBaseUrl]);
+    // Use a function to search for actor on TMDB
+  const handleActorClick = async (e) => {
+    e.preventDefault();
+    
+    // Create a unique toast ID so we can update it later
+    const toastId = toast.loading(`Đang tìm kiếm thông tin về diễn viên: ${actorName}...`, {
+      autoClose: false
+    });
+    
+    try {
+      // Check if we already have the actor ID cached
+      const actorCache = JSON.parse(localStorage.getItem('actorCache') || '{}');
+      const cachedActorId = actorCache[actorName.toLowerCase()];
+      
+      if (cachedActorId) {
+        // If we have the ID, navigate directly to the performer page
+        toast.update(toastId, {
+          render: `Đã tìm thấy thông tin diễn viên: ${actorName}`,
+          type: "success",
+          isLoading: false,
+          autoClose: 1000
+        });
+        router.push(`/performer/${cachedActorId}`);
+        return;
+      }
+      
+      // Otherwise, search for the actor
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_TMDB_BASE_URL || 'https://api.themoviedb.org/3'}/search/person`, {
+        params: {
+          query: actorName,
+          include_adult: false,
+          language: 'vi-VN,en-US',
+          page: 1,
+          api_key: process.env.NEXT_PUBLIC_TMDB_API_KEY
+        },
+        headers: {
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_TMDB_AUTH_TOKEN}`,
+          'accept': 'application/json'
+        }
+      });
+      
+      if (response.data.results && response.data.results.length > 0) {
+        // Lưu ID diễn viên vào localStorage để sử dụng sau này
+        try {
+          const existingActors = JSON.parse(localStorage.getItem('actorCache') || '{}');
+          existingActors[actorName.toLowerCase()] = response.data.results[0].id;
+          localStorage.setItem('actorCache', JSON.stringify(existingActors));
+        } catch (e) {
+          console.error("Error saving actor to cache:", e);
+        }
+        
+        // Update toast and navigate
+        toast.update(toastId, {
+          render: `Đã tìm thấy thông tin diễn viên: ${actorName}`,
+          type: "success",
+          isLoading: false,
+          autoClose: 1000
+        });
+        
+        // Navigate to performer page with the first matched actor ID
+        router.push(`/performer/${response.data.results[0].id}`);
+      } else {
+        toast.update(toastId, {
+          render: `Không tìm thấy thông tin diễn viên: ${actorName}. Đang tìm kiếm phim liên quan...`,
+          type: "info",
+          isLoading: false,
+          autoClose: 2000
+        });
+        // Chuyển hướng đến trang tìm kiếm với tên diễn viên
+        router.push(`/search?query=${encodeURIComponent(actorName)}`);
+      }
+    } catch (error) {
+      console.error('Error searching for actor:', error);
+      toast.update(toastId, {
+        render: 'Không thể tải thông tin diễn viên.',
+        type: "error",
+        isLoading: false,
+        autoClose: 3000
+      });
+    }
+  };
+    
+  return (    <div 
+      className={styles.actorCard}
+      onClick={handleActorClick}
+      title={`Xem thông tin diễn viên: ${actorName}`}
+      role="button"
+      tabIndex="0"
+      aria-label={`Xem thông tin về diễn viên ${actorName}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleActorClick(e);
+        }
+      }}
+    ><div className={styles.actorImageContainer}>
+        {loading ? (
+          <div className={styles.actorImageSkeleton}></div>
+        ) : (
+          <img
+            src={actorImage || profilePlaceholder}
+            alt={actorName}
+            className={styles.actorImage}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = profilePlaceholder;
+            }}
+          />
+        )}
+      </div>
+      <span className={styles.actorName}>{actorName}</span>
+    </div>
+  );
+};
+
 const MovieDetail = ({ slug: slugProp }) => {
   const router = useRouter();
   const { slug: routerSlug } = router.query;
   const slug = slugProp || routerSlug;
+    // Verify TMDB API environment variables
+  useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_TMDB_API_KEY || !process.env.NEXT_PUBLIC_TMDB_BASE_URL || !process.env.NEXT_PUBLIC_TMDB_AUTH_TOKEN) {
+      console.warn('TMDB API environment variables not properly set. Actor search functionality may not work correctly.');
+    }
+  }, []);
   
   // Add a ref to track if we've already recorded a view for this session
   // This prevents double counting of views when both play functions are called
@@ -105,10 +356,10 @@ const MovieDetail = ({ slug: slugProp }) => {
   ]);
 
   // Add state variables to track ratings
-  const [averageRating, setAverageRating] = useState(0);  const [ratingCount, setRatingCount] = useState(0);
-  const [userRatingsStats, setUserRatingsStats] = useState(null);
+  const [averageRating, setAverageRating] = useState(0);  const [ratingCount, setRatingCount] = useState(0);  const [userRatingsStats, setUserRatingsStats] = useState(null);
   const [ratingLoading, setRatingLoading] = useState(false);
   const [ratingStatsData, setRatingStatsData] = useState({});
+  const [showFullDescription, setShowFullDescription] = useState(false);
 
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showPlayer, setShowPlayer] = useState(false);
@@ -514,9 +765,11 @@ const MovieDetail = ({ slug: slugProp }) => {
     }
   }, []);
 
-  useEffect(() => {
-    const fetchMovie = async () => {
+  useEffect(() => {    const fetchMovie = async () => {
       if (!slug) return;
+      
+      // Reset view tracking refs for new movie fetch
+      viewRecordedRef.current = false;
       
       // Check if we're coming from the most-viewed section to prevent double counting
       if (router.query.from === 'most-viewed') {
@@ -1394,8 +1647,7 @@ if (!user) {
       // If there's an error loading the ad, just show the player directly
       setShowPlayer(true);
     }
-    
-    if (movie && movie._id) {
+      if (movie && movie._id && !viewRecordedRef.current) {
       try {
         await movieViewService.recordMovieView(movie._id);
         console.log("Movie view recorded successfully from episode selection");
@@ -1404,7 +1656,6 @@ if (!user) {
         console.error("Error recording movie view from episode selection:", viewError);
       }
     }
-    
     if (user && movie) {
       setTimeout(() => {
         startWatchSession(0);
@@ -1462,7 +1713,72 @@ if (!user) {
     }
     
     try {
-      // Fetch a video ad before showing the main content
+      // Kiểm tra gói Premium 15k trước (ID: 682f7d849c310399aa715c9d)
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || localStorage.getItem('authToken');
+      if (token) {
+        // Nếu có token, kiểm tra quyền lợi từ API trước khi hiển thị quảng cáo
+        try {
+          const response = await fetch('http://localhost:5000/api/subscription/ad-benefits', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+              // Nếu user có quyền ẩn quảng cáo video (Premium 15k), hiển thị player trực tiếp
+            if (data.data && data.data.hideVideoAds === true) {
+              console.log('%c[Movie Player] Premium user detected - showing player directly', 'color: #32CD32; font-weight: bold');              // Đánh dấu là đã ghi nhận lượt xem để tránh ghi nhận lại trong handleAdComplete
+              if (movie && movie._id) {
+                try { 
+                  await movieViewService.recordMovieView(movie._id);
+                  console.log("Movie view recorded successfully for premium user");
+                  viewRecordedRef.current = true;
+                  
+                  // Thêm lịch sử xem phim cho người dùng premium
+                  if (user) {
+                    startWatchSession(0);
+                  }
+                } catch (viewError) {
+                  console.error("Error recording movie view for premium user:", viewError);
+                }
+              }
+              setShowPlayer(true);
+              return;
+            }
+            
+            // Ghi log package ID cho debug
+            if (data.data && data.data.packageType) {
+              console.log(`[Movie Player] User package ID: ${data.data.packageType}`);
+              
+              if (data.data.packageType === '682f7d849c310399aa715c9d') {
+                console.log('%c[Movie Player] Premium 15K package detected!', 'color: #FF00FF; font-weight: bold');                // Đánh dấu là đã ghi nhận lượt xem để tránh ghi nhận lại trong handleAdComplete
+                if (movie && movie._id) {
+                  try {
+                    await movieViewService.recordMovieView(movie._id);
+                    console.log("Movie view recorded successfully for premium 15K user");
+                    viewRecordedRef.current = true;
+                    
+                    // Thêm lịch sử xem phim cho người dùng premium 15K
+                    if (user) {
+                      startWatchSession(0);
+                    }
+                  } catch (viewError) {
+                    console.error("Error recording movie view for premium 15K user:", viewError);
+                  }
+                }
+                setShowPlayer(true);
+                return;
+              }
+            }
+          }
+        } catch (benefitsError) {
+          console.error("Error checking ad benefits:", benefitsError);
+          // Tiếp tục hiển thị quảng cáo nếu không kiểm tra được quyền lợi
+        }
+      }
+      
+      // Nếu không phải Premium, hiển thị quảng cáo
       const adData = await adService.getRandomVideoAd();
       if (adData) {
         setCurrentAd(adData);
@@ -1477,7 +1793,7 @@ if (!user) {
       // If there's an error, just show the player directly
       setShowPlayer(true);
     }
-  };  // New function to handle ad completion
+  };// New function to handle ad completion
   const handleAdComplete = () => {
     // Hide ad and show actual player
     setShowAd(false);
@@ -2188,13 +2504,6 @@ if (!user) {
                         <span className={styles.ratingMax}>/10</span>
                       </span>
                       <div className={styles.ratingDetails}>
-                        <span className={styles.ratingCount}>
-                          <i className="bi bi-people-fill me-1"></i>
-                          {ratingCount ?
-                            `${ratingCount} lượt đánh giá` :
-                            'Chưa có đánh giá'
-                          }
-                        </span>
                       </div>
                     </div>
                   </div>
@@ -2226,28 +2535,7 @@ if (!user) {
                         {movie.quality}
                       </span>
                     )}
-                  </div>
-
-                  <h3 className={styles.sectionTitle}>Diễn Viên</h3>
-                  <div className={styles.actorsContainer}>
-                    {movie.actor?.map((actor, index) => (
-                      <span key={index} className={styles.actorBadge}>
-                        {typeof actor === 'object' ? actor.name : actor}
-                      </span>
-                    ))}
-                  </div>
-
-                  <h3 className={styles.sectionTitle}>Thể Loại</h3>
-                  <div className={styles.genresContainer}>
-                    {movie.category?.map((cat, index) => (
-                      <span key={index} className={styles.genreBadge}>
-                        {typeof cat === 'object' ? cat.name : cat}
-                      </span>
-                    ))}
-                  </div>
-
-                  <h3 className={styles.sectionTitle}>Quốc Gia</h3>
-                  <div className={styles.genresContainer}>
+                  
                     {movie.country && Array.isArray(movie.country) ? (
                       movie.country.map((country, index) => (
                         <span key={index} className={styles.genreBadge}>
@@ -2261,7 +2549,34 @@ if (!user) {
                     ) : (
                       <span className="text-muted">Chưa có thông tin</span>
                     )}
+                 
+                  </div>                  {movie.actor && Array.isArray(movie.actor) && movie.actor.length > 0 && movie.actor.some(actor => {
+                    const name = typeof actor === 'object' ? actor.name : actor;
+                    return name && name.trim() !== '';
+                  }) && (
+                    <>
+                      <h3 className={styles.sectionTitle}>Diễn Viên</h3>
+                      <div className={styles.actorsContainer}>                    
+                        {movie.actor.map((actor, index) => {
+                          const actorName = typeof actor === 'object' ? actor.name : actor;
+                          return actorName && actorName.trim() !== '' ? (
+                            <ActorCard key={index} actorName={actorName} />
+                          ) : null;
+                        })}
+                      </div>
+                    </>
+                  )}
+
+                  <h3 className={styles.sectionTitle}>Thể Loại</h3>
+                  <div className={styles.genresContainer}>
+                    {movie.category?.map((cat, index) => (
+                      <span key={index} className={styles.genreBadge}>
+                        {typeof cat === 'object' ? cat.name : cat}
+                      </span>
+                    ))}
                   </div>
+
+                  
                 </div>
               </div>
               
@@ -2352,11 +2667,27 @@ if (!user) {
                   ))}
                 </div>
               </div>
-            )}
-
-            <div className={styles.describe}>
-              <h5>Nội Dung Phim</h5>
-              <p>{movie.content || movie.description}</p>
+            )}            <div className={styles.describe}>
+              <h5>Nội Dung Phim</h5>              <div style={{ position: 'relative' }}>
+                <p className={!showFullDescription ? styles.descriptionCollapsed : undefined}>
+                  {movie.content || movie.description}
+                </p>                {(movie.content || movie.description) && 
+                 (movie.content || movie.description).length > 200 && 
+                 !showFullDescription && (                  <button 
+                    className={styles.showMoreBtn} 
+                    onClick={() => setShowFullDescription(true)}
+                  >
+                    Xem thêm <i className="bi bi-arrow-down-circle-fill" style={{ color: '#dc3545', marginLeft: '5px' }}></i>
+                  </button>
+                )}
+                {showFullDescription && (                  <button 
+                    className={styles.showMoreBtn} 
+                    onClick={() => setShowFullDescription(false)}
+                  >
+                    Thu gọn <i className="bi bi-arrow-up-circle-fill" style={{ color: '#dc3545', marginLeft: '5px' }}></i>
+                  </button>
+                )}
+              </div>
             </div>
 
              {Array.isArray(relatedMovies) && relatedMovies.length > 0 ? (
@@ -2492,7 +2823,8 @@ if (!user) {
                 <RatingStats 
                   userRatingsStats={userRatingsStats} 
                   averageRating={averageRating} 
-                  ratingCount={ratingCount} 
+                  ratingCount={ratingCount}
+                  movieSlug={slug}
                 />
               </div>
 

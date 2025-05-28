@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import AdminRoute from '../../components/ProtectedRoute/AdminRoute';
 import styles from '@/styles/AdminReports.module.css';
 import AdminLayout from '@/components/Layout/AdminLayout';
 import { 
@@ -8,7 +9,8 @@ import {
   FaClock, FaExclamationCircle, FaUser, FaFilm, 
   FaChevronLeft, FaChevronRight, FaEnvelope, FaLink, 
   FaPlay, FaPlayCircle, FaEdit, FaTrash, FaSort, 
-  FaSortUp, FaSortDown, FaListUl, FaCheckSquare, FaCalendarAlt 
+  FaSortUp, FaSortDown, FaListUl, FaCheckSquare, FaCalendarAlt,
+  FaSearch
 } from 'react-icons/fa';
 import { getReports, updateReport } from '@/API/services/admin/reportService';
 
@@ -352,86 +354,77 @@ const ReportsPage = () => {  // State cho dữ liệu và bộ lọc
           >
             Đã từ chối
           </button>
-        </div>
-
-        {/* Filters */}
-        <div className={styles.filterContainer}>
-          <input 
-            type="text"
-            className={styles.searchInput}
-            placeholder="Tìm kiếm báo cáo..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          
-          <select 
-            className={styles.selectFilter}
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-          >
-            <option value="">Tất cả loại</option>
-            <option value="movie">Phim</option>
-            <option value="user">Người dùng</option>
-            <option value="comment">Bình luận</option>
-            <option value="other">Khác</option>
-          </select>
-            <select 
-            className={styles.selectFilter}
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="pending">Đang chờ</option>
-            <option value="in-progress">Đang xử lý</option>
-            <option value="resolved">Đã giải quyết</option>
-            <option value="rejected">Đã từ chối</option>
-          </select>
-          
-          <button 
-            className={styles.advancedFilterToggle}
-            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            type="button"
-          >
-            <FaCalendarAlt /> {showAdvancedFilters ? 'Ẩn bộ lọc nâng cao' : 'Hiện bộ lọc nâng cao'}
-          </button>
-          
-          {showAdvancedFilters && (
-            <div className={styles.advancedFilterContainer}>
-              <div className={styles.dateFilterGroup}>
-                <div className={styles.dateFilterItem}>
-                  <label htmlFor="startDate" className={styles.dateFilterLabel}>Từ ngày:</label>
-                  <input 
-                    id="startDate"
-                    type="date" 
-                    className={styles.dateFilterInput}
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                  />
-                </div>
-                
-                <div className={styles.dateFilterItem}>
-                  <label htmlFor="endDate" className={styles.dateFilterLabel}>Đến ngày:</label>
-                  <input 
-                    id="endDate"
-                    type="date" 
-                    className={styles.dateFilterInput}
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-          
-          <button 
-            className={styles.filterButton}
-            onClick={applyFilters}
-          >
-            <FaFilter /> Lọc
-          </button>
+        </div>        {/* Filters */}
+        <div className={styles.filterContainer}>          <div className={styles.searchWrapper} style={{ 
+              position: 'relative', 
+              flex: '1',
+              display: 'flex',
+              alignItems: 'center',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              overflow: 'hidden',
+              backgroundColor: '#fff'
+            }}>
+            <div style={{ display: 'flex', alignItems: 'center', padding: '0 10px', color: '#666' }}>
+              <FaSearch />
+            </div>            <input 
+              type="text"
+              className={styles.searchInput}
+              placeholder="Tìm kiếm theo lý do, tên phim... (Enter để tìm)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  applyFilters();
+                }
+              }}
+              title="Nhập từ khóa để tìm kiếm theo lý do báo cáo hoặc tên phim, nhấn Enter để tìm kiếm"
+              style={{
+                border: 'none',
+                padding: '10px 0',
+                flex: 1,
+                outline: 'none'
+              }}
+            />
             <button 
+              className={styles.searchButton}
+              onClick={applyFilters}
+              style={{
+                height: '100%',
+                padding: '0 15px',
+                background: '#f0f0f0',
+                border: 'none',
+                borderLeft: '1px solid #ddd',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                color: '#333'
+              }}
+              title="Tìm kiếm"
+            >
+              Tìm
+            </button></div>
+           
+          
+          
+
+          
+          <button 
             className={styles.resetButton}
             onClick={resetFilters}
+            style={{ 
+              marginLeft: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              border: '1px solid #ddd',
+              padding: '10px 20px',
+              borderRadius: '4px',
+              backgroundColor: '#fff',
+              cursor: 'pointer',
+              color: '#333'
+            }}
           >
             Reset
           </button>
@@ -525,7 +518,9 @@ const ReportsPage = () => {  // State cho dữ liệu và bộ lọc
             <p className={styles.noDataSubtext}>Không có báo cáo nào phù hợp với điều kiện tìm kiếm của bạn</p>
           </div>
         ) : (
-          <div className={styles.tableContainer}>            <table className={styles.table}>              <thead>
+          <div className={styles.tableContainer}>            
+          <table className={styles.table}>              
+            <thead>
                 <tr>
                   <th style={{ width: '3%' }}>
                     <div className={styles.checkboxHeader}>
@@ -536,11 +531,7 @@ const ReportsPage = () => {  // State cho dữ liệu và bộ lọc
                         className={styles.checkbox}
                       />
                     </div>
-                  </th>                  <th style={{ width: '10%' }}>
-                    <div className={styles.headerWithSort}>
-                      <span>Thumb</span>
-                    </div>
-                  </th>
+                  </th>                  
                   <th 
                     style={{ width: '18%' }}
                     onClick={() => handleSortChange('userId.name')}
@@ -586,23 +577,9 @@ const ReportsPage = () => {  // State cho dữ liệu và bộ lọc
                         onChange={(e) => handleSelectReport(report._id, e.target.checked)}
                         className={styles.checkbox}
                       />
-                    </td>                    <td className={styles.tableCellCompact}>
-                      <div style={{ display: 'flex', justifyContent: 'center' }}>
-                        {report.movieInfo && report.movieInfo.thumb ? (
-                          <img 
-                            src={report.movieInfo.thumb} 
-                            alt="Movie thumbnail" 
-                            style={{ width: '40px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
-                            onError={(e) => { 
-                              (e.target as HTMLImageElement).src = "/placeholder.jpg"; 
-                            }}
-                          />
-                        ) : (
-                          <div style={{ width: '40px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f0f0f0', borderRadius: '4px' }}>
-                            <FaExclamationTriangle size={20} color="#666" />
-                          </div>                        )}
-                      </div>
-                    </td>                    <td className={styles.tableCellCompact}>
+                    </td>                    
+                                       
+                    <td className={styles.tableCellCompact}>
                       <div className={styles.userInfo}>
                         <div className={styles.userName} style={{ 
                           fontWeight: 'bold', 
@@ -673,62 +650,71 @@ const ReportsPage = () => {  // State cho dữ liệu và bộ lọc
                       {new Date(report.createdAt).toLocaleDateString('vi-VN')}
                     </td>                    <td className={styles.tableCellCompact}>
                       {report.status === 'pending' && (
-                        <div style={{ 
-                          background: '#fff8e1', 
-                          color: '#ff8f00', 
-                          padding: '4px 8px', 
-                          borderRadius: '30px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          fontSize: '13px',
-                          fontWeight: 'bold'
-                        }}>
-                          <FaClock size={12} /> Đang chờ
+                        <div 
+                          title="Đang chờ"
+                          style={{ 
+                            background: '#fff8e1', 
+                            color: '#ff8f00', 
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <FaClock size={14} />
                         </div>
                       )}
                       {report.status === 'in-progress' && (
-                        <div style={{ 
-                          background: '#e3f2fd', 
-                          color: '#0277bd', 
-                          padding: '4px 8px', 
-                          borderRadius: '30px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          fontSize: '13px',
-                          fontWeight: 'bold'
-                        }}>
-                          <FaClock size={12} /> Đang xử lý
+                        <div 
+                          title="Đang xử lý"
+                          style={{ 
+                            background: '#e3f2fd', 
+                            color: '#0277bd', 
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <FaClock size={14} />
                         </div>
                       )}
                       {report.status === 'resolved' && (
-                        <div style={{ 
-                          background: '#e0f2f1', 
-                          color: '#00897b', 
-                          padding: '4px 8px', 
-                          borderRadius: '30px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          fontSize: '13px',
-                          fontWeight: 'bold'
-                        }}>
-                          <FaCheck size={12} /> Đã giải quyết
+                        <div 
+                          title="Đã giải quyết"
+                          style={{ 
+                            background: '#e0f2f1', 
+                            color: '#00897b',
+                            width: '32px',
+                            height: '32px', 
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <FaCheck size={14} />
                         </div>
                       )}
                       {report.status === 'rejected' && (
-                        <div style={{ 
-                          background: '#ffebee', 
-                          color: '#c62828', 
-                          padding: '4px 8px', 
-                          borderRadius: '30px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          fontSize: '13px',
-                          fontWeight: 'bold'
-                        }}>                          <FaTimes size={12} /> Đã từ chối
+                        <div 
+                          title="Đã từ chối"
+                          style={{ 
+                            background: '#ffebee', 
+                            color: '#c62828',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <FaTimes size={14} />
                         </div>
                       )}
                     </td><td className={styles.tableCellCompact}>
@@ -809,12 +795,16 @@ const ReportsPage = () => {  // State cho dữ liệu và bộ lọc
               </tbody>
             </table>
           </div>
-        )}
-
-        {/* Pagination */}
+        )}        {/* Pagination */}
         <div className={styles.paginationContainer}>
           <div className={styles.paginationInfo}>
-            Hiển thị {reports.length} trên {totalReports} báo cáo
+            {searchQuery ? (
+              <span>
+                Tìm thấy <strong>{totalReports}</strong> báo cáo {typeFilter ? `loại "${typeFilter === 'movie' ? 'phim' : typeFilter === 'user' ? 'người dùng' : typeFilter === 'comment' ? 'bình luận' : 'khác'}"` : ''} phù hợp với từ khóa "<strong>{searchQuery}</strong>"
+              </span>
+            ) : (
+              <span>Hiển thị {reports.length} trên {totalReports} báo cáo</span>
+            )}
           </div>
           <div className={styles.paginationButtons}>
             <button 
@@ -1183,9 +1173,13 @@ const ReportsPage = () => {  // State cho dữ liệu và bộ lọc
   );
 };
 
-// Thêm getLayout để sử dụng AdminLayout
+// Thêm getLayout để sử dụng AdminLayout với bảo vệ admin
 ReportsPage.getLayout = (page: React.ReactElement) => {
-  return <AdminLayout>{page}</AdminLayout>;
+  return (
+    <AdminRoute>
+      <AdminLayout>{page}</AdminLayout>
+    </AdminRoute>
+  );
 };
 
 export default ReportsPage;

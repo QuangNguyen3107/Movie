@@ -12,10 +12,9 @@ import {
   FaTrash, 
   FaPlus, 
   FaFilm,
-  FaUpload,
-  FaExclamationTriangle,
+
   FaServer,
-  FaTimes,
+
   FaArrowUp // Thêm icon mũi tên lên
 } from 'react-icons/fa';
 import axiosInstance from '../../../../API/config/axiosConfig';
@@ -31,6 +30,20 @@ interface Episode {
   link_m3u8: string;
 }
 
+// Interface cho danh mục
+interface Category {
+  id: string;
+  name: string;
+  slug?: string;
+}
+
+// Interface cho quốc gia
+interface Country {
+  id: string;
+  name: string;
+  slug?: string;
+}
+
 // Interface cho server phim
 interface ServerData {
   server_name: string;
@@ -40,8 +53,10 @@ interface ServerData {
 // Interface cho phim
 interface Movie {
   _id: string;
-  name: string;
-  origin_name: string;
+  name?: string;
+  origin_name?: string;
+  category?: Array<Category | string>;
+  country?: Array<Country | string> | string;
   thumb_url: string;
   poster_url?: string;
   trailer_url?: string;
@@ -54,8 +69,7 @@ interface Movie {
   time?: string;
   episode_current?: string;
   episode_total?: string;
-  category: any[];
-  country?: any[];
+
   content?: string;
   director?: string[] | string;
   actor?: string[] | string;
@@ -142,12 +156,11 @@ const MovieEditPage = () => {
           // Tạo map để lưu trữ danh mục và quốc gia duy nhất
           const categoriesMap = new Map();
           const countriesMap = new Map();
-          
-          // Trích xuất danh mục và quốc gia từ danh sách phim
-          moviesResponse.data.movies.forEach(movie => {
+            // Trích xuất danh mục và quốc gia từ danh sách phim
+          moviesResponse.data.movies.forEach((movie: Movie) => {
             // Xử lý Categories
             if (movie.category && Array.isArray(movie.category)) {
-              movie.category.forEach(cat => {
+              movie.category.forEach((cat: Category | string) => {
                 if (typeof cat === 'object' && cat !== null && cat.id) {
                   categoriesMap.set(cat.id, {
                     id: cat.id,
@@ -165,10 +178,9 @@ const MovieEditPage = () => {
                 }
               });
             }
-            
-            // Xử lý Countries
+              // Xử lý Countries
             if (movie.country && Array.isArray(movie.country)) {
-              movie.country.forEach(country => {
+              movie.country.forEach((country: Country | string) => {
                 if (typeof country === 'object' && country !== null && country.id) {
                   countriesMap.set(country.id, {
                     id: country.id,
@@ -314,13 +326,18 @@ const MovieEditPage = () => {
         setFormData(response.data.movie);
         
         // Đánh dấu form là không còn thay đổi
-        setIsDirty(false);
-      } else {
+        setIsDirty(false);      } else {
         throw new Error(response.data.message || 'Lỗi khi lưu dữ liệu phim');
       }
     } catch (error) {
       console.error('Error saving movie data:', error);
-      toast.error(error.response?.data?.message || 'Lỗi khi lưu dữ liệu phim');
+      // Kiểm tra kiểu của error trước khi truy cập thuộc tính
+      if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object') {
+        const errorResponse = error.response as { data?: { message?: string } };
+        toast.error(errorResponse.data?.message || 'Lỗi khi lưu dữ liệu phim');
+      } else {
+        toast.error('Lỗi khi lưu dữ liệu phim');
+      }
     } finally {
       setSaving(false);
     }
@@ -361,12 +378,12 @@ const MovieEditPage = () => {
   };
   
   // Hàm xử lý thay đổi đa lựa chọn (categories, countries)
-  const handleMultiSelectChange = (field: string, selectedValues: string[]) => {
-    setFormData({
-      ...formData,
-      [field]: selectedValues
-    });
-  };
+  // const handleMultiSelectChange = (field: string, selectedValues: string[]) => {
+  //   setFormData({
+  //     ...formData,
+  //     [field]: selectedValues
+  //   });
+  // };
   
   // Hàm xử lý thay đổi dữ liệu TMDB
   const handleTmdbChange = (field: string, value: string | number) => {
@@ -910,10 +927,11 @@ const MovieEditPage = () => {
                             onClick={() => handleAddEpisode(serverIndex)}
                           >
                             <FaPlus /> Thêm tập
-                          </button>
-                          <button 
+                          </button>                          <button 
                             className={styles.deleteServerButton}
                             onClick={() => handleDeleteServer(serverIndex)}
+                            aria-label="Xóa server"
+                            title="Xóa server"
                           >
                             <FaTrash />
                           </button>
@@ -934,6 +952,8 @@ const MovieEditPage = () => {
                                 <button 
                                   className={styles.deleteEpisodeButton}
                                   onClick={() => handleDeleteEpisode(serverIndex, episodeIndex)}
+                                  aria-label="Xóa tập phim"
+                                  title="Xóa tập phim"
                                 >
                                   <FaTrash />
                                 </button>
@@ -981,8 +1001,7 @@ const MovieEditPage = () => {
                                     onChange={(e) => handleEpisodeChange(serverIndex, episodeIndex, 'link_m3u8', e.target.value)}
                                     placeholder="Nhập đường dẫn m3u8..."
                                     className={styles.input}
-                                  />
-                                </div>
+                                  />                                </div>
                               </div>
                             </div>
                           ))
@@ -1418,7 +1437,7 @@ const MovieEditPage = () => {
   );
 };
 
-MovieEditPage.getLayout = (page) => {
+MovieEditPage.getLayout = (page: React.ReactElement) => {
   return <AdminLayout>{page}</AdminLayout>;
 };
 

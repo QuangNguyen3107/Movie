@@ -4,7 +4,7 @@ import Link from "next/link";
 import Navbar from "../components/Layout/Navbar";
 import styles from "../styles/Movies.module.css";
 import Skeleton from "../components/UI/Skeleton";
-import { FaPlayCircle, FaStar, FaFilm, FaChevronDown } from "react-icons/fa";
+import { FaPlayCircle, FaStar, FaFilm, FaChevronDown, FaSync } from "react-icons/fa";
 
 // Series page component for "Phim Bộ" (TV series)
 const Series = () => {
@@ -14,11 +14,44 @@ const Series = () => {
   const [hasMore, setHasMore] = useState(true);
   const [loadedImages, setLoadedImages] = useState({});
   const [totalSeries, setTotalSeries] = useState(0);
+    // Bộ lọc phim - Use hardcoded filter options like in movies.js
+  // Hardcoded filter options
+  const categories = [
+    "Hành Động",
+    "Tình Cảm",
+    "Hài Hước",
+    "Cổ Trang",
+    "Tâm Lý",
+    "Hình Sự",
+    "Chiến Tranh",
+    "Thể Thao",
+    "Võ Thuật",
+    "Viễn Tưởng",
+    "Phiêu Lưu",
+    "Khoa Học",
+    "Kinh Dị",
+    "Âm Nhạc",
+    "Thần Thoại",
+    "Hoạt Hình"
+  ];
+
+  // Danh sách quốc gia
+  const countries = [
+    "Trung Quốc",
+    "Hàn Quốc",
+    "Nhật Bản",
+    "Thái Lan",
+    "Âu Mỹ",
+    "Đài Loan",
+    "Hồng Kông",
+    "Ấn Độ",
+    "Việt Nam"
+  ];
+
+  // Tạo danh sách năm từ năm hiện tại đến 2010
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: currentYear - 2005 }, (_, i) => currentYear - i);
   
-  // Bộ lọc phim
-  const [categories, setCategories] = useState([]);
-  const [countries, setCountries] = useState([]);
-  const [years, setYears] = useState([]);
   const [filters, setFilters] = useState({
     category: "",
     country: "",
@@ -89,11 +122,26 @@ const Series = () => {
     setShowCountryDropdown(false);
     setShowYearDropdown(false);
   };
-
   // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
-      if (showCategoryDropdown || showCountryDropdown || showYearDropdown || showSortOptions) {
+      const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+      const dropdownMenus = document.querySelectorAll('.dropdown-menu');
+      let clickedOutside = true;
+
+      dropdownToggles.forEach(toggle => {
+        if (toggle.contains(event.target)) {
+          clickedOutside = false;
+        }
+      });
+      
+      dropdownMenus.forEach(menu => {
+        if (menu.contains(event.target)) {
+          clickedOutside = false;
+        }
+      });
+
+      if (clickedOutside) {
         setShowCategoryDropdown(false);
         setShowCountryDropdown(false);
         setShowYearDropdown(false);
@@ -105,53 +153,16 @@ const Series = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showCategoryDropdown, showCountryDropdown, showYearDropdown, showSortOptions]);
-
-  useEffect(() => {
+  }, [showCategoryDropdown, showCountryDropdown, showYearDropdown, showSortOptions]);  useEffect(() => {
     // Initial load of series
     fetchSeries(1);
-    fetchFilters();
   }, []);
   
-  // Fetch filters when any filter is changed
-  useEffect(() => {
-    setPage(1);
-    fetchSeries(1);
-  }, [filters, sortOption]);
-
-  const fetchFilters = async () => {
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-      
-      // Fetch categories
-      const categoriesResponse = await fetch(`${apiUrl}/categories`);
-      const categoriesData = await categoriesResponse.json();
-      if (categoriesData.success && categoriesData.data) {
-        setCategories(categoriesData.data);
-      }
-      
-      // Fetch countries
-      const countriesResponse = await fetch(`${apiUrl}/countries`);
-      const countriesData = await countriesResponse.json();
-      if (countriesData.success && countriesData.data) {
-        setCountries(countriesData.data);
-      }
-      
-      // Generate years for the filter (current year down to 2000)
-      const currentYear = new Date().getFullYear();
-      const yearsList = [];
-      for (let year = currentYear; year >= 2000; year--) {
-        yearsList.push(year);
-      }
-      setYears(yearsList);
-    } catch (error) {
-      console.error('Error fetching filters:', error);
-    }
-  };
-  
+  // We're removing automatic filtering on filter/sort change
+  // Instead we'll use an Apply button
   const handleCategoryToggle = (e) => {
     e.stopPropagation();
-    setShowCategoryDropdown(!showCategoryDropdown);
+    setShowCategoryDropdown(prev => !prev);
     setShowCountryDropdown(false);
     setShowYearDropdown(false);
     setShowSortOptions(false);
@@ -159,7 +170,7 @@ const Series = () => {
   
   const handleCountryToggle = (e) => {
     e.stopPropagation();
-    setShowCountryDropdown(!showCountryDropdown);
+    setShowCountryDropdown(prev => !prev);
     setShowCategoryDropdown(false);
     setShowYearDropdown(false);
     setShowSortOptions(false);
@@ -167,25 +178,47 @@ const Series = () => {
   
   const handleYearToggle = (e) => {
     e.stopPropagation();
-    setShowYearDropdown(!showYearDropdown);
+    setShowYearDropdown(prev => !prev);
     setShowCategoryDropdown(false);
     setShowCountryDropdown(false);
     setShowSortOptions(false);
   };
   
-  const handleCategorySelect = (categoryId) => {
-    setFilters(prev => ({ ...prev, category: categoryId }));
+  const handleCategorySelect = (category) => {
+    // Just update filter state without fetching
+    setFilters(prev => {
+      const newFilters = { ...prev, category };
+      console.log("Selecting category:", category);
+      return newFilters;
+    });
     setShowCategoryDropdown(false);
   };
   
-  const handleCountrySelect = (countryCode) => {
-    setFilters(prev => ({ ...prev, country: countryCode }));
+  const handleCountrySelect = (country) => {
+    // Just update filter state without fetching
+    setFilters(prev => {
+      const newFilters = { ...prev, country };
+      console.log("Selecting country:", country);
+      return newFilters;
+    });
     setShowCountryDropdown(false);
   };
   
   const handleYearSelect = (year) => {
-    setFilters(prev => ({ ...prev, year }));
+    // Just update filter state without fetching
+    setFilters(prev => {
+      const newFilters = { ...prev, year };
+      console.log("Selecting year:", year);
+      return newFilters;
+    });
     setShowYearDropdown(false);
+  };
+  
+  // New function to apply all filters at once
+  const applyFilters = () => {
+    setLoading(true);
+    setPage(1);
+    fetchSeries(1);
   };
 
   const fetchSeries = async (pageNumber) => {
@@ -215,8 +248,7 @@ const Series = () => {
       
       if (result.data && result.data.movies) {
         const { movies: newSeries, pagination } = result.data;
-        
-        // Process series for display
+          // Process series for display
         const processedSeries = newSeries.map(series => ({
           ...series,
           thumb_url: series.thumb_url?.startsWith('http') 
@@ -227,14 +259,77 @@ const Series = () => {
             : `${series.poster_url}`
         }));
         
-        // Sort series based on selected sort option
-        const sortedSeries = sortSeriesData(processedSeries);
+        // First deduplicate the series
+        const uniqueSeries = [];
+        const seenSlugs = new Set();
+        const seenIds = new Set();
         
-        // If it's the first page, replace series; otherwise, append
+        processedSeries.forEach(series => {
+          // Create a composite identifier when slug/id is missing
+          const compositeId = !series.slug && !series._id && !series.id 
+            ? `${series.name}-${series.year || ''}-${series.origin_name || ''}`
+            : null;
+            
+          // Check if we've already seen this series
+          if (
+            (series.slug && seenSlugs.has(series.slug)) || 
+            (series._id && seenIds.has(series._id)) ||
+            (series.id && seenIds.has(series.id)) ||
+            (compositeId && seenIds.has(compositeId))
+          ) {
+            return; // Skip this series
+          }
+          
+          // Add to seen sets
+          if (series.slug) seenSlugs.add(series.slug);
+          if (series._id) seenIds.add(series._id);
+          if (series.id) seenIds.add(series.id);
+          if (compositeId) seenIds.add(compositeId);
+          
+          // Add to unique series
+          uniqueSeries.push(series);
+        });
+        
+        console.log(`Deduplicated to ${uniqueSeries.length} series`);
+        
+        // Sort series based on selected sort option
+        const sortedSeries = sortSeriesData(uniqueSeries);
+        
+        // If it's the first page, replace series; otherwise, append unique ones
         if (pageNumber === 1) {
           setSeries(sortedSeries);
         } else {
-          setSeries(prev => [...prev, ...sortedSeries]);
+          setSeries(prev => {
+            // Use a Map to track existing series by all possible identifiers
+            const existingSeriesMap = new Map();
+            
+            // Add all existing series to the map with multiple keys
+            prev.forEach(s => {
+              if (s._id) existingSeriesMap.set(s._id, s);
+              if (s.id) existingSeriesMap.set(s.id, s);
+              if (s.slug) existingSeriesMap.set(s.slug, s);
+              // Also use a composite key to catch edge cases
+              const compositeKey = `${s.name}-${s.year}-${s.origin_name}`;
+              existingSeriesMap.set(compositeKey, s);
+            });
+            
+            // Filter only series that don't exist in our map
+            const uniqueNewSeries = sortedSeries.filter(s => {
+              // Check against all possible identifiers
+              const idExists = (s._id && existingSeriesMap.has(s._id)) || 
+                              (s.id && existingSeriesMap.has(s.id)) || 
+                              (s.slug && existingSeriesMap.has(s.slug));
+              
+              // Also check by composite key
+              const compositeKey = `${s.name}-${s.year}-${s.origin_name}`;
+              const compositeExists = existingSeriesMap.has(compositeKey);
+              
+              return !idExists && !compositeExists;
+            });
+            
+            console.log(`Found ${uniqueNewSeries.length} truly unique new series`);
+            return [...prev, ...uniqueNewSeries];
+          });
         }
         
         // Update pagination information
@@ -258,12 +353,19 @@ const Series = () => {
       setLoading(false);
     }
   };
-
   const loadMore = () => {
     if (!loading && hasMore) {
+      // Set a loading state
+      setLoading(true);
+      
+      // Calculate the next page
       const nextPage = page + 1;
-      setPage(nextPage);
-      fetchSeries(nextPage);
+      console.log(`Loading more series, page ${nextPage}`);
+      
+      // Add a small delay to prevent race conditions with multiple clicks
+      setTimeout(() => {
+        fetchSeries(nextPage);
+      }, 50);
     }
   };
 
@@ -294,81 +396,78 @@ const Series = () => {
           </div>
           
           <div className="row mb-4">
-            <div className="col-12 d-flex flex-wrap gap-3">
-              <div className="dropdown">
+            <div className="col-12 d-flex flex-wrap gap-3">              <div className="dropdown">
                 <button 
-                  className="btn btn-outline-secondary dropdown-toggle" 
+                  className={`btn ${filters.category ? 'btn-danger' : 'btn-outline-secondary'} dropdown-toggle d-flex align-items-center rounded-pill`}
                   onClick={handleCategoryToggle}
-                >
-                  {filters.category ? categories.find(c => c.id === filters.category)?.name : "Thể loại"} <FaChevronDown />
+                  aria-expanded={showCategoryDropdown}
+                >   
+                  {filters.category || "Thể loại"} <FaChevronDown className="ms-2" />
                 </button>
                 {showCategoryDropdown && (
-                  <ul className="dropdown-menu show">
+                  <ul className="dropdown-menu show dropdown-menu-dark">
                     <li>
-                      <button 
-                        className="dropdown-item"
+                      <button
+                        className={`dropdown-item ${!filters.category ? 'active' : ''}`}
                         onClick={() => handleCategorySelect("")}
                       >
                         Tất cả thể loại
                       </button>
                     </li>
                     {categories.map(category => (
-                      <li key={category.id}>
-                        <button 
-                          className="dropdown-item" 
-                          onClick={() => handleCategorySelect(category.id)}
+                      <li key={category}>
+                        <button
+                          className={`dropdown-item ${filters.category === category ? 'active' : ''}`}
+                          onClick={() => handleCategorySelect(category)}
                         >
-                          {category.name}
+                          {category}
                         </button>
                       </li>
                     ))}
                   </ul>
                 )}
-              </div>
-              
-              <div className="dropdown">
-                <button 
-                  className="btn btn-outline-secondary dropdown-toggle" 
+              </div>                <div className="dropdown">
+                <button
+                  className={`btn ${filters.country ? 'btn-danger' : 'btn-outline-secondary'} dropdown-toggle d-flex align-items-center rounded-pill`}
                   onClick={handleCountryToggle}
+                  aria-expanded={showCountryDropdown}
                 >
-                  {filters.country ? countries.find(c => c.code === filters.country)?.name : "Quốc gia"} <FaChevronDown />
+                  {filters.country || "Quốc gia"} <FaChevronDown className="ms-2" />
                 </button>
                 {showCountryDropdown && (
-                  <ul className="dropdown-menu show">
+                  <ul className="dropdown-menu show dropdown-menu-dark">
                     <li>
-                      <button 
-                        className="dropdown-item"
+                      <button
+                        className={`dropdown-item ${!filters.country ? 'active' : ''}`}
                         onClick={() => handleCountrySelect("")}
                       >
                         Tất cả quốc gia
                       </button>
                     </li>
                     {countries.map(country => (
-                      <li key={country.code}>
-                        <button 
-                          className="dropdown-item" 
-                          onClick={() => handleCountrySelect(country.code)}
+                      <li key={country}>
+                        <button
+                          className={`dropdown-item ${filters.country === country ? 'active' : ''}`}
+                          onClick={() => handleCountrySelect(country)}
                         >
-                          {country.name}
+                          {country}
                         </button>
                       </li>
                     ))}
                   </ul>
                 )}
               </div>
-              
-              <div className="dropdown">
+                <div className="dropdown">
                 <button 
-                  className="btn btn-outline-secondary dropdown-toggle" 
+                  className={`btn ${filters.year ? 'btn-danger' : 'btn-outline-secondary'} dropdown-toggle d-flex align-items-center rounded-pill`}
                   onClick={handleYearToggle}
                 >
-                  {filters.year || "Năm"} <FaChevronDown />
-                </button>
-                {showYearDropdown && (
-                  <ul className="dropdown-menu show">
+                  {filters.year || "Năm"} <FaChevronDown className="ms-2" />
+                </button>                {showYearDropdown && (
+                  <ul className="dropdown-menu show dropdown-menu-dark">
                     <li>
                       <button 
-                        className="dropdown-item"
+                        className={`dropdown-item ${!filters.year ? 'active' : ''}`}
                         onClick={() => handleYearSelect("")}
                       >
                         Tất cả năm
@@ -377,7 +476,7 @@ const Series = () => {
                     {years.map(year => (
                       <li key={year}>
                         <button 
-                          className="dropdown-item" 
+                          className={`dropdown-item ${filters.year === year.toString() ? 'active' : ''}`} 
                           onClick={() => handleYearSelect(year)}
                         >
                           {year}
@@ -386,20 +485,17 @@ const Series = () => {
                     ))}
                   </ul>
                 )}
-              </div>
-
-              <div className="dropdown">
+              </div>              <div className="dropdown">
                 <button 
-                  className="btn btn-outline-secondary dropdown-toggle" 
+                  className="btn btn-outline-secondary dropdown-toggle d-flex align-items-center rounded-pill" 
                   onClick={toggleSortDropdown}
                 >
-                  {getSortOptionName()} <FaChevronDown />
-                </button>
-                {showSortOptions && (
-                  <ul className="dropdown-menu show" style={{backgroundColor: '#212529', minWidth: '200px'}}>
+                  {getSortOptionName()} <FaChevronDown className="ms-2" />
+                </button>                {showSortOptions && (
+                  <ul className="dropdown-menu show dropdown-menu-dark" style={{minWidth: '200px'}}>
                     <li>
                       <button 
-                        className="dropdown-item" 
+                        className={`dropdown-item ${sortOption === 'newest' ? 'active' : ''}`}
                         onClick={() => handleSortChange('newest')}
                       >
                         Mới nhất
@@ -407,7 +503,7 @@ const Series = () => {
                     </li>
                     <li>
                       <button 
-                        className="dropdown-item" 
+                        className={`dropdown-item ${sortOption === 'oldest' ? 'active' : ''}`}
                         onClick={() => handleSortChange('oldest')}
                       >
                         Cũ nhất
@@ -415,7 +511,7 @@ const Series = () => {
                     </li>
                     <li>
                       <button 
-                        className="dropdown-item" 
+                        className={`dropdown-item ${sortOption === 'a-z' ? 'active' : ''}`}
                         onClick={() => handleSortChange('a-z')}
                       >
                         A-Z
@@ -423,7 +519,7 @@ const Series = () => {
                     </li>
                     <li>
                       <button 
-                        className="dropdown-item" 
+                        className={`dropdown-item ${sortOption === 'z-a' ? 'active' : ''}`}
                         onClick={() => handleSortChange('z-a')}
                       >
                         Z-A
@@ -431,7 +527,7 @@ const Series = () => {
                     </li>
                     <li>
                       <button 
-                        className="dropdown-item" 
+                        className={`dropdown-item ${sortOption === 'highest-rating' ? 'active' : ''}`}
                         onClick={() => handleSortChange('highest-rating')}
                       >
                         Đánh giá cao nhất
@@ -439,7 +535,7 @@ const Series = () => {
                     </li>
                     <li>
                       <button 
-                        className="dropdown-item" 
+                        className={`dropdown-item ${sortOption === 'lowest-rating' ? 'active' : ''}`}
                         onClick={() => handleSortChange('lowest-rating')}
                       >
                         Đánh giá thấp nhất
@@ -447,7 +543,7 @@ const Series = () => {
                     </li>
                     <li>
                       <button 
-                        className="dropdown-item" 
+                        className={`dropdown-item ${sortOption === 'year-desc' ? 'active' : ''}`}
                         onClick={() => handleSortChange('year-desc')}
                       >
                         Năm mới nhất
@@ -455,7 +551,7 @@ const Series = () => {
                     </li>
                     <li>
                       <button 
-                        className="dropdown-item" 
+                        className={`dropdown-item ${sortOption === 'year-asc' ? 'active' : ''}`}
                         onClick={() => handleSortChange('year-asc')}
                       >
                         Năm cũ nhất
@@ -464,13 +560,94 @@ const Series = () => {
                   </ul>
                 )}
               </div>
+                {/* Apply Filters Button */}
+              <button
+                className="btn btn-danger d-flex align-items-center rounded-pill"
+                onClick={applyFilters}
+                disabled={loading}
+              >
+                Áp dụng bộ lọc
+              </button>
+              {/* Refresh Button */}
+              <button
+                className="btn btn-outline-light d-flex align-items-center ms-auto rounded-pill"
+                onClick={() => {
+                  setLoading(true);
+                  setPage(1);
+                  fetchSeries(1);
+                }}
+                disabled={loading}
+              >
+                <FaSync className={`me-2 ${loading ? 'spin' : ''}`} />
+                {loading ? 'Đang làm mới...' : 'Làm mới'}
+              </button>
             </div>
           </div>
           
-          <div className="row g-3 movie-grid">
+          {/* Active filter display */}
+          {(filters.category || filters.country || filters.year) && (
+            <div className="row mb-4">
+              <div className="col-12">
+                <div className="d-flex flex-wrap gap-2 align-items-center">
+                  <span className="text-white me-2">Lọc theo:</span>
+                  
+                  {filters.category && (
+                    <span className="badge bg-danger p-2">
+                      Thể loại: {categories.find(c => c.id === filters.category)?.name || filters.category}
+                      <button 
+                        className="btn btn-sm ms-2 p-0 text-white" 
+                        onClick={() => setFilters(prev => ({ ...prev, category: "" }))}
+                      >
+                        <i className="fas fa-times">×</i>
+                      </button>
+                    </span>
+                  )}
+                  
+                  {filters.country && (
+                    <span className="badge bg-danger p-2">
+                      Quốc gia: {countries.find(c => c.code === filters.country)?.name || filters.country}
+                      <button 
+                        className="btn btn-sm ms-2 p-0 text-white" 
+                        onClick={() => setFilters(prev => ({ ...prev, country: "" }))}
+                      >
+                        <i className="fas fa-times">×</i>
+                      </button>
+                    </span>
+                  )}
+                  
+                  {filters.year && (
+                    <span className="badge bg-danger p-2">
+                      Năm: {filters.year}
+                      <button 
+                        className="btn btn-sm ms-2 p-0 text-white" 
+                        onClick={() => setFilters(prev => ({ ...prev, year: "" }))}
+                      >
+                        <i className="fas fa-times">×</i>
+                      </button>
+                    </span>
+                  )}
+                    <button 
+                    className="btn btn-sm btn-outline-secondary rounded-pill" 
+                    onClick={() => {
+                      setFilters({ category: "", country: "", year: "", type: "series" });
+                      // Apply the cleared filters immediately
+                      setTimeout(() => {
+                        setLoading(true);
+                        fetchSeries(1);
+                      }, 0);
+                    }}
+                  >
+                    Xóa tất cả
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-5 row-cols-xl-5 g-4 mb-4">
             {loading && page === 1 
               ? [...Array(24)].map((_, i) => (
-                  <div key={`skeleton-${i}`} className="col-6 col-sm-4 col-md-3 col-lg-3 col-xl-2 mb-4">
+                  <div key={`skeleton-${i}`} className="col">
                     <div className="card h-100 bg-dark border-0">
                       <Skeleton height="300px" borderRadius="8px" />
                       <div className="card-body p-2">
@@ -487,7 +664,7 @@ const Series = () => {
                   return (
                     <div 
                       key={series.slug} 
-                      className="col-6 col-sm-4 col-md-3 col-lg-3 col-xl-2 mb-4"
+                      className="col"
                     >
                       <div className={`card h-100 bg-dark border-0 ${styles.movieCard}`}>
                         <div className={`position-relative ${styles.moviePoster}`}>
@@ -560,27 +737,26 @@ const Series = () => {
                             <div className={styles.episodeBadge}>
                               <FaFilm /> {series.episodes[0].server_data.length} tập
                             </div>
-                          )}
-                        </div>
-                        
-                        <div className="card-body p-2">
-                          <h6 className="card-title text-white mb-1 text-truncate">
+                          )}                        </div>
+                          <div className="card-body py-0 px-1" style={{backgroundColor: "#1a1a1a", minHeight: "auto"}}>
+                          <h6 className={`card-title text-white mb-0 ${styles.movieTitleEllipsis}`}>
                             {series.name}
                           </h6>
-                          <p className="card-text small text-muted text-truncate">
-                            {series.origin_name}
-                          </p>
+                          {series.origin_name && (
+                            <p className="card-text small text-muted text-truncate mb-0" style={{fontSize: "10px", lineHeight: 1, maxHeight: "14px"}}>
+                              {series.origin_name}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
                   );
                 })}
           </div>
-          
-          {!loading && hasMore && (
+            {!loading && hasMore && (
             <div className="text-center mt-4 mb-5">
               <button 
-                className="btn btn-outline-danger px-4 py-2"
+                className="btn btn-outline-danger px-4 py-2 rounded-pill"
                 onClick={loadMore}
               >
                 Xem thêm
@@ -596,16 +772,31 @@ const Series = () => {
               <p className="text-secondary mt-2">Đang tải thêm phim...</p>
             </div>
           )}
-          
-          {!loading && series.length === 0 && (
+            {!loading && series.length === 0 && (
             <div className="text-center py-5">
               <div className="mb-3">
                 <FaPlayCircle size={60} className="text-secondary" />
               </div>
               <h3 className="text-white">Không tìm thấy phim</h3>
               <p className="text-secondary">
-                Hiện chưa có phim bộ nào trong hệ thống. Vui lòng quay lại sau.
+                {(filters.category || filters.country || filters.year) 
+                  ? 'Không có phim bộ nào phù hợp với bộ lọc hiện tại.'
+                  : 'Hiện chưa có phim bộ nào trong hệ thống. Vui lòng quay lại sau.'
+                }
               </p>
+              {(filters.category || filters.country || filters.year) && (                <button
+                  className="btn btn-outline-light mt-3 rounded-pill"
+                  onClick={() => {
+                    setFilters({ category: "", country: "", year: "", type: "series" });
+                    setTimeout(() => {
+                      setLoading(true);
+                      fetchSeries(1);
+                    }, 0);
+                  }}
+                >
+                  Xóa bộ lọc
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -658,21 +849,40 @@ const Series = () => {
             padding-right: 5px;
             padding-left: 5px;
           }
-        }
-
-        .dropdown-menu {
+        }        .dropdown-menu {
           background-color: #212529;
           color: white;
           border: 1px solid rgba(255,255,255,0.15);
+          max-height: 300px;
+          overflow-y: auto;
+          z-index: 1030;
+          min-width: 200px;
         }
 
         .dropdown-item {
           color: rgba(255,255,255,0.8);
-        }
-
-        .dropdown-item:hover {
+          padding: 8px 16px;
+        }        .dropdown-item:hover {
           background-color: rgba(255,255,255,0.1);
           color: white;
+        }
+        
+        .dropdown-item.active, .dropdown-item:active {
+          background-color: #dc3545;
+          color: white;
+        }
+        
+        .spin {
+          animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        .ms-auto {
+          margin-left: auto !important;
         }
       `}</style>
     </>

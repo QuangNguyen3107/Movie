@@ -93,77 +93,41 @@ const PremiumPage = () => {
           } catch (error) {
             console.error("Không thể lấy thông tin đăng ký:", error);
           }
-        }
-      } catch (error) {
+        }      } catch (error) {
         console.error("Lỗi khi lấy dữ liệu:", error);
-        
-        const defaultPackages = [
+          const defaultPackages = [
           {
-            _id: 'default-starter-package',
-            name: 'Starter',
-            description: 'Gói khởi đầu với chi phí thấp, phù hợp cho người dùng mới',
-            price: 15000,
-            durationDays: 7,
+            _id: 'basic-package',
+            name: 'Cơ bản',
+            description: 'Không hiển thị quảng cáo ở màn hình chính',
+            price: 10000,
+            durationDays: 30,
             features: [
-              'Xem phim không quảng cáo',
-              'Chất lượng HD',
+              'Không hiển thị quảng cáo ở màn hình chính',
+              'Trải nghiệm giao diện tốt hơn',
               'Hỗ trợ trên mọi thiết bị'
             ],
             isActive: true,
             discount: 0,
-            isLocalOnly: true
+            isLocalOnly: true,
+            isHighlightPackage: false
           },
           {
-            _id: 'default-basic-package',
-            name: 'Cơ bản',
-            description: 'Trải nghiệm Premium đầy đủ trong 30 ngày',
-            price: 49000,
-            durationDays: 30,
+            _id: 'premium-package',
+            name: 'Premium',
+            description: 'Trải nghiệm không quảng cáo hoàn toàn khi xem phim',
+            price: 15000,
+            durationDays: 30, 
             features: [
-              'Xem phim không quảng cáo',
-              'Chất lượng HD',
-              'Hỗ trợ trên mọi thiết bị',
-              'Xem offline'
+              'Không hiển thị quảng cáo ở màn hình chính',
+              'Không hiển thị video quảng cáo khi bấm vào nút play để xem phim',
+              'Trải nghiệm xem phim tốt nhất',
+              'Hỗ trợ trên mọi thiết bị'
             ],
             isActive: true,
             discount: 0,
-            isLocalOnly: true
-          },
-          {
-            _id: 'default-premium-package',
-            name: 'Premium',
-            description: 'Trải nghiệm Premium đầy đủ trong 90 ngày với giá ưu đãi',
-            price: 129000,
-            durationDays: 90, 
-            features: [
-              'Xem phim không quảng cáo',
-              'Chất lượng HD',
-              'Hỗ trợ trên mọi thiết bị',
-              'Xem offline',
-              'Nội dung độc quyền'
-            ],
-            isActive: true,
-            discount: 10,
-            isLocalOnly: true
-          },
-          {
-            _id: 'default-vip-package',
-            name: 'VIP',
-            description: 'Trải nghiệm Premium cao cấp nhất trong 365 ngày',
-            price: 399000,
-            durationDays: 365,
-            features: [
-              'Xem phim không quảng cáo',
-              'Chất lượng HD & 4K',
-              'Hỗ trợ trên mọi thiết bị',
-              'Xem offline',
-              'Nội dung độc quyền',
-              'Ưu tiên xem trước phim mới',
-              'Hỗ trợ khách hàng VIP'
-            ],
-            isActive: true,
-            discount: 20,
-            isLocalOnly: true
+            isLocalOnly: true,
+            isHighlightPackage: true
           }
         ];
         
@@ -749,8 +713,7 @@ const PremiumPage = () => {
           const isPendingPackage = pendingSubscription && 
                                    pendingSubscription.hasPendingSubscription && 
                                    isPendingSubscribedPackage(pkg, pendingSubscription);
-          
-          // Additional debug logs
+            // Additional debug logs
           console.log(`Package ${pkg.name} status:`, {
             id: pkg._id || pkg.id,
             isCurrentPackage,
@@ -758,7 +721,7 @@ const PremiumPage = () => {
             hasActiveSubscription: currentSubscription?.hasActiveSubscription || false
           });
             
-          const isHighlightPackage = pkg._id === 'starter-package-15k' || pkg._id === 'default-premium-package';
+          const isHighlightPackage = pkg._id === 'premium-package';
           
           return (
             <div 

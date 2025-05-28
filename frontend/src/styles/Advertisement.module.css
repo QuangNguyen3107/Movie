@@ -27,21 +27,37 @@
 
 .bannerContent {
   position: relative;
-  max-width: 100%;
+  max-width: 1200px; /* Set a maximum width for the banner container */
+  width: 90%; /* Use most of the screen width */
+  height: 120px; /* Fixed height for banner container */
   display: flex;
   justify-content: center;
-  width: 90%; /* Use most of the screen width */
+  align-items: center;
+  gap: 10px; /* Space between multiple ads */
+  overflow: hidden; /* Hide overflow */
+}
+
+.multiAdContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  height: 100%;
+  width: 100%;
 }
 
 .bannerImage {
   cursor: pointer;
+  height: 100%;
+  width: auto;
   max-width: 100%;
-  overflow: hidden;
   border-radius: 8px; /* Slightly rounded corners */
   border: 1px solid rgba(255, 255, 255, 0.2);
   position: relative;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4); /* Add shadow for elevation effect */
   animation: pulse 2s infinite alternate; /* Subtle pulsing animation */
+  overflow: hidden;
+  flex: 0 0 auto;
 }
 
 @keyframes pulse {
@@ -54,9 +70,9 @@
 }
 
 .bannerImage img {
-  max-width: 100%;
-  max-height: 150px; /* Increased height */
-  object-fit: cover; /* Changed to cover to fill the space better */
+  height: 100%;
+  width: auto;
+  object-fit: contain; /* Ensure the image maintains its aspect ratio */
   transition: transform 0.2s ease;
 }
 
@@ -250,44 +266,47 @@
 }
 
 /* Responsive Adjustments */
-@media (max-width: 768px) {
-  .bannerImage img {
-    max-height: 60px;
-  }
-  
-  .adOverlay {
-    padding: 10px;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  
-  .skipButton {
-    position: absolute;
-    right: 10px;
-    bottom: 10px;
-    padding: 4px 8px;
-    font-size: 12px;
-  }
-  
-  .adDetails {
-    margin: 0;
-  }
-
+@media (max-width: 1200px) {
   .bannerContent {
+    height: 100px;
+  }
+}
+
+@media (max-width: 992px) {
+  .bannerContent {
+    height: 90px;
+  }
+  
+  .multiAdContainer {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  .bannerContent {
+    height: 80px;
     width: 95%;
   }
   
-  .bannerImage img {
-    max-height: 120px;
+  .adOverlay {
+    padding: 6px 10px;
+  }
+  
+  .adLabel {
+    font-size: 11px;
+    padding: 1px 5px;
+  }
+  
+  .advertiserName {
+    font-size: 12px;
   }
   
   .top {
-    top: 60px; /* Slightly lower on mobile devices due to smaller navbar */
+    top: 60px;
   }
   
   .bottom {
-    bottom: 10px;
+    bottom: 15px;
   }
   
   .closeButton {
@@ -298,17 +317,17 @@
   }
 }
 
-@media (max-width: 480px) {
-  .bannerImage img {
-    max-height: 50px;
+@media (max-width: 576px) {
+  .bannerContent {
+    height: 70px;
   }
   
-  .bannerImage img {
-    max-height: 100px;
+  .multiAdContainer {
+    gap: 5px;
   }
   
   .adOverlay {
-    padding: 6px 8px;
+    padding: 4px 8px;
   }
   
   .adLabel {
@@ -317,6 +336,30 @@
   }
   
   .advertiserName {
-    font-size: 12px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .bannerContent {
+    height: 60px;
+  }
+  
+  .adOverlay {
+    padding: 3px 6px;
+  }
+  
+  .top {
+    top: 55px;
+  }
+  
+  .bottom {
+    bottom: 10px;
+  }
+  
+  .closeButton {
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
   }
 }

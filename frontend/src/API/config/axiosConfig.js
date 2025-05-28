@@ -14,12 +14,29 @@ const axiosInstance = axios.create({
 });
 
 // Add request interceptor for auth token
-axiosInstance.interceptors.request.use((config) => {
-  // Lấy token từ localStorage
-  const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+axiosInstance.interceptors.request.use((config) => {  // Lấy token từ localStorage - check multiple potential keys
+  const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || localStorage.getItem('authToken');
   
-  if (token) {
+  if (token && token !== 'undefined' && token !== 'null') {
     config.headers.Authorization = `Bearer ${token}`;
+    
+    // Only log for important API calls to avoid console spam
+    const importantEndpoints = ['/subscription/', '/user/', '/auth/'];
+    if (importantEndpoints.some(endpoint => config.url.includes(endpoint))) {
+      console.log('[API] Using auth token for request:', config.url);
+    }
+  } else {
+    // Check if this is an endpoint that needs authentication
+    const authRequiredEndpoints = [
+      '/subscription/ad-benefits',
+      '/subscription/current',
+      '/subscription/history',
+      '/user/'
+    ];
+    
+    if (authRequiredEndpoints.some(endpoint => config.url.includes(endpoint))) {
+      console.warn('[API] No valid auth token found for authenticated request:', config.url);
+    }
   }
   
   // Thêm headers cần thiết cho CORS với PATCH requests

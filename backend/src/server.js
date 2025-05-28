@@ -26,11 +26,14 @@ const subscriptionRoutes = require('./routes/subscriptionRoutes'); // Kích ho�
 const adminMovieRoutes = require("./routes/adminMovieRoutes");
 const adminRoutes = require('./routes/adminRoutes');
 const adminSearchRoutes = require('./routes/adminSearchRoutes');
+const adminRatingRoutes = require('./routes/adminRatingRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const upcomingMovieRoutes = require('./routes/upcomingMovieRoutes');
 const publicUpcomingMovieRoutes = require('./routes/publicUpcomingMovieRoutes');
+const notificationEmailRoutes = require('./routes/notificationEmailRoutes');
+const bulkEmailRoutes = require('./routes/bulkEmailRoutes');
 
 dotenv.config();
 const app = express();
@@ -84,9 +87,14 @@ app.use('/api/upcoming-movies', publicUpcomingMovieRoutes); // Thêm route công
 app.use("/api/admin", adminMovieRoutes); // Sửa lại đúng đường dẫn admin movie routes
 app.use("/api/admin", adminRoutes); // Thêm route quản lý người dùng, vai trò và loại tài khoản
 app.use("/api/admin", adminSearchRoutes); // Thêm route tìm kiếm admin với Elasticsearch
+app.use("/api/admin", adminRatingRoutes); // Thêm route quản lý đánh giá phim
 app.use("/api/admin/upcoming-movies", upcomingMovieRoutes); // Thêm route quản lý phim sắp ra mắt
 app.use("/api/admin/dashboard", dashboardRoutes);
-app.use("/api/admin/feedback", feedbackRoutes);
+app.use("/api/admin/notifications", notificationEmailRoutes); // Thêm route gửi thông báo email
+app.use("/api/admin/notifications", bulkEmailRoutes); // Thêm route gửi email hàng loạt
+// Đăng ký các routes cho feedback
+app.use("/api/admin/feedback", feedbackRoutes); 
+app.use("/api/feedback", feedbackRoutes);
 app.use("/api/user-stats", userStatsRoutes);
 app.use('/api/reports', reportRoutes); // Thêm route cho báo cáo
 app.use('/api/advertisements', require('./routes/advertisementRoutes')); // Thêm route quảng cáo
@@ -106,6 +114,15 @@ async function startServer() {
       // 🟢 Khởi tạo Elasticsearch Client
       await initElasticsearchClient();
       console.log("✅ Elasticsearch client initialized");
+
+      // 🟢 Kiểm tra cấu hình email
+      const { verifyEmailConfig } = require('./config/email');
+      const emailConfigOk = await verifyEmailConfig();
+      if (emailConfigOk) {
+          console.log("✅ Email service configured successfully");
+      } else {
+          console.warn("⚠️ Email service not configured correctly. Email notifications may not work.");
+      }
 
       // 🟢 Kích hoạt Swagger Docs
       swaggerDocs(app);

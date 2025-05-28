@@ -763,14 +763,29 @@ export default function SearchPage() {
                             </button>
                         </div>
                     </div>
-                )}
-
-                {/* Results */}
+                )}                {/* Skeleton Loading Component */}
                 {loading && movies.length === 0 ? (
-                    <div className="text-center py-5">
-                        <div className="spinner-border text-danger" role="status">
-                            <span className="visually-hidden">Đang tìm kiếm...</span>
-                        </div>
+                    <div className="row g-4">
+                        {Array.from({ length: 12 }).map((_, index) => (
+                            <div key={index} className="col-6 col-sm-4 col-md-3 col-lg-2">
+                                <div className="skeleton-card h-100">
+                                    <div className="skeleton-poster position-relative">
+                                        <div className="skeleton-shimmer"></div>
+                                        {/* Skeleton badges */}
+                                        <div className="skeleton-badges year-quality">
+                                            <div className="skeleton-badge"></div>
+                                            <div className="skeleton-badge ms-1"></div>
+                                        </div>
+                                        <div className="skeleton-badges episode-status">
+                                            <div className="skeleton-badge-wide"></div>
+                                        </div>
+                                    </div>
+                                    <div className="skeleton-info p-2">
+                                        <div className="skeleton-title"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 ) : (
                     <>
@@ -861,6 +876,31 @@ export default function SearchPage() {
                                         </div>
                                     ))}
                                 </div>
+                                
+                                {/* Load more skeleton when loading more */}
+                                {loading && movies.length > 0 && (
+                                    <div className="row g-4 mt-2">
+                                        {Array.from({ length: 6 }).map((_, index) => (
+                                            <div key={`loadmore-${index}`} className="col-6 col-sm-4 col-md-3 col-lg-2">
+                                                <div className="skeleton-card h-100">
+                                                    <div className="skeleton-poster position-relative">
+                                                        <div className="skeleton-shimmer"></div>
+                                                        <div className="skeleton-badges year-quality">
+                                                            <div className="skeleton-badge"></div>
+                                                            <div className="skeleton-badge ms-1"></div>
+                                                        </div>
+                                                        <div className="skeleton-badges episode-status">
+                                                            <div className="skeleton-badge-wide"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="skeleton-info p-2">
+                                                        <div className="skeleton-title"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                                 
                                 {/* Load more button */}
                                 {showLoadMore && (
@@ -1296,9 +1336,147 @@ export default function SearchPage() {
                     border-left: 3px solid #e50914;
                     padding-left: 10px;
                 }
-                
-                .cursor-pointer {
+                  .cursor-pointer {
                     cursor: pointer;
+                }
+                
+                /* Skeleton Loading Styles */
+                .skeleton-card {
+                    background: #1a1a1a;
+                    border-radius: 10px;
+                    overflow: hidden;
+                    animation: pulse 2s infinite ease-in-out;
+                }
+
+                .skeleton-poster {
+                    height: 250px;
+                    width: 100%;
+                    background: linear-gradient(90deg, #2a2a2a 25%, #3a3a3a 50%, #2a2a2a 75%);
+                    background-size: 200% 100%;
+                    border-radius: 8px;
+                    position: relative;
+                    overflow: hidden;
+                }
+
+                .skeleton-shimmer {
+                    position: absolute;
+                    top: 0;
+                    left: -100%;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(
+                        90deg,
+                        transparent,
+                        rgba(255, 255, 255, 0.1),
+                        transparent
+                    );
+                    animation: shimmer 1.5s infinite;
+                }
+
+                @keyframes shimmer {
+                    0% {
+                        left: -100%;
+                    }
+                    100% {
+                        left: 100%;
+                    }
+                }
+
+                .skeleton-badges {
+                    position: absolute;
+                    z-index: 3;
+                }
+
+                .skeleton-badges.year-quality {
+                    top: 0;
+                    right: 0;
+                    margin: 0.5rem;
+                    display: flex;
+                    gap: 0.25rem;
+                }
+
+                .skeleton-badges.episode-status {
+                    bottom: 0;
+                    left: 0;
+                    margin: 0.5rem;
+                }
+
+                .skeleton-badge {
+                    width: 35px;
+                    height: 20px;
+                    background: #3a3a3a;
+                    border-radius: 3px;
+                    animation: skeletonPulse 1.5s infinite;
+                }
+
+                .skeleton-badge-wide {
+                    width: 60px;
+                    height: 20px;
+                    background: #3a3a3a;
+                    border-radius: 3px;
+                    animation: skeletonPulse 1.5s infinite;
+                }
+
+                .skeleton-info {
+                    background: #1a1a1a;
+                    padding: 0.5rem;
+                }
+
+                .skeleton-title {
+                    height: 16px;
+                    background: #3a3a3a;
+                    border-radius: 3px;
+                    width: 80%;
+                    animation: skeletonPulse 1.5s infinite;
+                }
+
+                @keyframes skeletonPulse {
+                    0% {
+                        opacity: 1;
+                    }
+                    50% {
+                        opacity: 0.6;
+                    }
+                    100% {
+                        opacity: 1;
+                    }
+                }
+
+                /* Responsive skeleton styles */
+                @media (max-width: 767px) {
+                    .skeleton-poster {
+                        height: 200px;
+                    }
+                    
+                    .skeleton-badge {
+                        width: 30px;
+                        height: 18px;
+                    }
+                    
+                    .skeleton-badge-wide {
+                        width: 50px;
+                        height: 18px;
+                    }
+                }
+
+                @media (max-width: 400px) {
+                    .skeleton-poster {
+                        height: 180px;
+                    }
+                    
+                    .skeleton-badge {
+                        width: 25px;
+                        height: 16px;
+                    }
+                    
+                    .skeleton-badge-wide {
+                        width: 40px;
+                        height: 16px;
+                    }
+                    
+                    .skeleton-title {
+                        height: 14px;
+                    }
                 }
                     
             `}</style>

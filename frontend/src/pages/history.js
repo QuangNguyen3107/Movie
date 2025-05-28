@@ -285,18 +285,9 @@ export function HistoryContent({ inProfilePage = false }) {
                           <span className="history-type">
                             {item.movieData.type === 'series' ? 'Phim bộ' : 'Phim lẻ'}
                           </span>
-                          
-                          {item.movieData.year && (
+                            {item.movieData.year && (
                             <span className="history-year">
                               {item.movieData.year}
-                            </span>
-                          )}
-                          
-                          {item.movieData.category && item.movieData.category.length > 0 && (
-                            <span className="history-category">
-                              {typeof item.movieData.category === 'string' 
-                                ? item.movieData.category 
-                                : item.movieData.category.join(', ')}
                             </span>
                           )}
                           
@@ -582,6 +573,7 @@ export function HistoryContent({ inProfilePage = false }) {
         .history-button.play {
           background:rgba(94, 89, 90, 0.34);
           color: white;
+          margin-left: 100px;
         }
         
         .history-button.play:hover {
@@ -592,6 +584,8 @@ export function HistoryContent({ inProfilePage = false }) {
         .history-button.remove {
           background: rgba(100, 96, 96, 0.23);
           color: white;
+          margin-top: 200px;  
+          margin-right : 20px;
         }
         
         .history-button.remove:hover {

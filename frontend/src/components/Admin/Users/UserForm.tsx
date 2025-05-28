@@ -1,10 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { UserForAdmin, RoleForAdmin, AccountTypeForAdmin, createUserByAdmin, updateUserByAdmin } from '@/API/services/admin/userAdminService';
-import { FaSave, FaTimes, FaUser, FaEnvelope, FaLock, FaIdCard, FaUserTag, FaUserCog, FaEye, FaEyeSlash, FaBan, FaCheckCircle } from 'react-icons/fa';
+// filepath: d:\Workspace\DoAnCoSo\MovieStreaming\frontend\src\components\Admin\Users\UserForm.tsx
+import React, { useState, useEffect, useRef } from 'react';
+import { UserForAdmin, RoleForAdmin, AccountTypeForAdmin, createUserByAdmin, updateUserByAdmin, uploadUserAvatar } from '@/API/services/admin/userAdminService';
+import { FaSave, FaTimes, FaUser, FaEnvelope, FaLock, FaIdCard, FaUserTag, FaUserCog, FaEye, FaEyeSlash, FaBan, FaCheckCircle, FaCamera, FaImage } from 'react-icons/fa';
+
+// Default avatar path
+const DEFAULT_AVATAR = '/img/avatar.png';
+
+// Mở rộng interface UserForAdmin để hỗ trợ avatar
+interface ExtendedUserForAdmin extends Omit<UserForAdmin, 'role' | 'accountType'> {
+  avatar?: string;
+  role: string | { _id: string; name: string };
+  accountType: string | { _id: string; name: string };
+}
 
 interface UserFormProps {
   show: boolean;
-  user: UserForAdmin | null;
+  user: ExtendedUserForAdmin | null;
   mode: 'create' | 'edit';
   roles: RoleForAdmin[];
   accountTypes: AccountTypeForAdmin[];
@@ -20,6 +31,8 @@ interface FormData {
   role: string;
   accountType: string;
   isActive: boolean;
+  avatarFile: File | null;
+  avatarPreview: string | null;
 }
 
 const UserForm: React.FC<UserFormProps> = ({ 
@@ -38,16 +51,21 @@ const UserForm: React.FC<UserFormProps> = ({
     confirmPassword: '',
     role: '',
     accountType: '',
-    isActive: true
+    isActive: true,
+    avatarFile: null,
+    avatarPreview: DEFAULT_AVATAR
   };
 
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState<{[key: string]: boolean}>({
     password: false,
     confirmPassword: false
   });
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user && mode === 'edit') {
@@ -62,7 +80,9 @@ const UserForm: React.FC<UserFormProps> = ({
         confirmPassword: '',
         role: roleId,
         accountType: accountTypeId,
-        isActive: user.isActive !== undefined ? user.isActive : true
+        isActive: user.isActive !== undefined ? user.isActive : true,
+        avatarFile: null,
+        avatarPreview: user.avatar || DEFAULT_AVATAR
       });
     } else {
       // Reset form for new user
@@ -93,6 +113,63 @@ const UserForm: React.FC<UserFormProps> = ({
     setPasswordVisible(prev => ({
       ...prev,
       [field]: !prev[field]
+    }));
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      return;
+    }
+    
+    // Kiểm tra kích thước file (giới hạn 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors(prev => ({
+        ...prev,
+        avatar: "Kích thước file quá lớn. Tối đa 5MB"
+      }));
+      return;
+    }
+    
+    // Kiểm tra định dạng file
+    if (!file.type.startsWith('image/')) {
+      setErrors(prev => ({
+        ...prev,
+        avatar: "Chỉ chấp nhận file hình ảnh"
+      }));
+      return;
+    }
+    
+    // Tạo URL xem trước
+    const previewUrl = URL.createObjectURL(file);
+    
+    setFormData(prev => ({
+      ...prev,
+      avatarFile: file,
+      avatarPreview: previewUrl
+    }));
+    
+    // Xóa lỗi avatar nếu có
+    if (errors.avatar) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.avatar;
+        return newErrors;
+      });
+    }
+  };
+
+  const triggerFileInput = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const useDefaultAvatar = () => {
+    setFormData(prev => ({
+      ...prev,
+      avatarFile: null,
+      avatarPreview: DEFAULT_AVATAR
     }));
   };
 
@@ -146,21 +223,63 @@ const UserForm: React.FC<UserFormProps> = ({
     
     setIsSubmitting(true);
     try {
-      if (mode === 'create') {
-        await createUserByAdmin({
+      let avatarUrl: string | undefined = undefined;
+      
+      // Upload avatar nếu có file mới
+      if (formData.avatarFile && mode === 'edit' && user) {
+        setIsUploading(true);
+        try {
+          console.log('Uploading avatar for user:', user._id);
+          // Nếu đang chỉnh sửa người dùng, gọi API admin để upload avatar
+          const response = await uploadUserAvatar(user._id, formData.avatarFile);
+          
+          console.log('Upload avatar response:', response);
+          if (response.success) {
+            avatarUrl = response.avatarUrl;
+            console.log('Avatar uploaded successfully, URL:', avatarUrl);
+          }
+        } catch (error) {
+          console.error('Upload avatar error:', error);
+          setErrors(prev => ({
+            ...prev,
+            avatar: 'Không thể tải lên avatar. Vui lòng thử lại.'
+          }));
+          setIsUploading(false);
+          setIsSubmitting(false);
+          return;
+        } finally {
+          setIsUploading(false);
+        }
+      }      if (mode === 'create') {
+        // Base user data
+        // Use a more specific type compatible with the UserForAdmin interface but only include necessary fields for creation
+        interface UserCreateData {
+          fullname: string;
+          email: string;
+          password: string;
+          role: string;
+          accountType: string;
+          isActive: boolean;
+        }
+        
+        const userData: UserCreateData = {
           fullname: formData.fullname,
           email: formData.email,
           password: formData.password,
-          role_id: formData.role,         // Sửa từ role thành role_id
-          accountTypeId: formData.accountType,  // Sửa từ accountType thành accountTypeId
+          role: formData.role,
+          accountType: formData.accountType,
           isActive: formData.isActive
-        });
+        };
+        // If there's a new avatar file, we'll need to handle it after user creation
+        // For now, just create the user
+        await createUserByAdmin(userData as unknown as UserForAdmin);
       } else if (mode === 'edit' && user) {
-        const updateData: Partial<UserForAdmin> = {
+        // Base update data
+        const updateData: Record<string, any> = {
           fullname: formData.fullname,
           email: formData.email,
-          role_id: formData.role,          // Sửa từ role thành role_id
-          accountTypeId: formData.accountType,   // Sửa từ accountType thành accountTypeId
+          role: formData.role,
+          accountType: formData.accountType,
           isActive: formData.isActive
         };
         
@@ -169,12 +288,22 @@ const UserForm: React.FC<UserFormProps> = ({
           updateData.password = formData.password;
         }
         
+        // Only include avatar if it was uploaded successfully
+        if (avatarUrl) {
+          updateData.avatar = avatarUrl;
+        }
+        
+        // If using default avatar
+        if (formData.avatarPreview === DEFAULT_AVATAR && !avatarUrl) {
+          updateData.avatar = DEFAULT_AVATAR;
+        }
+        
         await updateUserByAdmin(user._id, updateData);
       }
       
       onSave();
-    } catch (err: any) {
-      setErrors({ submit: err.message || 'Có lỗi xảy ra khi lưu người dùng' });
+    } catch (error: any) {
+      setErrors({ submit: error.message || 'Có lỗi xảy ra khi lưu người dùng' });
     } finally {
       setIsSubmitting(false);
     }
@@ -211,6 +340,69 @@ const UserForm: React.FC<UserFormProps> = ({
                 </div>
               )}
               
+              {/* Avatar upload section */}
+              <div className="row mb-4 justify-content-center">
+                <div className="col-12 text-center">
+                  <div className="avatar-upload-container">
+                    <div className="avatar-preview">
+                      <img 
+                        src={formData.avatarPreview || DEFAULT_AVATAR} 
+                        alt="User Avatar" 
+                        className="avatar-image"
+                        onError={(e) => { 
+                          const target = e.target as HTMLImageElement;
+                          target.src = DEFAULT_AVATAR; 
+                        }}
+                      />
+                      {isUploading && (
+                        <div className="avatar-uploading">
+                          <div className="spinner-border text-light" role="status">
+                            <span className="visually-hidden">Đang tải...</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="avatar-actions mt-2">
+                      <button 
+                        type="button" 
+                        className="btn btn-sm btn-outline-primary me-2"
+                        onClick={triggerFileInput}
+                        disabled={isSubmitting || isUploading}
+                      >
+                        <FaCamera className="me-1" /> Chọn ảnh
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-secondary"
+                        onClick={useDefaultAvatar}
+                        disabled={isSubmitting || isUploading}
+                      >
+                        <FaImage className="me-1" /> Mặc định
+                      </button>
+                      
+                      <input 
+                        type="file" 
+                        id="avatar" 
+                        name="avatar"
+                        ref={fileInputRef}
+                        accept="image/*"
+                        onChange={handleAvatarChange}
+                        title="Chọn ảnh đại diện"
+                        aria-label="Chọn ảnh đại diện"
+                        className="d-none"
+                      />
+                    </div>
+                    
+                    {errors.avatar && (
+                      <div className="text-danger mt-1 small">
+                        {errors.avatar}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>              
+              {/* User Information Fields */}
               <div className="row mb-3">
                 <div className="col-md-6 mb-3 mb-md-0">
                   <div className="form-group">
@@ -303,7 +495,7 @@ const UserForm: React.FC<UserFormProps> = ({
                         className={`form-control ${errors.confirmPassword ? 'is-invalid' : ''}`}
                         id="confirmPassword"
                         name="confirmPassword"
-                        placeholder="Nhập lại mật khẩu"
+                        placeholder="Xác nhận mật khẩu"
                         value={formData.confirmPassword}
                         onChange={handleInputChange}
                         disabled={isSubmitting}
@@ -324,37 +516,6 @@ const UserForm: React.FC<UserFormProps> = ({
               </div>
               
               <div className="row mb-3">
-                <div className="col-12">
-                  <div className={`account-status-card ${formData.isActive ? 'active' : 'inactive'}`}>
-                    <div className="status-icon">
-                      {formData.isActive ? <FaCheckCircle size={24} /> : <FaBan size={24} />}
-                    </div>
-                    <div className="status-content">
-                      <div className="form-check">
-                        <input
-                          type="checkbox"
-                          className="form-check-input"
-                          id="isActive"
-                          name="isActive"
-                          checked={formData.isActive}
-                          onChange={handleCheckboxChange}
-                          disabled={isSubmitting}
-                        />
-                        <label className="form-check-label fw-bold" htmlFor="isActive">
-                          {formData.isActive ? "Tài khoản hoạt động" : "Tài khoản bị khóa"}
-                        </label>
-                      </div>
-                      <small className="status-description">
-                        {formData.isActive 
-                          ? "Người dùng có thể đăng nhập và sử dụng tất cả các tính năng bình thường." 
-                          : "Người dùng không thể đăng nhập hoặc truy cập vào bất kỳ tính năng nào của hệ thống."}
-                      </small>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="row">
                 <div className="col-md-6 mb-3 mb-md-0">
                   <div className="form-group">
                     <label htmlFor="role" className="form-label">
@@ -403,41 +564,53 @@ const UserForm: React.FC<UserFormProps> = ({
                   </div>
                 </div>
               </div>
+              
+              <div className="row mb-3">
+                <div className="col-12">
+                  <div className="form-check form-switch">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="isActive"
+                      name="isActive"
+                      checked={formData.isActive}
+                      onChange={handleCheckboxChange}
+                      disabled={isSubmitting}
+                    />
+                    <label className="form-check-label" htmlFor="isActive">
+                      {formData.isActive ? (
+                        <><FaCheckCircle className="text-success me-2" /> Tài khoản đang hoạt động</>
+                      ) : (
+                        <><FaBan className="text-danger me-2" /> Tài khoản bị vô hiệu hóa</>
+                      )}
+                    </label>
+                  </div>
+                </div>
+              </div>
             </div>
             
             <div className="modal-footer">
-              <button 
-                type="button" 
-                className="btn btn-secondary" 
+              <button
+                type="button"
+                className="btn btn-secondary"
                 onClick={onClose}
                 disabled={isSubmitting}
               >
-                <FaTimes className="me-1" /> Hủy
+                <FaTimes className="me-2" /> Hủy
               </button>
-              <button 
-                type="submit" 
-                className={`btn ${mode === 'create' ? 'btn-primary' : 'btn-info'}`}
+              <button
+                type="submit"
+                className={`btn btn-${mode === 'create' ? 'primary' : 'info'}`}
                 disabled={isSubmitting}
               >
-                {isSubmitting ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    Đang lưu...
-                  </>
-                ) : (
-                  <>
-                    <FaSave className="me-2" /> {mode === 'create' ? 'Tạo người dùng' : 'Cập nhật'}
-                  </>
-                )}
+                <FaSave className="me-2" /> {isSubmitting ? 'Đang lưu...' : 'Lưu'}
               </button>
             </div>
           </form>
         </div>
-      </div>
-
-      <style jsx>{`
+      </div>      <style jsx>{`
         .modal-backdrop {
-          background-color: rgba(0, 0, 0, 0.8); /* Tăng độ đậm của backdrop */
+          background-color: rgba(0, 0, 0, 0.5);
           position: fixed;
           top: 0;
           left: 0;
@@ -449,161 +622,112 @@ const UserForm: React.FC<UserFormProps> = ({
           justify-content: center;
           overflow-x: hidden;
           overflow-y: auto;
-          animation: fadeIn 0.3s ease;
         }
         
         .modal-dialog {
-          margin: 1rem;
-          max-width: 550px;
           width: 100%;
-          animation: slideDown 0.3s ease;
-          pointer-events: none;
+          max-width: 600px;
+          margin: 1.75rem auto;
         }
         
         .modal-content {
-          border: none;
-          border-radius: 8px;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); /* Tăng độ đậm của shadow */
-          pointer-events: auto;
-          background-color: #fff; /* Đảm bảo nội dung modal có nền trắng đục */
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          background-color: #fff;
+          border-radius: 0.3rem;
+          box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
         }
         
         .modal-header {
-          border-top-left-radius: 8px;
-          border-top-right-radius: 8px;
-          padding: 1rem 1.5rem;
-        }
-        
-        .modal-header .modal-title {
-          color: white;
-          font-weight: 600;
           display: flex;
           align-items: center;
-          font-size: 1.25rem;
-          margin: 0;
-        }
-        
-        .modal-header .btn-close-white {
+          justify-content: space-between;
+          padding: 1rem;
+          border-bottom: 1px solid #dee2e6;
+          border-top-left-radius: 0.3rem;
+          border-top-right-radius: 0.3rem;
           color: white;
-          opacity: 0.8;
         }
         
-        .modal-header .btn-close-white:hover {
-          opacity: 1;
+        .modal-title {
+          margin: 0;
+          line-height: 1.5;
+          font-size: 1.25rem;
+          font-weight: 500;
         }
         
         .modal-body {
-          padding: 1.5rem;
+          position: relative;
+          flex: 1 1 auto;
+          padding: 1rem;
+          max-height: 70vh;
+          overflow-y: auto;
         }
         
-        .modal-footer {
-          padding: 1rem 1.5rem;
-          background-color: #f8f9fa;
-          border-bottom-left-radius: 8px;
-          border-bottom-right-radius: 8px;
-        }
-        
-        .form-group {
-          margin-bottom: 1rem;
-        }
-        
+        /* Add styles for labels */
         .form-label {
+          color: #212529;
           font-weight: 500;
-          display: flex;
-          align-items: center;
-          margin-bottom: 0.5rem;
-          color: #495057;
         }
         
         .icon-form {
-          color: #007bff;
+          color: #0d6efd;
         }
         
-        .form-control, .form-select {
-          padding: 0.5rem 0.75rem;
-          border: 1px solid #ced4da;
-          transition: all 0.2s ease;
+        .form-check-label {
+          color: #212529;
         }
         
-        .form-control:focus, .form-select:focus {
-          box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.15);
-        }
-        
-        .input-group .btn {
+        .modal-footer {
           display: flex;
           align-items: center;
-          justify-content: center;
-          padding: 0.375rem 0.75rem;
-        }
-        
-        .btn {
-          display: inline-flex;
-          align-items: center;
-          font-weight: 500;
-          padding: 0.5rem 1.25rem;
-          transition: all 0.2s ease;
-        }
-        
-        .btn:hover {
-          transform: translateY(-1px);
-        }
-        
-        .btn:active {
-          transform: translateY(0);
-        }
-        
-        .me-1 {
-          margin-right: 0.25rem;
-        }
-        
-        .me-2 {
-          margin-right: 0.5rem;
-        }
-        
-        .mb-3 {
-          margin-bottom: 1rem;
-        }
-
-        .account-status-card {
-          display: flex;
-          align-items: center;
+          justify-content: flex-end;
           padding: 1rem;
-          border-radius: 0.5rem;
-          margin-bottom: 1rem;
-          transition: background-color 0.3s;
+          border-top: 1px solid #dee2e6;
+          border-bottom-right-radius: 0.3rem;
+          border-bottom-left-radius: 0.3rem;
         }
         
-        .account-status-card.active {
-          background-color: #d4edda;
-          border: 1px solid #c3e6cb;
+        .avatar-upload-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
         
-        .account-status-card.inactive {
-          background-color: #f8d7da;
-          border: 1px solid #f5c6cb;
+        .avatar-preview {
+          position: relative;
+          width: 120px;
+          height: 120px;
+          border-radius: 50%;
+          overflow: hidden;
+          background-color: #f0f0f0;
+          border: 3px solid #fff;
+          box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
         }
         
-        .status-icon {
-          margin-right: 1rem;
+        .avatar-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center;
         }
         
-        .status-content {
-          flex-grow: 1;
+        .avatar-uploading {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.5);
+          display: flex;
+          justify-content: center;
+          align-items: center;
         }
         
-        .status-description {
-          margin-top: 0.5rem;
-          color: #6c757d;
-        }
-        
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        
-        @keyframes slideDown {
-          from { transform: translateY(-30px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
+        .icon-form {
+          opacity: 0.7;
         }
       `}</style>
     </div>

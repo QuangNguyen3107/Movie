@@ -3,12 +3,36 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
+import { NextPageWithLayout } from '@/types/next';
+import AdminRoute from '../../components/ProtectedRoute/AdminRoute';
+import AdminLayout from '@/components/Layout/AdminLayout';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
-import { getRolesForAdmin, RoleForAdmin, deleteRoleByAdmin } from '@/API/services/admin/userAdminService';
+import { getRolesForAdmin } from '@/API/services/admin/userAdminService';
 import RoleForm from '@/components/Admin/Users/RoleForm';
 import ConfirmModal from '@/components/Admin/Common/ConfirmModal';
+import axiosInstance from '@/API/config/axiosConfig';
+import { API_URL } from '@/config/API';
 
-const AdminRolesPage: React.FC = () => {
+// Extended RoleForAdmin interface to include permissions
+interface RoleForAdmin {
+  _id: string;
+  name: string;
+  description: string;
+  permissions: string[];
+}
+
+// Function to delete role
+const deleteRoleByAdmin = async (id: string) => {
+  try {
+    const response = await axiosInstance.delete(`${API_URL}/admin/roles/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting role:', error);
+    throw error;
+  }
+};
+
+const AdminRolesPage: NextPageWithLayout = () => {
   const [roles, setRoles] = useState<RoleForAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,13 +40,17 @@ const AdminRolesPage: React.FC = () => {
   const [showRoleForm, setShowRoleForm] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
-
   const fetchRoles = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const rolesData = await getRolesForAdmin();
-      setRoles(rolesData);
+      // Ensure each role has permissions array (empty if not provided)
+      const rolesWithPermissions = rolesData.map((role: any) => ({
+        ...role,
+        permissions: role.permissions || []
+      }));
+      setRoles(rolesWithPermissions);
     } catch (err: any) {
       setError(err.message || 'Không thể tải danh sách vai trò');
       console.error('Error fetching roles:', err);
@@ -204,7 +232,15 @@ const AdminRolesPage: React.FC = () => {
         onConfirm={handleDeleteRole}
         onCancel={() => setShowDeleteModal(false)}
       />
-    </>
+    </>  );
+};
+
+// Thêm getLayout để sử dụng AdminLayout với bảo vệ admin
+AdminRolesPage.getLayout = (page: React.ReactElement) => {
+  return (
+    <AdminRoute>
+      <AdminLayout>{page}</AdminLayout>
+    </AdminRoute>
   );
 };
 

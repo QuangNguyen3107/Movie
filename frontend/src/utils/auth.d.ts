@@ -1,12 +1,12 @@
 // This file provides TypeScript type definitions for auth.js
 import { User } from '../types/user';
 
-declare module '@/utils/auth' {
-  export interface AuthContextType {
+declare module '@/utils/auth' {  export interface AuthContextType {
     user: User | null;
     loading: boolean;
     error: string | null;
     isAuthenticated: boolean;
+    isAdmin: boolean;
     isAccountLocked: boolean;
     showAccountLockedBanner: boolean;
     status: 'loading' | 'authenticated' | 'unauthenticated';

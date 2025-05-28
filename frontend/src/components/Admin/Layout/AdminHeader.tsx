@@ -3,8 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
-  FaBars, 
-  FaBell, 
+  FaBars,  
   FaCog, 
   FaUser, 
   FaSignOutAlt 
@@ -88,20 +87,20 @@ const AdminHeader = () => {
     }
   };
 
-  const toggleNotifications = () => {
-    setShowNotifications(!showNotifications);
-    if (showDropdown) setShowDropdown(false);
-  };
+  // const toggleNotifications = () => {
+  //   setShowNotifications(!showNotifications);
+  //   if (showDropdown) setShowDropdown(false);
+  // };
 
   const toggleUserDropdown = () => {
     setShowDropdown(!showDropdown);
     if (showNotifications) setShowNotifications(false);
   };
 
-  const handleNotificationClose = () => {
-    setShowNotifications(false);
-    fetchUnreadCount(); // Refresh count after closing dropdown
-  };
+  // const handleNotificationClose = () => {
+  //   setShowNotifications(false);
+  //   fetchUnreadCount(); // Refresh count after closing dropdown
+  // };
 
   const getPageTitle = () => {
     const path = router.pathname;
@@ -125,29 +124,7 @@ const AdminHeader = () => {
         </div>
 
         <div className={styles.headerRight}>
-          <div className={styles.notificationContainer}>
-            <button 
-              ref={notificationBtnRef}
-              className={styles.iconButton} 
-              onClick={toggleNotifications}
-              aria-label="Toggle Notifications"
-              aria-expanded={showNotifications}
-            >
-              <FaBell />
-              {unreadCount > 0 && (
-                <span className={styles.badge}>{unreadCount > 99 ? '99+' : unreadCount}</span>
-              )}
-            </button>
-            
-            {showNotifications && (
-              <div className={styles.notificationDropdown}>
-                <NotificationDropdown 
-                  isOpen={true}
-                  onClose={handleNotificationClose} 
-                />
-              </div>
-            )}
-          </div>
+
 
           <div className={styles.userDropdown} ref={userDropdownRef}>
             <button 

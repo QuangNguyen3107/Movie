@@ -99,6 +99,39 @@ advertisementSchema.statics.getRandomAd = async function(type = 'video') {
   return ads[randomIndex];
 };
 
+// Add statics to fetch multiple random ads by type
+advertisementSchema.statics.getMultipleRandomAds = async function(type = 'video', limit = 1) {
+  const now = new Date();
+  // Find all ads that match the criteria
+  const availableAds = await this.find({
+    type,
+    active: true,
+    startDate: { $lte: now },
+    endDate: { $gte: now }
+  });
+
+  if (!availableAds || availableAds.length === 0) return [];
+  
+  // If we have fewer ads than requested, return all available ads
+  if (availableAds.length <= limit) return availableAds;
+  
+  // Get random unique ads up to the limit
+  const selectedAds = [];
+  const availableIndexes = [...Array(availableAds.length).keys()]; // Create array of all indexes
+  
+  // Select random ads until we reach the limit or run out of ads
+  while (selectedAds.length < limit && availableIndexes.length > 0) {
+    const randomPosition = Math.floor(Math.random() * availableIndexes.length);
+    const randomIndex = availableIndexes[randomPosition];
+    
+    // Remove the selected index to avoid duplicates
+    availableIndexes.splice(randomPosition, 1);
+    selectedAds.push(availableAds[randomIndex]);
+  }
+  
+  return selectedAds;
+};
+
 // Add method to increment impression count
 advertisementSchema.methods.logImpression = async function() {
   this.impressions += 1;

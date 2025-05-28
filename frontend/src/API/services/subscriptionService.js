@@ -11,7 +11,7 @@ const subscriptionService = {
       console.error('Error fetching subscription packages:', error);
       throw error;
     }
-  },
+  },  // Removed duplicate getUserAdBenefits method - using the one with improved logging below
 
   // Lấy chi tiết một gói đăng ký
   getPackageById: async (packageId) => {
@@ -100,8 +100,7 @@ const subscriptionService = {
       console.error('Error canceling subscription:', error);
       throw error;
     }
-  },
-  // Lấy thông tin đăng ký hiện tại - sử dụng phương thức tối ưu truy vấn trực tiếp bằng userId và isActive
+  },  // Lấy thông tin đăng ký hiện tại - sử dụng phương thức tối ưu truy vấn trực tiếp bằng userId và isActive
   getCurrentSubscription: async () => {
     try {
       console.log('Fetching current active subscription...');
@@ -123,6 +122,67 @@ const subscriptionService = {
         subscription: null,
         daysLeft: 0,
         isExpired: false
+      };
+    }  },
+    // Lấy thông tin về quyền lợi ẩn quảng cáo dựa trên gói đăng ký của người dùng
+  getUserAdBenefits: async () => {
+    try {
+      // Get token first to check authentication status
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || localStorage.getItem('authToken');
+      
+      console.log('%c[AdBenefits] Fetching user ad benefits based on subscription...', 'color: #4CAF50; font-weight: bold');
+      console.log('%c[AdBenefits] Authentication status:', 'color: #4CAF50; font-weight: bold', token ? 'Authenticated' : 'Not authenticated');
+      
+      if (!token) {
+        console.log('%c[AdBenefits] No authentication token found, skipping API call', 'color: #FFA500; font-weight: bold');
+        return {
+          hideHomepageAds: false,
+          hideVideoAds: false,
+          packageType: null,
+          hasActiveSubscription: false,
+          authError: true
+        };
+      }
+      
+      // Make the API call with proper headers
+      const response = await api.get('/subscription/ad-benefits', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      console.log('%c[AdBenefits] API response:', 'color: #4CAF50; font-weight: bold', response.data);      
+      // Phát hiện gói Premium 15k (682f7d849c310399aa715c9d)
+      const isPremiumPackage = response.data.data?.packageType === '682f7d849c310399aa715c9d';
+      
+      if (isPremiumPackage) {
+        console.log('%c[AdBenefits] GOI 15K PREMIUM DETECTED! Hiding all ads.', 'color: #FF0000; font-weight: bold; font-size: 16px;');
+      }
+      
+      // Return the ad benefits from API or default values if not available
+      return {
+        hideHomepageAds: response.data.data?.hideHomepageAds || isPremiumPackage || false,
+        hideVideoAds: response.data.data?.hideVideoAds || isPremiumPackage || false,
+        packageType: response.data.data?.packageType || null,
+        hasActiveSubscription: response.data.data?.hasActiveSubscription || false,
+        isPremium15k: isPremiumPackage
+      };
+    } catch (error) {
+      console.error('%c[AdBenefits] Error fetching ad benefits:', 'color: #FF0000; font-weight: bold', error);
+      
+      // Check if it's an authentication error
+      const isAuthError = error.response && (error.response.status === 401 || error.response.status === 403);
+      if (isAuthError) {
+        console.warn('%c[AdBenefits] Authentication error detected', 'color: #FF9800; font-weight: bold');
+      }
+      
+      // Default values in case of error
+      return {
+        hideHomepageAds: false,
+        hideVideoAds: false,
+        packageType: null,
+        hasActiveSubscription: false,
+        authError: isAuthError
       };
     }
   },

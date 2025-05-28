@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
+import AdminRoute from '../../components/ProtectedRoute/AdminRoute';
 import { FaCheck, FaTimes, FaEye, FaStar, FaUser, FaFilm, FaClock, FaSync, FaCrown, FaMoneyBillWave, FaCheckCircle, FaTimesCircle, FaHourglassHalf } from 'react-icons/fa';
 import styles from '@/styles/AdminDashboard.module.css';
 import { useTheme } from 'next-themes';
@@ -573,6 +575,7 @@ const AdminPremiumPage: NextPageWithLayout<AdminPremiumPageProps> = () => {
     };
   }, [activeTab, loading, fetchSubscriptions]);
   
+  
   // Handle approving a subscription
   const handleApproveSubscription = async (subscriptionId: string) => {
     try {
@@ -920,9 +923,8 @@ const AdminPremiumPage: NextPageWithLayout<AdminPremiumPageProps> = () => {
               <div className="col-sm-6">
                 <h1 className={styles.headerTitle}>Quản lý Đăng ký Premium</h1>
               </div>
-              <div className="col-sm-6">
-                <ol className={`breadcrumb float-sm-right ${styles.breadcrumb}`}>
-                  <li className="breadcrumb-item"><a href="/admin">Dashboard</a></li>
+              <div className="col-sm-6">                <ol className={`breadcrumb float-sm-right ${styles.breadcrumb}`}>
+                  <li className="breadcrumb-item"><Link href="/admin">Dashboard</Link></li>
                   <li className="breadcrumb-item active">Premium</li>
                 </ol>
               </div>
@@ -1105,9 +1107,13 @@ const AdminPremiumPage: NextPageWithLayout<AdminPremiumPageProps> = () => {
   );
 };
 
-// Add getLayout to use AdminLayout
+// Add getLayout to use AdminLayout with admin protection
 AdminPremiumPage.getLayout = function getLayout(page: React.ReactElement) {
-  return <AdminLayout>{page}</AdminLayout>;
+  return (
+    <AdminRoute>
+      <AdminLayout>{page}</AdminLayout>
+    </AdminRoute>
+  );
 };
 
 export default AdminPremiumPage;

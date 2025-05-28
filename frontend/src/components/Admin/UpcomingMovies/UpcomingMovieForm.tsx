@@ -6,6 +6,7 @@ import BackToListButton from '../Common/BackToListButton';
 import BackToTopButton from '../Common/BackToTopButton';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
+import styles from './UpcomingMovieForm.module.css';
 
 interface UpcomingMovieFormProps {
   movie?: Partial<UpcomingMovie>;
@@ -39,6 +40,18 @@ const UpcomingMovieForm: React.FC<UpcomingMovieFormProps> = ({
     isHidden: false
   });
   
+  // State cho danh sách và input mới
+  const [categories, setCategories] = useState<{id: string; name: string; slug: string;}[]>([]);
+  const [directors, setDirectors] = useState<{id: string; name: string;}[]>([]);
+  const [actors, setActors] = useState<{id: string; name: string;}[]>([]);
+  const [countries, setCountries] = useState<{id: string; name: string; slug: string;}[]>([]);
+  
+  // State cho input mới
+  const [newCategory, setNewCategory] = useState('');
+  const [newDirector, setNewDirector] = useState('');
+  const [newActor, setNewActor] = useState('');
+  const [newCountry, setNewCountry] = useState('');
+  
   const [thumbnailPreview, setThumbnailPreview] = useState<string>(formData.thumb_url || '');
   const [posterPreview, setPosterPreview] = useState<string>(formData.poster_url || '');
   const [activeTab, setActiveTab] = useState('basic');
@@ -48,13 +61,38 @@ const UpcomingMovieForm: React.FC<UpcomingMovieFormProps> = ({
   const [releaseDate, setReleaseDate] = useState<Date | null>(
     movie?.release_date ? new Date(movie.release_date) : new Date()
   );
-
   useEffect(() => {
     if (movie) {
       setThumbnailPreview(movie.thumb_url || '');
       setPosterPreview(movie.poster_url || '');
       if (movie.release_date) {
         setReleaseDate(new Date(movie.release_date));
+      }
+      
+      // Khởi tạo dữ liệu cho danh sách
+      if (movie.category && Array.isArray(movie.category)) {
+        setCategories(movie.category);
+      }
+      
+      if (movie.country && Array.isArray(movie.country)) {
+        setCountries(movie.country);
+      }
+      
+      // Khởi tạo danh sách đạo diễn và diễn viên
+      if (movie.director && Array.isArray(movie.director)) {
+        const directorList = movie.director.map((name, index) => ({
+          id: `director-${index}`,
+          name
+        }));
+        setDirectors(directorList);
+      }
+      
+      if (movie.actor && Array.isArray(movie.actor)) {
+        const actorList = movie.actor.map((name, index) => ({
+          id: `actor-${index}`,
+          name
+        }));
+        setActors(actorList);
       }
     }
     
@@ -81,22 +119,113 @@ const UpcomingMovieForm: React.FC<UpcomingMovieFormProps> = ({
     if (date) {
       setFormData(prev => ({ ...prev, release_date: date }));
     }
-  };
-
-  const handleArrayInputChange = (field: string, value: string) => {
-    if (field === 'actor' || field === 'director') {
-      const items = value.split(',').map(item => item.trim());
-      setFormData(prev => ({ ...prev, [field]: items }));
-    } else {
-      const items = value.split(',').map(item => ({
-        id: Math.random().toString(36).substr(2, 9),
-        name: item.trim(),
-        slug: item.trim().toLowerCase().replace(/ /g, '-')
-      }));
-      setFormData(prev => ({ ...prev, [field]: items }));
+  };  // Using CSS modules instead of inline styles
+  
+  // Hàm xử lý thêm thể loại mới
+  const handleAddCustomCategory = () => {
+    if (!newCategory.trim()) {
+      setErrorMessage('Vui lòng nhập tên thể loại');
+      return;
     }
+    
+    // Tạo ID tạm thời cho thể loại mới
+    const tempId = `custom-${Date.now()}`;
+    
+    // Thêm vào danh sách category
+    const newCategoryObj = { 
+      id: tempId, 
+      name: newCategory.trim(), 
+      slug: newCategory.trim().toLowerCase().replace(/ /g, '-')
+    };
+    
+    // Thêm vào danh sách categories để hiển thị trong UI
+    setCategories(prev => [...prev, newCategoryObj]);
+    
+    // Thêm vào formData
+    setFormData(prev => ({
+      ...prev,
+      category: [...(prev.category || []), newCategoryObj]
+    }));
+    
+    // Reset input
+    setNewCategory('');
   };
-
+  
+  // Hàm xử lý thêm đạo diễn mới
+  const handleAddCustomDirector = () => {
+    if (!newDirector.trim()) {
+      setErrorMessage('Vui lòng nhập tên đạo diễn');
+      return;
+    }
+    
+    // Tạo ID tạm thời cho đạo diễn mới
+    const tempId = `director-${Date.now()}`;
+    
+    // Thêm vào danh sách directors để hiển thị trong UI
+    const directorObj = { id: tempId, name: newDirector.trim() };
+    setDirectors(prev => [...prev, directorObj]);
+    
+    // Thêm vào formData
+    setFormData(prev => ({
+      ...prev,
+      director: [...(prev.director || []), newDirector.trim()]
+    }));
+    
+    // Reset input
+    setNewDirector('');
+  };
+  
+  // Hàm xử lý thêm diễn viên mới
+  const handleAddCustomActor = () => {
+    if (!newActor.trim()) {
+      setErrorMessage('Vui lòng nhập tên diễn viên');
+      return;
+    }
+    
+    // Tạo ID tạm thời cho diễn viên mới
+    const tempId = `actor-${Date.now()}`;
+    
+    // Thêm vào danh sách actors để hiển thị trong UI
+    const actorObj = { id: tempId, name: newActor.trim() };
+    setActors(prev => [...prev, actorObj]);
+    
+    // Thêm vào formData
+    setFormData(prev => ({
+      ...prev,
+      actor: [...(prev.actor || []), newActor.trim()]
+    }));
+    
+    // Reset input
+    setNewActor('');
+  };
+  
+  // Hàm xử lý thêm quốc gia mới
+  const handleAddCustomCountry = () => {
+    if (!newCountry.trim()) {
+      setErrorMessage('Vui lòng nhập tên quốc gia');
+      return;
+    }
+    
+    // Tạo ID tạm thời cho quốc gia mới
+    const tempId = `country-${Date.now()}`;
+    
+    // Thêm vào danh sách countries để hiển thị trong UI
+    const countryObj = { 
+      id: tempId, 
+      name: newCountry.trim(),
+      slug: newCountry.trim().toLowerCase().replace(/ /g, '-')
+    };
+    setCountries(prev => [...prev, countryObj]);
+    
+    // Thêm vào formData
+    setFormData(prev => ({
+      ...prev,
+      country: [...(prev.country || []), countryObj]
+    }));
+    
+    // Reset input
+    setNewCountry('');
+  };
   const handleFileChange = (field: 'thumb_url' | 'poster_url', e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -144,17 +273,18 @@ const UpcomingMovieForm: React.FC<UpcomingMovieFormProps> = ({
 
   return (
     <>
-      <Card className="mb-4">
-        <Card.Header className="bg-primary text-white">
+      <Card className={`mb-4 ${styles.formContainer}`}>
+        <Card.Header className={styles.formHeader}>
           <div className="d-flex justify-content-between align-items-center">
             <BackToListButton listPath="/admin/upcoming-movies" variant="outline-light" />
             <h4 className="mb-0">{movie ? 'Chỉnh sửa phim sắp ra mắt' : 'Thêm phim sắp ra mắt'}</h4>
-            <div style={{ width: '120px' }}></div>
+            <div className={styles.headerSpacing}></div>
           </div>
         </Card.Header>
         <Card.Body>
           {errorMessage && (
-            <Alert variant="danger" className="mb-4">
+            <Alert variant="danger" className={styles.errorAlert}>
+              <span className={styles.errorIcon}><i className="bi bi-exclamation-triangle-fill"></i></span>
               {errorMessage}
             </Alert>
           )}
@@ -162,31 +292,29 @@ const UpcomingMovieForm: React.FC<UpcomingMovieFormProps> = ({
           <Tab.Container id="upcoming-movie-form-tabs" activeKey={activeTab} onSelect={(k) => setActiveTab(k || 'basic')}>
             <Row>
               <Col md={3} className="mb-3">
-                <Nav variant="pills" className="flex-column">
-                  <Nav.Item>
-                    <Nav.Link eventKey="basic" className="mb-2">Thông tin cơ bản</Nav.Link>
+                <Nav variant="pills" className={styles.tabNav}>
+                  <Nav.Item className={styles.tabItem}>
+                    <Nav.Link eventKey="basic" className={`mb-2 ${activeTab === 'basic' ? styles.tabLinkActive : styles.tabLink}`}>Thông tin cơ bản</Nav.Link>
                   </Nav.Item>
-                  <Nav.Item>
-                    <Nav.Link eventKey="details" className="mb-2">Chi tiết phim</Nav.Link>
+                  <Nav.Item className={styles.tabItem}>
+                    <Nav.Link eventKey="details" className={`mb-2 ${activeTab === 'details' ? styles.tabLinkActive : styles.tabLink}`}>Chi tiết phim</Nav.Link>
                   </Nav.Item>
-                  <Nav.Item>
-                    <Nav.Link eventKey="media" className="mb-2">Hình ảnh & Media</Nav.Link>
+                  <Nav.Item className={styles.tabItem}>
+                    <Nav.Link eventKey="media" className={`mb-2 ${activeTab === 'media' ? styles.tabLinkActive : styles.tabLink}`}>Hình ảnh & Media</Nav.Link>
                   </Nav.Item>
-                  <Nav.Item>
-                    <Nav.Link eventKey="preview" className="mb-2">Xem trước</Nav.Link>
+                  <Nav.Item className={styles.tabItem}>
+                    <Nav.Link eventKey="preview" className={`mb-2 ${activeTab === 'preview' ? styles.tabLinkActive : styles.tabLink}`}>Xem trước</Nav.Link>
                   </Nav.Item>
                 </Nav>
-                
-                {(thumbnailPreview || posterPreview) && (
-                  <Card className="mt-4">
-                    <Card.Header className="bg-light">Xem nhanh</Card.Header>
+                  {(thumbnailPreview || posterPreview) && (
+                  <Card className={styles.previewPanel}>
+                    <Card.Header className={styles.formSection}>Xem nhanh</Card.Header>
                     <Card.Body className="text-center">
                       {thumbnailPreview && (
                         <Image 
                           src={thumbnailPreview} 
                           alt="Thumbnail preview" 
-                          style={{ maxWidth: '100%', height: 'auto', maxHeight: '150px' }}
-                          className="mb-2"
+                          className={styles.mediaPreview}
                         />
                       )}
                     </Card.Body>
@@ -199,8 +327,8 @@ const UpcomingMovieForm: React.FC<UpcomingMovieFormProps> = ({
                   <Tab.Content>
                     {/* Basic Information Tab */}
                     <Tab.Pane eventKey="basic">
-                      <Card>
-                        <Card.Header className="bg-light">Thông tin cơ bản</Card.Header>
+                      <Card className={styles.formSection}>
+                        <Card.Header className={styles.formHeader}>Thông tin cơ bản</Card.Header>
                         <Card.Body>
                           <Row>
                             <Col md={6}>
@@ -242,14 +370,15 @@ const UpcomingMovieForm: React.FC<UpcomingMovieFormProps> = ({
                               </Form.Group>
                             </Col>
                             <Col md={6}>
-                              <Form.Group className="mb-3">
-                                <Form.Label>Ngày phát hành <span className="text-danger">*</span></Form.Label>
-                                <DatePicker 
-                                  selected={releaseDate}
-                                  onChange={handleReleaseDateChange}
-                                  className="form-control"
-                                  dateFormat="dd/MM/yyyy"
-                                />
+                              <Form.Group className="mb-3">                                <Form.Label>Ngày phát hành <span className="text-danger">*</span></Form.Label>
+                                <div className={styles.datepickerWrapper}>
+                                  <DatePicker 
+                                    selected={releaseDate}
+                                    onChange={handleReleaseDateChange}
+                                    className={styles.datepickerInput}
+                                    dateFormat="dd/MM/yyyy"
+                                  />
+                                </div>
                               </Form.Group>
                             </Col>
                           </Row>
@@ -301,64 +430,204 @@ const UpcomingMovieForm: React.FC<UpcomingMovieFormProps> = ({
                     {/* Details Tab */}
                     <Tab.Pane eventKey="details">
                       <Card>
-                        <Card.Header className="bg-light">Chi tiết phim</Card.Header>
-                        <Card.Body>
-                          <Row>
-                            <Col md={6}>
+                        <Card.Header className={styles.formHeader}>Chi tiết phim</Card.Header>
+                        <Card.Body>                          <Row>                            <Col md={6}>
                               <Form.Group className="mb-3">
                                 <Form.Label>Thể loại</Form.Label>
-                                <Form.Control
-                                  as="textarea"
-                                  rows={2}
-                                  placeholder="Nhập các thể loại, phân cách bằng dấu phẩy"
-                                  value={formData.category?.map(cat => cat.name).join(', ') || ''}
-                                  onChange={(e) => handleArrayInputChange('category', e.target.value)}
-                                />
-                                <Form.Text className="text-muted">
-                                  Ví dụ: Hành động, Phiêu lưu, Viễn tưởng
-                                </Form.Text>
+                                <div className={styles.categorySelection}>
+                                  <div className={styles.checkboxContainer}>
+                                    {categories.map((category) => (
+                                      <div key={category.id} className={styles.checkboxItem}>
+                                        <input
+                                          type="checkbox"
+                                          id={`category-${category.id}`}
+                                          className="form-check-input"
+                                          checked={formData.category?.some(c => c.id === category.id) || false}
+                                          onChange={(e) => {
+                                            if (e.target.checked) {
+                                              setFormData(prev => ({
+                                                ...prev,
+                                                category: [...(prev.category || []), category]
+                                              }));
+                                            } else {
+                                              setFormData(prev => ({
+                                                ...prev,
+                                                category: (prev.category || []).filter(c => c.id !== category.id)
+                                              }));
+                                            }
+                                          }}
+                                        />
+                                        <label className="form-check-label ms-2" htmlFor={`category-${category.id}`}>
+                                          {category.name}
+                                        </label>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <div className={styles.inputGroup}>
+                                    <Form.Control
+                                      type="text"
+                                      placeholder="Thêm thể loại mới"
+                                      value={newCategory}
+                                      onChange={(e) => setNewCategory(e.target.value)}
+                                      className={styles.addInput}
+                                    />                                    <Button 
+                                      variant="primary"
+                                      onClick={handleAddCustomCategory}
+                                      className={styles.addButton}
+                                    >
+                                      Thêm
+                                    </Button>
+                                  </div>
+                                </div>
                               </Form.Group>
-                            </Col>
-                            <Col md={6}>
+                            </Col>                            <Col md={6}>
                               <Form.Group className="mb-3">
                                 <Form.Label>Quốc gia</Form.Label>
-                                <Form.Control
-                                  as="textarea"
-                                  rows={2}
-                                  placeholder="Nhập các quốc gia, phân cách bằng dấu phẩy"
-                                  value={formData.country?.map(country => country.name).join(', ') || ''}
-                                  onChange={(e) => handleArrayInputChange('country', e.target.value)}
-                                />
-                                <Form.Text className="text-muted">
-                                  Ví dụ: Việt Nam, Mỹ, Hàn Quốc
-                                </Form.Text>
+                                <div className={styles.categorySelection}>
+                                  <div className={styles.checkboxContainer}>
+                                    {countries.map((country) => (
+                                      <div key={country.id} className={styles.checkboxItem}>
+                                        <input
+                                          type="checkbox"
+                                          id={`country-${country.id}`}
+                                          className="form-check-input"
+                                          checked={formData.country?.some(c => c.id === country.id) || false}                                          
+                                          onChange={(e) => {                                            
+                                            if (e.target.checked) {
+                                              setFormData(prev => ({
+                                                ...prev,
+                                                country: [...(prev.country || []), country]
+                                              }));                                            } else {
+                                              setFormData(prev => ({
+                                                ...prev,
+                                                country: (prev.country || []).filter(c => c.id !== country.id)
+                                              }));
+                                            }
+                                          }}
+                                        />
+                                        <label className="form-check-label ms-2" htmlFor={`country-${country.id}`}>
+                                          {country.name}
+                                        </label>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <div className={styles.inputGroup}>
+                                    <Form.Control
+                                      type="text"
+                                      placeholder="Thêm quốc gia mới"
+                                      value={newCountry}
+                                      onChange={(e) => setNewCountry(e.target.value)}
+                                      className={styles.addInput}
+                                    />                                      <Button 
+                                      variant="primary"
+                                      onClick={handleAddCustomCountry}
+                                      className={styles.addButton}
+                                    >
+                                      Thêm
+                                    </Button>
+                                  </div>
+                                </div>
                               </Form.Group>
                             </Col>
                           </Row>
 
-                          <Row>
-                            <Col md={6}>
+                          <Row>                            <Col md={6}>
                               <Form.Group className="mb-3">
                                 <Form.Label>Đạo diễn</Form.Label>
-                                <Form.Control
-                                  as="textarea"
-                                  rows={2}
-                                  placeholder="Nhập tên các đạo diễn, phân cách bằng dấu phẩy"
-                                  value={formData.director?.join(', ') || ''}
-                                  onChange={(e) => handleArrayInputChange('director', e.target.value)}
-                                />
+                                <div className={styles.categorySelection}>
+                                  <div className={styles.checkboxContainer}>
+                                    {directors.map((director) => (
+                                      <div key={director.id} className={styles.checkboxItem}>
+                                        <input
+                                          type="checkbox"
+                                          id={`director-${director.id}`}
+                                          className="form-check-input"
+                                          checked={formData.director?.includes(director.name) || false}
+                                          onChange={(e) => {
+                                            if (e.target.checked) {
+                                              setFormData(prev => ({
+                                                ...prev,
+                                                director: [...(prev.director || []), director.name]
+                                              }));
+                                            } else {
+                                              setFormData(prev => ({
+                                                ...prev,
+                                                director: (prev.director || []).filter(d => d !== director.name)
+                                              }));
+                                            }
+                                          }}
+                                        />
+                                        <label className="form-check-label ms-2" htmlFor={`director-${director.id}`}>
+                                          {director.name}
+                                        </label>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <div className={styles.inputGroup}>
+                                    <Form.Control
+                                      type="text"
+                                      placeholder="Thêm đạo diễn mới"
+                                      value={newDirector}
+                                      onChange={(e) => setNewDirector(e.target.value)}
+                                      className={styles.addInput}
+                                    />                                    <Button 
+                                      variant="primary"
+                                      onClick={handleAddCustomDirector}
+                                      className={styles.addButton}
+                                    >
+                                      Thêm
+                                    </Button>
+                                  </div>
+                                </div>
                               </Form.Group>
-                            </Col>
-                            <Col md={6}>
+                            </Col>                            <Col md={6}>
                               <Form.Group className="mb-3">
                                 <Form.Label>Diễn viên</Form.Label>
-                                <Form.Control
-                                  as="textarea"
-                                  rows={2}
-                                  placeholder="Nhập tên các diễn viên, phân cách bằng dấu phẩy"
-                                  value={formData.actor?.join(', ') || ''}
-                                  onChange={(e) => handleArrayInputChange('actor', e.target.value)}
-                                />
+                                <div className={styles.categorySelection}>
+                                  <div className={styles.checkboxContainer}>
+                                    {actors.map((actor) => (
+                                      <div key={actor.id} className={styles.checkboxItem}>
+                                        <input
+                                          type="checkbox"
+                                          id={`actor-${actor.id}`}
+                                          className="form-check-input"
+                                          checked={formData.actor?.includes(actor.name) || false}
+                                          onChange={(e) => {
+                                            if (e.target.checked) {
+                                              setFormData(prev => ({
+                                                ...prev,
+                                                actor: [...(prev.actor || []), actor.name]
+                                              }));
+                                            } else {
+                                              setFormData(prev => ({
+                                                ...prev,
+                                                actor: (prev.actor || []).filter(a => a !== actor.name)
+                                              }));
+                                            }
+                                          }}
+                                        />
+                                        <label className="form-check-label ms-2" htmlFor={`actor-${actor.id}`}>
+                                          {actor.name}
+                                        </label>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <div className={styles.inputGroup}>
+                                    <Form.Control
+                                      type="text"
+                                      placeholder="Thêm diễn viên mới"
+                                      value={newActor}
+                                      onChange={(e) => setNewActor(e.target.value)}
+                                      className={styles.addInput}
+                                    />                                    <Button 
+                                      variant="primary"
+                                      onClick={handleAddCustomActor}
+                                      className={styles.addButton}
+                                    >
+                                      Thêm
+                                    </Button>
+                                  </div>
+                                </div>
                               </Form.Group>
                             </Col>
                           </Row>
@@ -396,33 +665,34 @@ const UpcomingMovieForm: React.FC<UpcomingMovieFormProps> = ({
                     {/* Media Tab */}
                     <Tab.Pane eventKey="media">
                       <Card>
-                        <Card.Header className="bg-light">Hình ảnh & Media</Card.Header>
+                        <Card.Header className={styles.formHeader}>Hình ảnh & Media</Card.Header>
                         <Card.Body>
                           <Row>
-                            <Col md={6}>
-                              <Form.Group className="mb-3">
+                            <Col md={6}>                              <Form.Group className="mb-3">
                                 <Form.Label>Hình thu nhỏ (Thumbnail)</Form.Label>
-                                <div className="d-flex mb-2">
-                                  <Form.Control
+                                <div className={styles.fileUploadArea}>
+                                  <input
                                     type="file"
                                     accept="image/*"
                                     ref={fileInputRefThumb}
                                     onChange={(e) => handleFileChange('thumb_url', e)}
-                                    className="me-2"
+                                    className={styles.fileInput}
+                                    title="Chọn file hình thu nhỏ"
                                   />
                                   <Button 
-                                    variant="outline-secondary"
+                                    variant="primary"
                                     onClick={() => fileInputRefThumb.current?.click()}
+                                    className={styles.fileButton}
                                   >
                                     Chọn file
                                   </Button>
                                 </div>
                                 {thumbnailPreview && (
-                                  <div className="mt-2">
+                                  <div className="mt-3 text-center">
                                     <Image 
                                       src={thumbnailPreview} 
-                                      alt="Thumbnail preview" 
-                                      style={{ maxWidth: '100%', height: 'auto', maxHeight: '150px' }}
+                                      alt="Thumbnail preview"
+                                      className={styles.imagePreview}
                                     />
                                   </div>
                                 )}
@@ -439,30 +709,30 @@ const UpcomingMovieForm: React.FC<UpcomingMovieFormProps> = ({
                                 />
                               </Form.Group>
                             </Col>
-                            <Col md={6}>
-                              <Form.Group className="mb-3">
+                            <Col md={6}>                              <Form.Group className="mb-3">
                                 <Form.Label>Poster</Form.Label>
-                                <div className="d-flex mb-2">
-                                  <Form.Control
+                                <div className={styles.fileUploadArea}>
+                                  <input
                                     type="file"
                                     accept="image/*"
                                     ref={fileInputRefPoster}
                                     onChange={(e) => handleFileChange('poster_url', e)}
-                                    className="me-2"
+                                    className={styles.fileInput}
+                                    title="Chọn file poster"
                                   />
                                   <Button 
-                                    variant="outline-secondary"
+                                    variant="primary"
                                     onClick={() => fileInputRefPoster.current?.click()}
+                                    className={styles.fileButton}
                                   >
                                     Chọn file
                                   </Button>
-                                </div>
-                                {posterPreview && (
-                                  <div className="mt-2">
+                                </div>                                {posterPreview && (
+                                  <div className="mt-3 text-center">
                                     <Image 
                                       src={posterPreview} 
-                                      alt="Poster preview" 
-                                      style={{ maxWidth: '100%', height: 'auto', maxHeight: '200px' }}
+                                      alt="Poster preview"
+                                      className={styles.imagePreview}
                                     />
                                   </div>
                                 )}
@@ -502,24 +772,23 @@ const UpcomingMovieForm: React.FC<UpcomingMovieFormProps> = ({
                     {/* Preview Tab */}
                     <Tab.Pane eventKey="preview">
                       <Card>
-                        <Card.Header className="bg-light">Xem trước thông tin phim</Card.Header>
+                        <Card.Header className={styles.formHeader}>Xem trước thông tin phim</Card.Header>
                         <Card.Body>
                           <div className="preview-container p-3 bg-light rounded">
                             <h4>{formData.name || 'Tên phim'}</h4>
                             <p className="text-muted">{formData.origin_name || 'Tên gốc'}</p>
                             
                             <Row className="my-3">
-                              <Col md={6}>
-                                <div className="preview-image">
+                              <Col md={6}>                                <div className={thumbnailPreview ? styles.previewImageContainer : styles.noImage}>
                                   {thumbnailPreview ? (
                                     <Image 
                                       src={thumbnailPreview} 
                                       alt="Movie thumbnail" 
-                                      style={{ maxWidth: '100%', height: 'auto', borderRadius: '5px' }}
-                                    />
-                                  ) : (
-                                    <div className="no-image p-5 text-center bg-secondary text-white rounded">
-                                      Chưa có hình thu nhỏ
+                                      className={styles.imagePreview}
+                                    />                                  ) : (
+                                    <div className={styles.noImage}>
+                                      <i className="bi bi-image fs-1 opacity-50"></i>
+                                      <p className={styles.noImageText}>Chưa có hình thu nhỏ</p>
                                     </div>
                                   )}
                                 </div>
@@ -546,38 +815,38 @@ const UpcomingMovieForm: React.FC<UpcomingMovieFormProps> = ({
                         </Card.Body>
                       </Card>
                     </Tab.Pane>
-                  </Tab.Content>
-
-                  <div className="d-flex justify-content-between mt-4">
+                  </Tab.Content>                  <div className={styles.formActions}>
                     <Button 
-                      variant="secondary" 
+                      variant="light" 
                       onClick={onCancel || (() => window.history.back())}
+                      className={styles.cancelButton}
                     >
                       Hủy
                     </Button>
                     <div>
                       {activeTab !== 'basic' && (
                         <Button 
-                          variant="info" 
+                          variant="outline-primary" 
                           className="me-2" 
                           onClick={() => setActiveTab(tabs[tabs.indexOf(activeTab) - 1])}
                         >
-                          Quay lại
+                          <i className="bi bi-arrow-left me-1"></i> Quay lại
                         </Button>
                       )}
                       {activeTab !== 'preview' && (
                         <Button 
-                          variant="info" 
+                          variant="outline-primary" 
                           className="me-2" 
                           onClick={() => setActiveTab(tabs[tabs.indexOf(activeTab) + 1])}
                         >
-                          Tiếp theo
+                          Tiếp theo <i className="bi bi-arrow-right ms-1"></i>
                         </Button>
                       )}
                       <Button 
-                        variant="success" 
+                        variant="primary" 
                         type="submit" 
                         disabled={isSubmitting}
+                        className={styles.submitButton}
                       >
                         {isSubmitting ? 'Đang lưu...' : (movie ? 'Cập nhật' : 'Thêm mới')}
                       </Button>

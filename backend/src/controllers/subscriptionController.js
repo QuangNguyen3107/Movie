@@ -60,6 +60,65 @@ exports.getPackageById = async (req, res) => {
 };
 
 /**
+ * Get ad visibility benefits based on user's subscription
+ */
+exports.getAdBenefits = async (req, res) => {
+  try {
+    // Get authenticated user's ID
+    const userId = req.user._id;
+    
+    // Find the user's active subscription
+    const userSubscription = await UserSubscription.findOne({
+      userId,
+      isActive: true,
+      status: "active",
+      startDate: { $lte: new Date() },
+      endDate: { $gte: new Date() }
+    }).populate('packageId');
+    
+    if (!userSubscription) {
+      // No active subscription
+      return responseHelper.successResponse(res, "User has no active subscription", {
+        hideHomepageAds: false,
+        hideVideoAds: false,
+        packageType: null,
+        hasActiveSubscription: false
+      });
+    }
+    
+    // Get package type to determine ad benefits
+    const packageId = userSubscription.packageId._id.toString();
+    
+    let hideHomepageAds = false;
+    let hideVideoAds = false;
+    
+    // Apply benefits based on package type
+    if (packageId) {
+      // Package 1: Hide only homepage ads
+      if (packageId === process.env.PACKAGE_TYPE_1 || userSubscription.packageId.name.includes('Basic')) {
+        hideHomepageAds = true;
+      }
+      // Package 2: Hide all ads (homepage + video)
+      else if (packageId === process.env.PACKAGE_TYPE_2 || userSubscription.packageId.name.includes('Premium')) {
+        hideHomepageAds = true;
+        hideVideoAds = true;
+      }
+    }
+    
+    return responseHelper.successResponse(res, "Ad benefits retrieved successfully", {
+      hideHomepageAds,
+      hideVideoAds,
+      packageType: packageId,
+      hasActiveSubscription: true
+    });
+  } catch (error) {
+    console.error("Error in getAdBenefits:", error);
+    return responseHelper.serverErrorResponse(res, "Cannot retrieve ad benefits");
+  }
+};
+   
+
+/**
  * Đăng ký gói premium cho người dùng
  */
 exports.subscribePackage = async (req, res) => {
@@ -695,16 +754,34 @@ exports.getUserSubscriptions = async (req, res) => {
  */
 exports.getAllSubscriptions = async (req, res) => {
   try {
-    const subscriptions = await UserSubscription.find()
-      .populate("userId", "name email profilePicture")
+    // Apply filters if provided
+    let filters = {};
+    if (req.query.status) {
+      const statuses = req.query.status.split(',');
+      filters.status = { $in: statuses };
+    }
+    
+    const subscriptions = await UserSubscription.find(filters)
+      .populate("userId", "username email fullName fullname avatar")
       .populate("packageId")
       .populate("paymentId")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 });    // Process subscriptions to normalize user data
+    const processedSubscriptions = subscriptions.map(sub => {
+      const subscription = sub.toObject();
+      
+      // Normalize user data fields for consistency
+      if (subscription.userId) {
+        subscription.userId.fullName = subscription.userId.fullName || subscription.userId.fullname || subscription.userId.username || subscription.userId.name;
+        subscription.userId.avatar = subscription.userId.avatar || subscription.userId.profilePicture || '/img/avatar.png';
+      }
+      
+      return subscription;
+    });
 
     return responseHelper.successResponse(
       res,
       "Lấy danh sách đăng ký thành công",
-      subscriptions
+      processedSubscriptions
     );
   } catch (error) {
     console.error("Error in getAllSubscriptions:", error);

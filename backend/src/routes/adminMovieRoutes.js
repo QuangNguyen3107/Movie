@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const Movie = require('../models/movie');
+const Category = require('../models/category');
 const { isAuthenticated } = require('../middlewares/authMiddleware');
 const { isAdmin } = require('../middlewares/adminMiddleware');
 
@@ -89,6 +90,28 @@ router.get('/movies', async (req, res) => {
     console.error('Error fetching movies for admin panel:', error);
     return res.status(500).json({
       message: 'Failed to fetch movies',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * GET /admin/movies/categories
+ * Get all categories for movies
+ */
+router.get('/movies/categories', async (req, res) => {
+  try {
+    // Get all categories from the Category collection
+    const categories = await Category.find().sort({ name: 1 });
+    
+    return res.status(200).json({
+      message: 'Categories retrieved successfully',
+      categories
+    });
+  } catch (error) {
+    console.error('Error fetching movie categories:', error);
+    return res.status(500).json({
+      message: 'Failed to fetch movie categories',
       error: error.message
     });
   }

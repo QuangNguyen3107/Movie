@@ -211,3 +211,28 @@ export const toggleMovieVisibility = async (movieId: string): Promise<void> => {
     throw error;
   }
 };
+
+// Hàm tạo phim mới
+export const createMovieByAdmin = async (movieData: Record<string, any>): Promise<{movie: Movie, success: boolean}> => {
+  try {
+    // Sử dụng endpoint từ API.js
+    const url = endpoints.admin.movies.create();
+    console.log('Creating movie with URL:', url, 'Data:', movieData);
+    
+    const response = await axiosInstance.post(url, movieData);
+    
+    console.log('Create movie response:', response.data);
+    return response.data;
+  } catch (error: unknown) {
+    console.error('Error creating movie:', error);
+    // Bổ sung thêm log chi tiết để debug
+    if (error && typeof error === 'object' && 'response' in error) {
+      const axiosError = error as {response?: {data: any, status: number}};
+      console.error('Error response data:', axiosError.response?.data);
+      console.error('Error response status:', axiosError.response?.status);
+    } else if (error && typeof error === 'object' && 'request' in error) {
+      console.error('Error request:', (error as {request: any}).request);
+    }
+    throw error;
+  }
+};

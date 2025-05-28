@@ -1,11 +1,12 @@
 // Rate limiting for Next.js API routes
 import { NextApiRequest, NextApiResponse } from 'next';
-import LRU from 'lru-cache';
+// @ts-ignore - LRU cache types compatibility
+const LRU = require('lru-cache');
 
 // Create a cache to store IP-based rate limiting data
 const rateLimit = new LRU({
   max: 500, // Maximum number of items in cache
-  ttl: 60 * 1000, // Time to live: 1 minute
+  maxAge: 60 * 1000, // Time to live: 1 minute (v6 uses maxAge instead of ttl)
 });
 
 /**

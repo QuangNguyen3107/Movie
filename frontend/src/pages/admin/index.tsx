@@ -5,16 +5,24 @@ import Head from 'next/head';
 import Link from 'next/link';
 import Image from 'next/image';
 import styles from '@/styles/AdminDashboard.module.css';
-import { FaFilm, FaChartLine, FaUserPlus, FaChartPie, FaArrowRight, FaEye, FaEdit, FaClock, FaEnvelope, FaBell, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
-import { getDashboardStats, getAnalyticsData, getRecentFeedbacks, getFeedbackStats } from '@/API/services/admin/dashboardService';
+import { FaFilm, FaChartLine, FaUserPlus, FaChartPie, FaArrowRight, FaEye, FaEdit, FaClock, FaEnvelope, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
+import { getDashboardStats, getAnalyticsData, getFeedbackStats } from '@/API/services/admin/dashboardService';
 import { getReportStats } from '@/API/services/admin/reportService'; 
 import AdminLayout from '@/components/Layout/AdminLayout';
+import AdminRoute from '@/components/ProtectedRoute/AdminRoute';
 import dynamic from 'next/dynamic';
 
 // Dynamically import charts to prevent server-side rendering errors
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
-const AdminDashboardPage: React.FC = () => {
+// Import the types from apexcharts
+import ApexCharts from 'apexcharts';
+import { NextPageWithLayout } from '@/types/next';
+
+// Define ApexOptions type
+type ApexOptions = ApexCharts.ApexOptions;
+
+const AdminDashboardPage: NextPageWithLayout = () => {
   const [statistics, setStatistics] = useState({
     totalMovies: 0,
     engagementRate: '0%',
@@ -37,13 +45,44 @@ const AdminDashboardPage: React.FC = () => {
     },
     recentMovies: []
   });
-  const [feedbackData, setFeedbackData] = useState({
-    recent: [],
-    byType: [],
-    byStatus: [],
+  // Định nghĩa các interface cho cấu trúc dữ liệu phản hồi
+interface FeedbackTypeItem {
+  _id: string;
+  count: number;
+}
+
+interface FeedbackStatusItem {
+  _id: string;
+  count: number;
+}
+
+// Define Movie interface
+interface Movie {
+  _id: string;
+  title: string;
+  poster?: string;
+  createdAt: string;
+  views?: number;
+}
+
+// Define Feedback interface for recent feedbacks
+interface Feedback {
+  _id: string;
+  subject: string;
+  name: string;
+  type: string;
+  isRead: boolean;
+  status: string;
+  createdAt: string;
+}
+
+const [feedbackData, setFeedbackData] = useState({
+    recent: [] as Feedback[],
+    byType: [] as FeedbackTypeItem[],
+    byStatus: [] as FeedbackStatusItem[],
     byDay: {
-      labels: [],
-      data: []
+      labels: [] as string[],
+      data: [] as number[]
     }
   });
   
@@ -87,9 +126,9 @@ const AdminDashboardPage: React.FC = () => {
   }, []);
 
   // Chart options for view trends
-  const viewsChartOptions = {
+  const viewsChartOptions: ApexOptions = {
     chart: {
-      type: 'area',
+      type: 'area' as const,
       toolbar: {
         show: false
       },
@@ -146,7 +185,7 @@ const AdminDashboardPage: React.FC = () => {
     tooltip: {
       theme: 'light',
       y: {
-        formatter: (value) => `${value} views`
+        formatter: (value: number) => `${value} views`
       }
     }
   };
@@ -159,9 +198,9 @@ const AdminDashboardPage: React.FC = () => {
   ];
 
   // Chart options for genre distribution
-  const genreChartOptions = {
+  const genreChartOptions: ApexOptions = {
     chart: {
-      type: 'donut',
+      type: 'donut' as const,
       fontFamily: 'inherit',
     },
     colors: ['#3498db', '#2ecc71', '#f39c12', '#e74c3c', '#9b59b6', '#1abc9c', '#34495e'],
@@ -196,9 +235,9 @@ const AdminDashboardPage: React.FC = () => {
   const genreChartSeries = analyticsData.genreDistribution.data;
 
   // Chart options for feedback by day
-  const feedbackChartOptions = {
+  const feedbackChartOptions: ApexOptions = {
     chart: {
-      type: 'bar',
+      type: 'bar' as const,
       toolbar: {
         show: false
       },
@@ -245,7 +284,7 @@ const AdminDashboardPage: React.FC = () => {
     tooltip: {
       theme: 'light',
       y: {
-        formatter: (value) => `${value} feedback`
+        formatter: (value: number) => `${value} feedback`
       }
     }
   };
@@ -258,9 +297,9 @@ const AdminDashboardPage: React.FC = () => {
   ];
 
   // Chart options for feedback by type
-  const feedbackTypeChartOptions = {
+  const feedbackTypeChartOptions: ApexOptions = {
     chart: {
-      type: 'pie',
+      type: 'pie' as const,
       fontFamily: 'inherit',
     },
     colors: ['#3498db', '#2ecc71', '#f39c12', '#e74c3c'],
@@ -307,7 +346,7 @@ const AdminDashboardPage: React.FC = () => {
             <div className="row align-items-center">
               <div className="col-md-6">
                 <h1 className={styles.headerTitle}>Dashboard Overview</h1>
-                <p className={styles.headerSubtitle}>Welcome back! Here's what's happening with your movie platform</p>
+                <p className={styles.headerSubtitle}>Welcome back! </p>
               </div>
               <div className="col-md-6">
                 <ol className={`breadcrumb float-md-end ${styles.breadcrumb}`}>
@@ -630,9 +669,8 @@ const AdminDashboardPage: React.FC = () => {
                       <div className={styles.loadingPlaceholder} style={{ marginBottom: '15px' }}></div>
                     </>
                   ) : (
-                    <>
-                      {analyticsData.recentMovies && analyticsData.recentMovies.length > 0 ? (
-                        analyticsData.recentMovies.slice(0, 3).map((movie: any, index: number) => (
+                    <>                      {analyticsData.recentMovies && analyticsData.recentMovies.length > 0 ? (
+                        analyticsData.recentMovies.slice(0, 3).map((movie: Movie, index: number) => (
                           <div className={styles.recentItem} key={index}>
                             <div className={styles.recentItemImage}>
                               {movie.poster && (
@@ -686,9 +724,8 @@ const AdminDashboardPage: React.FC = () => {
                       <div className={styles.loadingPlaceholder} style={{ marginBottom: '15px' }}></div>
                     </>
                   ) : (
-                    <>
-                      {feedbackData.recent && feedbackData.recent.length > 0 ? (
-                        feedbackData.recent.slice(0, 3).map((feedback: any, index: number) => (
+                    <>                      {feedbackData.recent && feedbackData.recent.length > 0 ? (
+                        feedbackData.recent.slice(0, 3).map((feedback: Feedback, index: number) => (
                           <div className={styles.recentItem} key={index}>
                             <div className={`${styles.recentItemImage} ${styles.feedbackIcon}`}>
                               {feedback.isRead ? (
@@ -745,9 +782,13 @@ const AdminDashboardPage: React.FC = () => {
   );
 };
 
-// Thêm getLayout để sử dụng AdminLayout
+// Thêm getLayout để sử dụng AdminLayout với bảo vệ admin
 AdminDashboardPage.getLayout = (page: React.ReactElement) => {
-  return <AdminLayout>{page}</AdminLayout>;
+  return (
+    <AdminRoute>
+      <AdminLayout>{page}</AdminLayout>
+    </AdminRoute>
+  );
 };
 
 export default AdminDashboardPage;
