@@ -26,8 +26,10 @@ export default function Layout({ children }) {
                           !router.pathname.startsWith('/account/') &&
                           !router.pathname.startsWith('/payment/') &&
                           router.pathname !== '/noaccess' &&
-                          !hideHomepageAds; // Don't show ads if user has premium
-    
+                          router.pathname !== '/profile' &&
+                           router.pathname !== '/premium' &&
+                            router.pathname !== '/search' &&
+                          !hideHomepageAds;
     console.log('[Layout] Should show ads:', shouldShowAds, 'hideHomepageAds:', hideHomepageAds, 'pathname:', router.pathname);
     setShowAds(shouldShowAds);
   }, [router.pathname, isAuthPage, isAdminPage, hideHomepageAds]);

@@ -17,11 +17,11 @@ import { registerServiceWorker } from "../utils/serviceWorker";
 function MyApp({ Component, pageProps: { session, ...pageProps } }) {
   const router = useRouter();
   const [user, setUser] = useState(null);
-  const [isInitialized, setIsInitialized] = useState(false);
-  // Khởi tạo Bootstrap JS chỉ ở phía client để tránh lỗi hydration
+  const [isInitialized, setIsInitialized] = useState(false);  // Khởi tạo Bootstrap JS chỉ ở phía client để tránh lỗi hydration
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      import("bootstrap/dist/js/bootstrap.bundle.min.js");
+      // Sử dụng require thay vì dynamic import để tránh lỗi chunk loading
+      require("bootstrap/dist/js/bootstrap.bundle.min.js");
       
       // Register service worker for offline functionality
       registerServiceWorker();

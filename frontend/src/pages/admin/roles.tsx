@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
+import { NextPageWithLayout } from '@/types/next';
 import AdminRoute from '../../components/ProtectedRoute/AdminRoute';
 import AdminLayout from '@/components/Layout/AdminLayout';
 import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
@@ -31,7 +32,7 @@ const deleteRoleByAdmin = async (id: string) => {
   }
 };
 
-const AdminRolesPage: React.FC = () => {
+const AdminRolesPage: NextPageWithLayout = () => {
   const [roles, setRoles] = useState<RoleForAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

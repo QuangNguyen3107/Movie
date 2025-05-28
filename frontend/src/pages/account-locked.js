@@ -27,9 +27,7 @@ export default function AccountLockedPage() {
   const handleLogout = () => {
     console.log("Logout button clicked");
     if (isRedirecting) return;
-    
     setIsRedirecting(true);
-    
     try {
       // Xóa dữ liệu xác thực
       if (typeof window !== 'undefined') {
@@ -79,14 +77,110 @@ export default function AccountLockedPage() {
       alert("Có lỗi xảy ra khi đăng xuất. Vui lòng tải lại trang.");
     }
   };
-  
-  // Ngăn chặn yêu cầu dữ liệu liên tục từ Next.js
+    // Ngăn chặn yêu cầu dữ liệu liên tục và API requests
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    console.log("Đã kích hoạt cơ chế chặn request");
     
     // Đặt cờ trong localStorage và cookie để các trang khác biết tài khoản bị khóa
     localStorage.setItem('isAccountLocked', 'true');
     setCookie('isAccountLocked', 'true', 7); // Lưu cookie trong 7 ngày
+    // Biến để đếm và kiểm soát tốc độ request
+    let requestCount = 0;
+    const MAX_REQUESTS = 50; // Giới hạn tổng số request
+    const requestLog = {};
+    
+    // Tạo thông báo nếu đã đạt giới hạn request
+    const showRateLimitMessage = () => {
+      // Kiểm tra xem đã hiển thị thông báo chưa
+      if (!document.getElementById('rate-limit-message')) {
+        const message = document.createElement('div');
+        message.id = 'rate-limit-message';
+        message.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: #e50914;
+          color: white;
+          padding: 15px;
+          border-radius: 5px;
+          z-index: 9999;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        `;
+        message.innerText = 'Quá nhiều yêu cầu được gửi. Hệ thống đang bị giới hạn.';
+        document.body.appendChild(message);
+        
+        // Tự động ẩn sau 5 giây
+        setTimeout(() => {
+          if (message && message.parentNode) {
+            message.parentNode.removeChild(message);
+          }
+        }, 5000);
+      }
+    };
+    
+    // Chặn XMLHttpRequests (AJAX)
+    const originalXHR = window.XMLHttpRequest;
+    window.XMLHttpRequest = function() {
+      const xhr = new originalXHR();
+      const originalOpen = xhr.open;
+      
+      xhr.open = function(method, url) {
+        // Kiểm tra và giới hạn tốc độ request
+        if (requestCount >= MAX_REQUESTS) {
+          console.log('Đạt giới hạn số lượng request, từ chối:', url);
+          showRateLimitMessage();
+          
+          // Giả lập yêu cầu thất bại
+          setTimeout(() => {
+            if (xhr.onabort) xhr.onabort();
+          }, 0);
+          
+          return;
+        }
+        
+        // Kiểm tra nếu là API request
+        if (typeof url === 'string' && (url.includes('/api/') || url.includes('/auth/'))) {
+          console.log('Chặn XHR request:', url);
+          requestCount++;
+          
+          // Theo dõi số lượng request theo domain
+          const domain = url.split('/').slice(0, 3).join('/');
+          requestLog[domain] = (requestLog[domain] || 0) + 1;
+          
+          // Kiểm tra nếu một domain cụ thể có quá nhiều request
+          if (requestLog[domain] > 10) {
+            console.warn('Phát hiện spam từ domain:', domain);
+            showRateLimitMessage();
+          }
+          
+          // Giả lập request thất bại
+          setTimeout(() => {
+            if (xhr.onreadystatechange) {
+              xhr.readyState = 4;
+              xhr.status = 403;
+              xhr.responseText = JSON.stringify({ 
+                blocked: true, 
+                message: 'Tài khoản đã bị khóa', 
+                status: 403 
+              });
+              xhr.onreadystatechange();
+            }
+            
+            if (xhr.onerror) xhr.onerror(new Error('Request blocked'));
+          }, 500);
+          
+          // Prevent the actual request
+          return;
+        }
+        
+        // Cho phép các request không phải API
+        originalOpen.apply(this, arguments);
+      };
+      
+      return xhr;
+    };
     
     // Chặn điều hướng back
     const preventBackNavigation = () => {
@@ -94,18 +188,35 @@ export default function AccountLockedPage() {
     };
     window.history.pushState(null, '', window.location.href);
     window.addEventListener('popstate', preventBackNavigation);
-    
-    // Chặn các yêu cầu Next.js data
+      // Chặn tất cả các yêu cầu API và Next.js data
     const originalFetch = window.fetch;
     window.fetch = function(url, options) {
-      // Chặn các yêu cầu đến /_next/data
-      if (typeof url === 'string' && url.includes('/_next/data')) {
+      // Kiểm tra nếu đây là yêu cầu API hoặc Next.js data
+      if (typeof url === 'string' && (
+        url.includes('/_next/data') || 
+        url.includes('/api/') || 
+        url.includes('/auth/') ||
+        (options?.headers?.Authorization || 
+         (options?.headers && options?.headers.get && options?.headers.get('Authorization')))
+      )) {
         console.log('Chặn yêu cầu:', url);
-        return Promise.resolve(new Response(JSON.stringify({ blocked: true }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        }));
+        
+        // Giả lập delay để tránh spam quá nhanh
+        return new Promise(resolve => {
+          setTimeout(() => {
+            resolve(new Response(JSON.stringify({ 
+              blocked: true, 
+              message: 'Tài khoản đã bị khóa', 
+              status: 403 
+            }), {
+              status: 403,
+              headers: { 'Content-Type': 'application/json' }
+            }));
+          }, 500); // Delay 500ms mỗi request để giảm tải server
+        });
       }
+      
+      // Cho phép các request không phải API đi qua (như CSS, images...)
       return originalFetch(url, options);
     };
     
@@ -113,6 +224,7 @@ export default function AccountLockedPage() {
     return () => {
       window.removeEventListener('popstate', preventBackNavigation);
       window.fetch = originalFetch;
+      window.XMLHttpRequest = originalXHR;
     };
   }, []);
   

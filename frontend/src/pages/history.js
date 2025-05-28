@@ -573,6 +573,7 @@ export function HistoryContent({ inProfilePage = false }) {
         .history-button.play {
           background:rgba(94, 89, 90, 0.34);
           color: white;
+          margin-left: 100px;
         }
         
         .history-button.play:hover {
@@ -583,6 +584,8 @@ export function HistoryContent({ inProfilePage = false }) {
         .history-button.remove {
           background: rgba(100, 96, 96, 0.23);
           color: white;
+          margin-top: 200px;  
+          margin-right : 20px;
         }
         
         .history-button.remove:hover {

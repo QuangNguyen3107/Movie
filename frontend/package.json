@@ -19,7 +19,7 @@
     "admin-lte": "^4.0.0-beta3",
     "apexcharts": "^4.7.0",
     "axios": "^1.8.4",
-    "bootstrap": "^5.3.5",
+    "bootstrap": "5.3.2",
     "chart.js": "^4.4.9",
     "dayjs": "^1.11.13",
     "firebase": "^11.6.1",

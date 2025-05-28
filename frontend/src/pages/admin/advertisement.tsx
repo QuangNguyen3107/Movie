@@ -316,7 +316,7 @@ const AdvertisementPage = () => {
     <AdminLayout>
       <div className="container-fluid px-4">
         <div className="d-sm-flex align-items-center justify-content-between mb-4">
-          <h1 className="h3 mb-0 text-gray-800">Quản lý Quảng Cáo</h1>
+          <h1 className="h3 mb-0 text-black fw-bold">Quản lý Quảng Cáo</h1>
           <button
             className="btn btn-primary"
             onClick={() => handleOpenModal()}

@@ -1,0 +1,114 @@
+================================================================================
+             HỆ THỐNG XEM PHIM & TÌM KIẾM THÔNG MINH (GIỚI THIỆU DỰ ÁN)
+================================================================================
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│                     TỔNG QUAN HỆ THỐNG MOVIESTREAMING                     │
+└───────────────────────────────────────────────────────────────────────────┘
+
+                           ┌──────────┐
+                  ┌────────┤Người Dùng│───────┐
+                  │        └──────────┘       │
+                  │                           │
+             Tìm Kiếm                    Xem Chi Tiết
+                  │                           │
+                  ▼                           ▼
+         ┌─────────────────┐         ┌─────────────────┐
+         │                 │         │                 │
+         │  Frontend UI    │         │  Movie Player   │
+         │  (Next.js)      │         │  UI (Next.js)   │
+         │                 │         │                 │
+         └────────┬────────┘         └────────┬────────┘
+                  │                           │
+             API Request                 API Request
+                  │                           │
+                  ▼                           ▼
+         ┌─────────────────┐         ┌─────────────────┐
+         │                 │         │                 │
+         │  API Gateway    │         │  API Gateway    │
+         │  (Node.js)      │         │  (Node.js)      │
+         │                 │         │                 │
+         └────────┬────────┘         └────────┬────────┘
+                  │                           │
+                  ▼                           ▼
+         ┌─────────────────┐         ┌─────────────────┐
+         │                 │         │                 │
+         │  Search         │         │  Movie          │
+         │  Controller     │         │  Controller     │
+         │                 │         │                 │
+         └────────┬────────┘         └────────┬────────┘
+                  │                           │
+                  ▼                           │
+         ┌─────────────────┐                  │
+         │                 │                  │
+         │  Elasticsearch  │                  │
+         │  Service        │                  │
+         │                 │                  │
+         └────────┬────────┘                  │
+                  │                           │
+          ┌───────┴───────┐                   │
+          │               │                   │
+          ▼               ▼                   │
+┌─────────────────┐ ┌─────────────┐          │
+│                 │ │             │          │
+│  Elasticsearch  │ │  MongoDB    │          │
+│  Index          │ │  Fallback   │          │
+│                 │ │             │          │
+└────────┬────────┘ └─────┬───────┘          │
+         │                │                  │
+         └────────────────┼──────────────────┘
+                          │
+                          ▼
+                 ┌─────────────────┐
+                 │                 │
+                 │     MongoDB     │
+                 │ (Main Database) │
+                 │                 │
+                 └─────────────────┘
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│                     CÔNG NGHỆ SỬ DỤNG TRONG DỰ ÁN                         │
+└───────────────────────────────────────────────────────────────────────────┘
+
+FRONTEND:                           BACKEND:
+-----------------------             -----------------------
+• Next.js                           • Node.js / Express
+• React                             • MongoDB (Database chính)
+• TypeScript                        • Elasticsearch (Tìm kiếm nâng cao)
+• Context API (State Management)    • JWT Authentication
+• Bootstrap / CSS Modules           • RESTful API
+• Responsive Design                 • External API Integration
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│                           TÍNH NĂNG CHÍNH                                 │
+└───────────────────────────────────────────────────────────────────────────┘
+
+• TÌM KIẾM THÔNG MINH:              • XEM PHIM:
+  - Multi-field search                - Video player đa server
+  - Tìm kiếm mờ (fuzzy)               - Chất lượng đa dạng (HD, FullHD)
+  - Lọc theo thể loại, quốc gia       - Quản lý tập phim
+  - Auto-suggestions                  - Hỗ trợ phụ đề
+
+• TRẢI NGHIỆM NGƯỜI DÙNG:           • TÍNH NĂNG NÂNG CAO:
+  - Giao diện thân thiện              - Fallback mechanism khi ES lỗi
+  - Responsive design                 - Caching và tối ưu hiệu suất
+  - Dark mode                         - Admin dashboard
+  - Phim đề xuất thông minh           - Crawling data từ nguồn ngoài
+
+┌───────────────────────────────────────────────────────────────────────────┐
+│                           LƯU Ý KIẾN TRÚC                                 │
+└───────────────────────────────────────────────────────────────────────────┘
+
+• Search Controller sử dụng Elasticsearch cho tìm kiếm hiệu quả với MongoDB
+  làm fallback khi Elasticsearch không khả dụng.
+
+• Movie Controller truy cập trực tiếp vào MongoDB để lấy chi tiết phim,
+  không thông qua Elasticsearch hay MongoDB Fallback.
+
+• Dữ liệu phim được đồng bộ từ nguồn ngoài (ophim1.com) vào MongoDB và
+  sau đó được đánh index vào Elasticsearch.
+
+• Hệ thống được thiết kế với khả năng mở rộng cao và có thể xử lý lượng
+  truy cập lớn.
+
+================================================================================
