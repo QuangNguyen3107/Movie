@@ -115,10 +115,9 @@ const UserRatingDetails = ({ movieSlug }) => {
     
     setFilteredRatings(result);
   }, [selectedStarFilter, userRatings, sortOrder]);
-
   // Format avatar URLs consistently
   const getAvatarUrl = (avatar) => {
-    if (!avatar) return "/img/user-avatar.png";
+    if (!avatar) return "/img/avatar.png";
     
     let avatarUrl = avatar;
     
@@ -134,8 +133,10 @@ const UserRatingDetails = ({ movieSlug }) => {
       avatarUrl = `${baseWithoutApi}${avatarUrl}`;
     }
     
-    // Add timestamp to avoid browser caching for non-default avatars
-    if (!avatarUrl.includes('?') && !avatarUrl.includes('user-avatar.png')) {
+    // Only add cache-busting for non-external URLs (exclude Google, Cloudinary, etc.)
+    if (!avatarUrl.includes('?') && 
+        !avatarUrl.includes('googleusercontent.com') && 
+        !avatarUrl.includes('cloudinary.com')) {
       avatarUrl = `${avatarUrl}?t=${Date.now()}`;
     }
     
@@ -287,14 +288,13 @@ const UserRatingDetails = ({ movieSlug }) => {
                   key={rating.id} 
                   className={`${styles.ratingItem} ${selectedStarFilter > 0 ? styles.highlighted : ''}`}
                 >
-                  <div className={styles.userInfo}>
-                    <img 
+                  <div className={styles.userInfo}>                    <img 
                       src={rating.user.avatar}
                       alt={rating.user.username}
                       className={styles.userAvatar}
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = "/img/user-avatar.png";
+                        e.target.src = "/img/avatar.png";
                       }}
                       loading="lazy"
                     />

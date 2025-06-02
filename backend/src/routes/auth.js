@@ -905,15 +905,10 @@ router.post("/google-login", async (req, res) => {
       if (userByEmail) {
         console.log("Tìm thấy người dùng đã tồn tại:", userByEmail.email);
         
-        // Check if user has a password - if they do, we should not automatically link them
-        if (userByEmail.password) {
-          console.log("⚠️ Người dùng đã tồn tại với mật khẩu, không tự động liên kết");
-          return res.status(400).json({
-            error: "Email này đã được đăng ký với mật khẩu. Vui lòng đăng nhập bằng mật khẩu hoặc sử dụng email khác cho tài khoản Google."
-          });
-        }
+        // Cho phép liên kết tài khoản nếu email trùng khớp, bất kể có mật khẩu hay không
+        console.log("Cập nhật Google ID cho tài khoản hiện có");
         
-        // If user exists with email but no googleId and no password, update their account
+        // If user exists with email, update their account with Google ID
         console.log("Cập nhật Google ID cho tài khoản hiện có");
         userByEmail.googleId = googleId;
         

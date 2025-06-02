@@ -34,9 +34,13 @@ exports.getDashboardStats = async (req, res) => {
     
     // Đếm tổng số bình luận
     const totalComments = await Comment.countDocuments();
-    
-    // Đếm tổng số lượt xem
+      // Đếm tổng số lượt xem
     const totalViews = await MovieView.countDocuments();
+    
+    // Đếm số lượt xem trong 1 tuần gần đây (để tính engagement rate)
+    const recentViews = await MovieView.countDocuments({
+      createdAt: { $gte: lastWeek }
+    });
     
     // Đếm số lượt báo cáo (comments có isReported = true)
     const reportedComments = await Comment.countDocuments({ isReported: true });
@@ -44,13 +48,12 @@ exports.getDashboardStats = async (req, res) => {
     // Đếm tổng số feedback và số feedback chưa đọc
     const totalFeedbacks = await Feedback.countDocuments();
     const unreadFeedbacks = await Feedback.countDocuments({ isRead: false });
-    
-    // Tỷ lệ tương tác (views/totalUsers) nếu có dữ liệu
-    let engagementRate = '0%';
+      // Tính trung bình số lượt xem của 1 user trong 1 tuần
+    let engagementRate = '0.00';
     if (totalUsers > 0) {
-      // Tính tỷ lệ và làm tròn đến 1 số thập phân
-      const rate = (totalViews / totalUsers) * 100;
-      engagementRate = Math.round(rate) + '%';
+      // Tính trung bình lượt xem mỗi người dùng trong tuần qua
+      const rate = recentViews / totalUsers;
+      engagementRate = Math.round(rate) 
     }
 
     // Tạo response data
@@ -312,10 +315,15 @@ exports.getAnalyticsData = async (req, res) => {
     const totalViews = await MovieView.countDocuments();
     const reportedComments = await Comment.countDocuments({ isReported: true });
     const totalFeedbacks = await Feedback.countDocuments();
-    const unreadFeedbacks = await Feedback.countDocuments({ isRead: false });
+    const unreadFeedbacks = await Feedback.countDocuments({ isRead: false });    // Đếm số lượt xem trong 1 tuần gần đây (để tính engagement rate)
+    const recentViewsForAnalytics = await MovieView.countDocuments({
+      createdAt: { $gte: lastWeek }
+    });
+    
+    // Tính trung bình số lượt xem của 1 user trong 1 tuần
     const engagementRate = totalUsers > 0 
-      ? Math.round((totalViews / totalUsers) * 100) + '%' 
-      : '0%';
+      ? (recentViewsForAnalytics / totalUsers).toFixed(2)
+      : '0.00';
 
     // Lấy dữ liệu lượt xem theo ngày
     const days = 7;

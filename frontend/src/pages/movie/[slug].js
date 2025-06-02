@@ -326,8 +326,8 @@ const MovieDetail = ({ slug: slugProp }) => {
   const [error, setError] = useState(null);
   const [selectedServer, setSelectedServer] = useState(0);
   const [selectedEpisode, setSelectedEpisode] = useState(0);
-  const [selectedQuality, setSelectedQuality] = useState('auto');
-  const [relatedMovies, setRelatedMovies] = useState([]);
+  const [selectedQuality, setSelectedQuality] = useState('auto');  const [relatedMovies, setRelatedMovies] = useState([]);
+  const [similarNameMovies, setSimilarNameMovies] = useState([]);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [user, setUser] = useState(null);
@@ -815,9 +815,38 @@ const MovieDetail = ({ slug: slugProp }) => {
           // Fetch user's personal rating if user is logged in
           if (user) {
             fetchUserRating();
-          }
-          
-          // Fetch related movies by category
+          }          // Fetch movies with similar names and combine with category movies
+          let similarNameMovies = [];
+          if (movieData.name) {
+            try {
+              // Extract the main part of the movie name (before season/part numbers)
+              const mainMovieName = movieData.name.replace(/ (phần|season|mùa|tập) \d+/gi, '').trim();
+              console.log("Searching for movies with similar names:", mainMovieName);
+              
+              // Search for movies with similar names
+              const similarNameResponse = await fetch(`http://localhost:5000/api/search?q=${encodeURIComponent(mainMovieName)}&size=8`);
+              const similarNameResult = await similarNameResponse.json();
+              console.log("Similar name search result:", similarNameResult);
+              
+              if (similarNameResult.success && similarNameResult.hits) {
+                // Filter out the current movie and limit to 4 movies
+                // Use a Set of slugs to prevent duplicate movie entries
+                const seenSlugs = new Set([slug]); // Add current movie slug to prevent showing it
+                similarNameMovies = similarNameResult.hits
+                  .filter(similar => {
+                    // Skip if this is the current movie or we've seen this slug before
+                    if (seenSlugs.has(similar.slug)) return false;
+                    // Add to seen set and keep this movie
+                    seenSlugs.add(similar.slug);
+                    return true;
+                  })
+                  .slice(0, 5);
+                console.log("Found similar name movies:", similarNameMovies);
+              }
+            } catch (similarNameError) {
+              console.error("Error fetching movies with similar names:", similarNameError);
+            }
+          }          // Fetch related movies by category and combine with similar name movies
           if (movieData.category && movieData.category.length > 0) {
             try {
               // Get first category name
@@ -829,13 +858,44 @@ const MovieDetail = ({ slug: slugProp }) => {
               }
               
               // Fetch related movies by category
-              const relatedResponse = await fetch(`http://localhost:5000/api/movies?category=${encodeURIComponent(categoryName)}&limit=10`);
+              const relatedResponse = await fetch(`http://localhost:5000/api/movies?category=${encodeURIComponent(categoryName)}&limit=20`);
               const relatedResult = await relatedResponse.json();
               
               if (relatedResult.data && relatedResult.data.movies) {
-                // Filter out the current movie from related movies
-                const filteredRelated = relatedResult.data.movies.filter(related => related.slug !== slug);
-                setRelatedMovies(filteredRelated);
+                // Create a Set of all slugs we've already seen to prevent duplicates
+                const seenSlugs = new Set([slug, ...similarNameMovies.map(movie => movie.slug)]);
+                
+                // Filter out the current movie, similar name movies, and any duplicates
+                const categoryMovies = relatedResult.data.movies
+                  .filter(related => {
+                    // Skip if we've already seen this slug
+                    if (seenSlugs.has(related.slug)) return false;
+                    // Add to seen set and keep this movie
+                    seenSlugs.add(related.slug);
+                    return true;
+                  })
+                  .slice(0, 12); // Get up to 12 category movies to ensure we have enough content
+                
+                // Combine similar name movies (first) with category movies
+                const combinedMovies = [...similarNameMovies, ...categoryMovies];
+                console.log("Combined movies (similar names + category):", combinedMovies.length);
+                
+                // Check for any potential duplicates in the final list
+                const finalMovies = [];
+                const finalSeenSlugs = new Set();
+                
+                combinedMovies.forEach(movie => {
+                  if (!finalSeenSlugs.has(movie.slug)) {
+                    finalSeenSlugs.add(movie.slug);
+                    finalMovies.push(movie);
+                  }
+                });
+                
+                console.log("Final movies after deduplication:", finalMovies.length);
+                
+                // Set both states for backward compatibility
+                setSimilarNameMovies(similarNameMovies);
+                setRelatedMovies(finalMovies);
               }
             } catch (relatedError) {
               console.error("Error fetching related movies:", relatedError);
@@ -2080,28 +2140,26 @@ if (!user) {
       toast.error(error.response?.data?.error || "Có lỗi xảy ra khi lưu bình luận.");
     }
   };
-
   // Function to get properly formatted avatar URL (same as in Navbar)
   const getAvatarUrl = (avatar) => {
-    if (!avatar) return "/img/user-avatar.png";
+    if (!avatar) return "/img/avatar.png";
     
-    // Use provided avatar URL
     let avatarUrl = avatar;
     
-    // Convert relative paths to absolute URLs
+    // Handle relative paths for local avatars
     if (avatarUrl && avatarUrl.startsWith('/')) {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-      // Remove /api part if it exists in baseUrl
       const baseWithoutApi = baseUrl.endsWith('/api') 
         ? baseUrl.substring(0, baseUrl.length - 4) 
         : baseUrl;
       
-      // Create full URL
       avatarUrl = `${baseWithoutApi}${avatarUrl}`;
     }
     
-    // Add timestamp to avoid browser caching
-    if (!avatarUrl.includes('?')) {
+    // Only add cache-busting for non-external URLs (exclude Google, Cloudinary, etc.)
+    if (!avatarUrl.includes('?') && 
+        !avatarUrl.includes('googleusercontent.com') && 
+        !avatarUrl.includes('cloudinary.com')) {
       avatarUrl = `${avatarUrl}?t=${Date.now()}`;
     }
     
@@ -2148,7 +2206,7 @@ if (!user) {
       setLoadingRecommendations(true);
       
       // Get the user's history data
-      const historyData = await historyService.getUserHistory(5, 1);
+      const historyData = await historyService.getUserHistory(10, 1);
       
       if (!historyData || !historyData.histories || historyData.histories.length === 0) {
         console.log("No history found to base recommendations on");
@@ -2174,8 +2232,7 @@ if (!user) {
       categories.forEach(category => {
         categoryCounts[category] = (categoryCounts[category] || 0) + 1;
       });
-      
-      // Sort categories by frequency
+        // Sort categories by frequency
       const sortedCategories = Object.keys(categoryCounts).sort(
         (a, b) => categoryCounts[b] - categoryCounts[a]
       );
@@ -2187,27 +2244,60 @@ if (!user) {
         return;
       }
       
-      // Use the most watched category to fetch recommendations
-      const topCategory = sortedCategories[0];
-      const response = await fetch(`http://localhost:5000/api/movies?category=${encodeURIComponent(topCategory)}&limit=10`);
+      // Get watched movie slugs to filter out
+      const watchedMovieSlugs = new Set();
+      historyData.histories.forEach(item => {
+        if (item.movieData && item.movieData.slug) {
+          watchedMovieSlugs.add(item.movieData.slug);
+        }
+      });
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch recommendations: ${response.status}`);
+      // Use top 2 most watched categories to fetch recommendations
+      const topCategories = sortedCategories.slice(0, 2);
+      console.log("Using top categories for recommendations:", topCategories);
+      
+      const allRecommendations = [];
+      
+      // Fetch movies from each top category
+      for (const category of topCategories) {
+        try {
+          const response = await fetch(`http://localhost:5000/api/movies?category=${encodeURIComponent(category)}&limit=15`);
+          
+          if (response.ok) {
+            const result = await response.json();
+            if (result.data && result.data.movies) {
+              allRecommendations.push(...result.data.movies);
+            }
+          }
+        } catch (error) {
+          console.error(`Error fetching movies for category ${category}:`, error);
+        }
       }
       
-      const result = await response.json();
-      
-      if (result.data && result.data.movies) {
-        // Filter out movies that are the current movie
-        const filteredRecommendations = result.data.movies.filter(movie => movie.slug !== slug);
-        
-        // Filter out movies that appear in the related movies list
-        const relatedSlugs = new Set(relatedMovies.map(movie => movie.slug));
-        const uniqueRecommendations = filteredRecommendations.filter(
-          movie => !relatedSlugs.has(movie.slug)
+      if (allRecommendations.length > 0) {
+        // Remove duplicates based on slug
+        const uniqueMovies = allRecommendations.filter((movie, index, self) => 
+          index === self.findIndex(m => m.slug === movie.slug)
         );
         
-        setHistoryRecommendations(uniqueRecommendations);
+        // Filter out current movie, related movies, and watched movies
+        const relatedSlugs = new Set(relatedMovies.map(movie => movie.slug));
+        const filteredRecommendations = uniqueMovies.filter(movie => 
+          movie.slug !== slug && 
+          !relatedSlugs.has(movie.slug) &&
+          !watchedMovieSlugs.has(movie.slug)
+        );
+        
+        // Limit to 20 recommendations and shuffle for variety
+        const shuffledRecommendations = filteredRecommendations
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 20);
+        
+        console.log(`Found ${filteredRecommendations.length} unique recommendations, showing ${shuffledRecommendations.length}`);
+        setHistoryRecommendations(shuffledRecommendations);
+      } else {
+        console.log("No recommendations found from top categories");
+        setHistoryRecommendations([]);
       }
     } catch (error) {
       console.error("Error fetching history-based recommendations:", error);
@@ -2687,12 +2777,14 @@ if (!user) {
                     Thu gọn <i className="bi bi-arrow-up-circle-fill" style={{ color: '#dc3545', marginLeft: '5px' }}></i>
                   </button>
                 )}
-              </div>
-            </div>
-
+              </div>            </div>             {/* Movies of Same Genre Section (includes similar name movies) */}
              {Array.isArray(relatedMovies) && relatedMovies.length > 0 ? (
               <div className={`mt-5 mb-5 ${contentLoaded ? styles.contentLoaded : styles.contentLoading}`}>
-                <h3 className={styles.relatedMoviesTitle}>Phim Cùng Thể Loại </h3>
+                <h3 className={styles.relatedMoviesTitle}>
+                  Phim Cùng Thể Loại
+                  
+                  
+                </h3>
                   <div className={styles.relatedMoviesContainer} ref={scrollContainerRef}>
                   <Slider {...sliderSettings} className={styles.slickSlider}>
                     {relatedMovies.map((movie) => (
@@ -2708,6 +2800,7 @@ if (!user) {
                             className={styles.movieLink}
                             onClick={preventClickDuringDrag}
                             draggable={false}
+
                           >
                             <div className={styles.relatedMoviePoster} draggable={false}>
                               <img
@@ -2868,13 +2961,12 @@ if (!user) {
                 {comments.length > 0 ? (
                   comments.map((comment, index) => (
                     <div key={index} className={styles.commentItem}>
-                      <div className={styles.commentHeader}>
-                        <img
-                          src={comment.avatar || "/img/user-avatar.png"}
+                      <div className={styles.commentHeader}>                        <img
+                          src={comment.avatar || "/img/avatar.png"}
                           alt={comment.username}
                           className={styles.commentAvatar}
                           onError={(e) => {
-                            e.target.src = "/img/user-avatar.png";
+                            e.target.src = "/img/avatar.png";
                           }}
                         />
                         <div className={styles.commentDetails}>

@@ -112,15 +112,8 @@ const BannerAd = ({ position = 'top', maxAds = 3 }) => {
   const handleClose = () => {
     setClosed(true);
   };
-
-  // Add more detailed logging before deciding whether to render
+  // Determine whether to render the ad
   const shouldRender = ads.length > 0 && !closed;
-  console.log(`%c[BannerAd ${position}] Render decision:`, 'color: purple;', {
-    hasAds: ads.length,
-    isClosed: closed,
-    willRender: shouldRender,
-    position
-  });
 
   // Don't render if there are no ads or it's been closed
   if (!shouldRender) {

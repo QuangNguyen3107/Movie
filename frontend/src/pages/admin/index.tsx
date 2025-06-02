@@ -384,14 +384,13 @@ const [feedbackData, setFeedbackData] = useState({
                     {loading ? (
                       <div className={styles.loadingPlaceholder}></div>
                     ) : (
-                      <h3 className={styles.statsTitle}>{statistics.engagementRate}</h3>
+                      <h3 className={styles.statsTitle}>{statistics.engagementRate}<span style={{ fontSize: '1.4rem', opacity: 0.9}}>👁/User</span></h3>
+                      
                     )}
-                    <p className={styles.statsSubtitle}>Engagement Rate</p>
+                    <p className={styles.statsSubtitle}>Interaction rate in 1 week</p>
                   </div>
                   <FaChartLine className={styles.statsIcon} />
-                  <Link href="/admin/analytics" className={styles.statsFooter}>
-                    View Details <FaArrowRight />
-                  </Link>
+                  
                 </div>
               </div>
 

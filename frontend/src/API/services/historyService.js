@@ -91,7 +91,7 @@ const historyService = {
           pages: historyData.pages || 1,
           histories: historyData.histories || []
         };
-      } else if (response.data) {
+      } else if (response.data && response.data.histories) {
         // Support original format
         const historyData = response.data;
         console.log("History items received:", historyData.histories?.length || 0);
@@ -100,6 +100,17 @@ const historyService = {
           page: historyData.page || page,
           pages: historyData.pages || 1,
           histories: historyData.histories || []
+        };
+      } else if (response.data && response.data.success && response.data.message === "Lấy lịch sử xem phim thành công") {
+        // Support another response format where histories may be directly in the response
+        console.log("Direct history format detected");
+        const histories = response.data.histories || [];
+        console.log("Direct history items received:", histories.length);
+        return {
+          total: response.data.total || histories.length,
+          page: response.data.page || page,
+          pages: response.data.pages || 1,
+          histories: histories
         };
       }
       
