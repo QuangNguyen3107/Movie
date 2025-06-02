@@ -486,42 +486,75 @@ function preprocessQuery(query) {
   let extractedDirector = null;
   let extractedActor = null;
   
+  // Kiểm tra nếu query là một từ khóa ngắn hoặc là một phần của tên phim
+  // thì bỏ qua việc xử lý tiền xử lý phức tạp và trực tiếp trả về query gốc
+  if (original.length < 15 && !original.includes(' ')) {
+    return { 
+      original, 
+      processed: original, 
+      intent: 'general',
+      year: null,
+      genre: null,
+      country: null,
+      director: null,
+      actor: null
+    };
+  }
+  
   // Nhận diện ý định tìm kiếm từ câu truy vấn với các mẫu đa dạng hơn
   
-  // Mẫu nhận dạng năm - thêm nhiều cách diễn đạt khác nhau
+  // Mẫu nhận dạng năm - chỉ áp dụng nếu có từ khóa chỉ định rõ ràng
   const yearPatterns = [
-    /\b(phim |movie |film )?(năm|year|in|của năm|from|from year|xuất bản năm|sản xuất năm|ra mắt năm|công chiếu năm)?\s?(\d{4})\b/i,
+    /\b(phim |movie |film )(năm|year|in|của năm|from|from year|xuất bản năm|sản xuất năm|ra mắt năm|công chiếu năm)\s?(\d{4})\b/i,
     /\bnăm (\d{4})\b/i,
-    /\b(\d{4})\b/i, // Nhận dạng số 4 chữ số độc lập như là năm
   ];
   
-  // Mẫu nhận dạng thể loại - thêm nhiều biến thể
+  // Mẫu nhận dạng thể loại - chỉ áp dụng khi có từ khóa định danh
   const genrePatterns = [
-    /\b(phim |movie |film )?(thể loại|genre|loại|kiểu|dạng|chủ đề|thể loại phim|loại phim|kiểu phim|phim loại)\s+([a-zA-ZÀ-ỹ\s]+)(phim)?\b/i,
+    /\b(phim |movie |film )(thể loại|genre|loại|kiểu|dạng|chủ đề|thể loại phim|loại phim|kiểu phim|phim loại)\s+([a-zA-ZÀ-ỹ\s]+)(phim)?\b/i,
     /\b(phim|movie|film) ([a-zA-ZÀ-ỹ\s]+) (thể loại|genre|loại|kiểu|dạng|chủ đề)\b/i,
-    /\b(phim|movie|film)?\s*(hành động|tình cảm|hài hước|kinh dị|viễn tưởng|phiêu lưu|hoạt hình|cổ trang|võ thuật|tâm lý|hình sự|chiến tranh|âm nhạc|thần thoại|khoa học|thể thao)\b/i,
   ];
   
-  // Mẫu nhận dạng quốc gia - thêm nhiều biến thể
+  // Mẫu nhận dạng quốc gia - chỉ áp dụng khi có từ khóa định danh
   const countryPatterns = [
-    /\b(phim |movie |film )?(quốc gia|country|nước|đất nước|của|xuất xứ|nguồn gốc|sản xuất tại)\s+([a-zA-ZÀ-ỹ\s]+)\b/i,
+    /\b(phim |movie |film )(quốc gia|country|nước|đất nước|của|xuất xứ|nguồn gốc|sản xuất tại)\s+([a-zA-ZÀ-ỹ\s]+)\b/i,
     /\b(phim|movie|film) ([a-zA-ZÀ-ỹ\s]+) (quốc gia|country|nước|đất nước)\b/i,
-    /\b(phim|movie|film)?\s*(việt nam|mỹ|hàn quốc|nhật bản|trung quốc|hồng kông|thái lan|ấn độ|anh|pháp|đài loan|úc)\b/i,
   ];
   
-  // Mẫu nhận dạng đạo diễn - thêm nhiều biến thể
+  // Mẫu nhận dạng đạo diễn - chỉ áp dụng khi có từ khóa định danh
   const directorPatterns = [
-    /\b(phim |movie |film )?(đạo diễn|director|của đạo diễn|do đạo diễn)\s+([a-zA-ZÀ-ỹ\s]+)\b/i,
+    /\b(phim |movie |film )(đạo diễn|director|của đạo diễn|do đạo diễn)\s+([a-zA-ZÀ-ỹ\s]+)\b/i,
     /\b(đạo diễn|director) ([a-zA-ZÀ-ỹ\s]+)\b/i,
-    /\b([a-zA-ZÀ-ỹ\s]+) (đạo diễn|làm đạo diễn|chỉ đạo)\b/i,
   ];
   
-  // Mẫu nhận dạng diễn viên - thêm nhiều biến thể
+  // Mẫu nhận dạng diễn viên - chỉ áp dụng khi có từ khóa định danh
   const actorPatterns = [
-    /\b(phim |movie |film )?(diễn viên|actor|có diễn viên|với diễn viên|starring|với sự tham gia của|diễn xuất bởi|do diễn viên)\s+([a-zA-ZÀ-ỹ\s]+)\b/i,
+    /\b(phim |movie |film )(diễn viên|actor|có diễn viên|với diễn viên|starring|với sự tham gia của|diễn xuất bởi|do diễn viên)\s+([a-zA-ZÀ-ỹ\s]+)\b/i,
     /\bdo ([a-zA-ZÀ-ỹ\s]+) (đóng|thủ vai|diễn xuất|thể hiện)\b/i,
-    /\bcủa ([a-zA-ZÀ-ỹ\s]+)\b/i,
   ];
+  // Kiểm tra xem câu truy vấn có phải là một từ khóa đặc biệt không
+  // Nếu là từ khóa đặc biệt như "nguồn gốc" thì không cần xử lý pattern
+  const specialKeywords = [
+    'nguồn gốc', 'nguồn', 'gốc', 'nguồn gốc tội lỗi', 'nguồn gốc đại chiến',
+    'nguyên tác', 'tác giả', 'gốc gác', 'bối cảnh', 'cội nguồn', 'xuất xứ'
+  ];
+  
+  // Kiểm tra xem query có phải là từ khóa đặc biệt không
+  const isSpecialKeyword = specialKeywords.some(keyword => 
+    original.toLowerCase().includes(keyword.toLowerCase()));
+  
+  if (isSpecialKeyword) {
+    return {
+      original,
+      processed: original,
+      intent: 'general',
+      year: null,
+      genre: null,
+      country: null,
+      director: null,
+      actor: null
+    };
+  }
 
   // Trích xuất năm
   for (const pattern of yearPatterns) {
@@ -529,7 +562,9 @@ function preprocessQuery(query) {
     if (yearMatch) {
       // Lấy số năm từ kết quả match, tùy thuộc vào mẫu pattern
       extractedYear = yearMatch[3] || yearMatch[1];
-      processed = processed.replace(pattern, ' ').trim();
+      // Lưu lại phần văn bản gốc trước khi thay thế
+      const originalText = yearMatch[0];
+      processed = processed.replace(originalText, ' ').trim();
       intent = intent === 'general' ? 'year_search' : 'complex_search';
       break;
     }
@@ -543,7 +578,9 @@ function preprocessQuery(query) {
       extractedGenre = genreMatch[3] || genreMatch[2];
       if (extractedGenre) {
         extractedGenre = extractedGenre.trim();
-        processed = processed.replace(pattern, ' ').trim();
+        // Lưu lại phần văn bản gốc trước khi thay thế
+        const originalText = genreMatch[0];
+        processed = processed.replace(originalText, ' ').trim();
         intent = intent === 'general' ? 'genre_search' : 'complex_search';
         break;
       }
@@ -558,21 +595,23 @@ function preprocessQuery(query) {
       extractedCountry = countryMatch[3] || countryMatch[2];
       if (extractedCountry) {
         extractedCountry = extractedCountry.trim();
-        processed = processed.replace(pattern, ' ').trim();
+        // Lưu lại phần văn bản gốc trước khi thay thế
+        const originalText = countryMatch[0];
+        processed = processed.replace(originalText, ' ').trim();
         intent = intent === 'general' ? 'country_search' : 'complex_search';
         break;
       }
     }
   }
-  
-  // Trích xuất đạo diễn
+    // Trích xuất đạo diễn
   for (const pattern of directorPatterns) {
     const directorMatch = processed.match(pattern);
     if (directorMatch) {
       extractedDirector = directorMatch[3] || directorMatch[2];
       if (extractedDirector) {
         extractedDirector = extractedDirector.trim();
-        processed = processed.replace(pattern, ' ').trim();
+        const originalText = directorMatch[0];
+        processed = processed.replace(originalText, ' ').trim();
         intent = intent === 'general' ? 'director_search' : 'complex_search';
         break;
       }
@@ -586,7 +625,8 @@ function preprocessQuery(query) {
       extractedActor = actorMatch[3] || actorMatch[2] || actorMatch[1];
       if (extractedActor) {
         extractedActor = extractedActor.trim();
-        processed = processed.replace(pattern, ' ').trim();
+        const originalText = actorMatch[0];
+        processed = processed.replace(originalText, ' ').trim();
         intent = intent === 'general' ? 'actor_search' : 'complex_search';
         break;
       }
@@ -778,7 +818,7 @@ function preprocessQuery(query) {
  * @returns {Object} - Truy vấn Elasticsearch
  */
 function buildSearchQuery(queryInfo, field, filters) {
-  const { processed, intent, year, genre, country, director, actor } = queryInfo;
+  const { original, processed, intent, year, genre, country, director, actor } = queryInfo;
   
   // Kiểm tra xem có tìm kiếm theo content hay không
   const searchDescription = filters.search_description === true || filters.search_description === 'true';
@@ -851,8 +891,7 @@ function buildSearchQuery(queryInfo, field, filters) {
     } else {
       searchBody.query.bool.must.push({ match: { [field]: processed } });
     }
-  } 
-  // Xử lý truy vấn đa trường với trọng số nếu không chỉ định trường cụ thể
+  }   // Xử lý truy vấn đa trường với trọng số nếu không chỉ định trường cụ thể
   else if (processed) {
     // Điều chỉnh trọng số cho content khi tìm kiếm nội dung
     const contentBoost = searchDescription ? 3 : 1;
@@ -862,35 +901,94 @@ function buildSearchQuery(queryInfo, field, filters) {
       [`name^5`, `origin_name^4`, `content^${contentBoost}`, `actor^3.5`, `director^3.5`] :
       [`name^4`, `origin_name^3`, `content^${contentBoost}`, `actor^2`, `director^2`];
     
+    // Nếu processed và original khác nhau (đã qua tiền xử lý), 
+    // sử dụng cả hai để đảm bảo tìm kiếm chính xác
+    const queryToUse = queryInfo.original !== processed && queryInfo.original.length > 0 
+      ? queryInfo.original 
+      : processed;
+    
     searchBody.query.bool.must.push({
       multi_match: {
-        query: processed,
+        query: queryToUse,
         fields: searchFields,
         type: 'best_fields',
         fuzziness: 'AUTO',
         prefix_length: 1
       }
     });
-    
-    // Nếu tìm kiếm theo mô tả, thêm trọng số cho các match trong content
+      // Nếu tìm kiếm theo mô tả, thêm trọng số cho các match trong content
     if (searchDescription) {
       searchBody.query.bool.should.push({
         match: {
           content: {
-            query: processed,
+            query: queryToUse,
             boost: 1.5
+          }
+        }
+      });
+      
+      // Khi tìm theo mô tả, thêm tìm kiếm match_phrase cho content
+      searchBody.query.bool.should.push({
+        match_phrase: {
+          content: {
+            query: queryToUse,
+            boost: 2,
+            slop: 3
           }
         }
       });
     }
     
-    // Thêm yếu tố tăng cường cho tên phim chính xác
+    // Tìm kiếm diễn viên chính xác
+    searchBody.query.bool.should.push({
+      match_phrase: {
+        actor: {
+          query: queryToUse,
+          boost: 4,
+          slop: 0
+        }
+      }
+    });
+    
+    // Tìm kiếm đạo diễn chính xác
+    searchBody.query.bool.should.push({
+      match_phrase: {
+        director: {
+          query: queryToUse,
+          boost: 4,
+          slop: 0
+        }
+      }
+    });
+      // Thêm yếu tố tăng cường cho tên phim chính xác
     searchBody.query.bool.should.push({
       match_phrase: {
         name: {
-          query: processed,
+          query: queryToUse,
           boost: 5,
           slop: 1
+        }
+      }
+    });
+    
+    // Tìm phim có tên tiếng Việt gần giống
+    searchBody.query.bool.should.push({
+      match_phrase: {
+        name: {
+          query: queryToUse,
+          boost: 3,
+          slop: 2  // Cho phép thay đổi vị trí từ
+        }
+      }
+    });
+    
+    // Tìm phim có tên gốc gần giống
+    searchBody.query.bool.should.push({
+      match_phrase: {
+        origin_name: {
+          query: queryToUse,
+          boost: 2.5,
+          slop: 2
         }
       }
     });
@@ -1062,39 +1160,62 @@ function buildSearchQuery(queryInfo, field, filters) {
  * @param {number} limit - Số lượng gợi ý tối đa
  * @returns {Promise<Array>} - Danh sách gợi ý
  */
-async function getSuggestions(query, limit = 5) {
-  if (!client) throw new Error('Elasticsearch client not initialized. Call initClient() first.');
-  if (!query || query.trim().length < 2) return [];
+async function getSuggestions(query, limit = 10) {
+  if (!client) {
+    debugLog('Elasticsearch client not initialized for suggestions');
+    return [];
+  }
+  if (!query || query.trim().length < 1) return [];
 
-  const processedQuery = preprocessQuery(query);
-  const actualQuery = processedQuery.processed || query.trim();
-
+  // Sử dụng trực tiếp từ khóa gốc, không qua tiền xử lý phức tạp
+  const originalQuery = query.trim();
+  
   try {
-    // Xây dựng truy vấn để lấy gợi ý
+    // Xây dựng truy vấn để lấy gợi ý với nhiều chiến lược khác nhau
     const searchParams = {
       index: INDEX_NAME,
-      size: limit,
+      size: Math.min(50, limit * 5), // Lấy nhiều kết quả hơn để có nhiều gợi ý
       body: {
         query: {
           bool: {
             should: [
-              // Tìm trong tên phim với trọng số cao
+              // Tìm tên phim bắt đầu với từ khóa (độ ưu tiên cao nhất)
               {
                 match_phrase_prefix: {
                   name: {
-                    query: actualQuery,
-                    max_expansions: 10,
-                    boost: 5
+                    query: originalQuery,
+                    max_expansions: 20,
+                    boost: 10
                   }
                 }
               },
-              // Tìm trong tên gốc với trọng số thấp hơn
+              // Tìm tên gốc bắt đầu với từ khóa
               {
                 match_phrase_prefix: {
                   origin_name: {
-                    query: actualQuery,
-                    max_expansions: 5,
-                    boost: 3
+                    query: originalQuery,
+                    max_expansions: 15,
+                    boost: 8
+                  }
+                }
+              },
+              // Tìm tên phim chứa từ khóa (fuzzy matching)
+              {
+                match: {
+                  name: {
+                    query: originalQuery,
+                    fuzziness: "AUTO",
+                    boost: 6
+                  }
+                }
+              },
+              // Tìm tên gốc chứa từ khóa
+              {
+                match: {
+                  origin_name: {
+                    query: originalQuery,
+                    fuzziness: "AUTO",
+                    boost: 5
                   }
                 }
               },
@@ -1102,9 +1223,9 @@ async function getSuggestions(query, limit = 5) {
               {
                 match_phrase_prefix: {
                   actor: {
-                    query: actualQuery,
-                    max_expansions: 5,
-                    boost: 2
+                    query: originalQuery,
+                    max_expansions: 10,
+                    boost: 4
                   }
                 }
               },
@@ -1112,85 +1233,155 @@ async function getSuggestions(query, limit = 5) {
               {
                 match_phrase_prefix: {
                   director: {
-                    query: actualQuery,
-                    max_expansions: 5,
-                    boost: 2
+                    query: originalQuery,
+                    max_expansions: 10,
+                    boost: 4
+                  }
+                }
+              },
+              // Tìm wildcard cho các trường hợp đặc biệt
+              {
+                wildcard: {
+                  name: {
+                    value: `*${originalQuery.toLowerCase()}*`,
+                    boost: 3
                   }
                 }
               }
             ]
           }
         },
-        _source: ["name", "origin_name", "slug", "actor", "director"]
+        _source: ["name", "origin_name", "slug", "actor", "director", "category", "country"],
+        sort: [
+          "_score",
+          { "view": { "order": "desc" } }
+        ]
       }
     };
 
+    debugLog('Suggestions search params:', JSON.stringify(searchParams, null, 2));
     const response = await client.search(searchParams);
     
-    // Tạo danh sách gợi ý duy nhất
-    const suggestions = new Set();
+    // Tạo danh sách gợi ý với thứ tự ưu tiên
+    const suggestions = [];
+    const suggestionSet = new Set(); // Để tránh trùng lặp
     
-    // Thêm tên phim vào gợi ý
+    // Xử lý kết quả từ Elasticsearch
     response.body.hits.hits.forEach(hit => {
-      // Thêm tên phim vào gợi ý nếu có
-      if (hit._source.name) {
-        suggestions.add(hit._source.name);
+      const source = hit._source;
+      
+      // 1. Thêm tên phim (ưu tiên cao nhất)
+      if (source.name && !suggestionSet.has(source.name.toLowerCase())) {
+        suggestions.push({
+          text: source.name,
+          type: 'movie',
+          score: hit._score,
+          slug: source.slug
+        });
+        suggestionSet.add(source.name.toLowerCase());
       }
       
-      // Nếu tên gốc khác tên phim và phù hợp với từ khóa, thêm vào
-      if (hit._source.origin_name && 
-          hit._source.origin_name !== hit._source.name &&
-          typeof hit._source.origin_name === 'string' &&
-          hit._source.origin_name.toLowerCase().includes(actualQuery.toLowerCase())) {
-        suggestions.add(hit._source.origin_name);
+      // 2. Thêm tên gốc nếu khác tên phim
+      if (source.origin_name && 
+          source.origin_name !== source.name &&
+          !suggestionSet.has(source.origin_name.toLowerCase())) {
+        suggestions.push({
+          text: source.origin_name,
+          type: 'original_name',
+          score: hit._score * 0.8,
+          slug: source.slug
+        });
+        suggestionSet.add(source.origin_name.toLowerCase());
       }
       
-      // Trích xuất diễn viên và đạo diễn nếu phù hợp
-      if (hit._source.actor && 
-          typeof hit._source.actor === 'string' &&
-          actualQuery.length > 3 && 
-          hit._source.actor.toLowerCase().includes(actualQuery.toLowerCase())) {
-        // Chỉ lấy các tên diễn viên phù hợp
-        const actorNames = hit._source.actor.split(',')
+      // 3. Thêm diễn viên nếu phù hợp với từ khóa
+      if (source.actor && typeof source.actor === 'string' && originalQuery.length >= 2) {
+        const actorNames = source.actor.split(',')
           .map(a => a.trim())
-          .filter(a => a.toLowerCase().includes(actualQuery.toLowerCase()));
+          .filter(a => a.toLowerCase().includes(originalQuery.toLowerCase()) && 
+                      a.length <= 50 && 
+                      !suggestionSet.has(a.toLowerCase()));
         
-        // Thêm vào gợi ý nếu độ dài phù hợp
         actorNames.forEach(actor => {
-          if (actor.length < 30) suggestions.add(actor);
+          if (actor.length > 1) {
+            suggestions.push({
+              text: actor,
+              type: 'actor',
+              score: hit._score * 0.6
+            });
+            suggestionSet.add(actor.toLowerCase());
+          }
         });
       }
       
-      if (hit._source.director && 
-          typeof hit._source.director === 'string' &&
-          actualQuery.length > 3 && 
-          hit._source.director.toLowerCase().includes(actualQuery.toLowerCase())) {
-        // Xử lý tương tự với đạo diễn
-        const directorNames = hit._source.director.split(',')
+      // 4. Thêm đạo diễn nếu phù hợp với từ khóa
+      if (source.director && typeof source.director === 'string' && originalQuery.length >= 2) {
+        const directorNames = source.director.split(',')
           .map(d => d.trim())
-          .filter(d => d.toLowerCase().includes(actualQuery.toLowerCase()));
+          .filter(d => d.toLowerCase().includes(originalQuery.toLowerCase()) && 
+                      d.length <= 50 && 
+                      !suggestionSet.has(d.toLowerCase()));
         
         directorNames.forEach(director => {
-          if (director.length < 30) suggestions.add(director);
+          if (director.length > 1) {
+            suggestions.push({
+              text: director,
+              type: 'director',
+              score: hit._score * 0.6
+            });
+            suggestionSet.add(director.toLowerCase());
+          }
         });
       }
     });
     
-    // Thêm các gợi ý với từ khóa thông minh
-    // Nếu query ngắn thì thêm các gợi ý phổ biến
-    if (actualQuery.length <= 3) {
-      // Thêm các gợi ý cho từ khóa ngắn
-      if (actualQuery.match(/^ph/i)) suggestions.add("Phim hành động");
-      if (actualQuery.match(/^ha/i)) suggestions.add("Hành động");
-      if (actualQuery.match(/^ki/i)) suggestions.add("Kinh dị");
-      if (actualQuery.match(/^ti/i)) suggestions.add("Tình cảm");
-      if (actualQuery.match(/^ho/i)) suggestions.add("Hoạt hình");
-      if (actualQuery.match(/^vi/i)) suggestions.add("Viễn tưởng");
+    // 5. Thêm gợi ý thông minh cho từ khóa ngắn
+    if (originalQuery.length <= 3) {
+      const smartSuggestions = [];
+      const lowerQuery = originalQuery.toLowerCase();
+      
+      if (lowerQuery.startsWith('ph')) smartSuggestions.push('Phim hành động', 'Phim tình cảm', 'Phim kinh dị');
+      if (lowerQuery.startsWith('ha')) smartSuggestions.push('Hành động', 'Hài hước');
+      if (lowerQuery.startsWith('ki')) smartSuggestions.push('Kinh dị');
+      if (lowerQuery.startsWith('ti')) smartSuggestions.push('Tình cảm');
+      if (lowerQuery.startsWith('ho')) smartSuggestions.push('Hoạt hình', 'Hài hước');
+      if (lowerQuery.startsWith('vi')) smartSuggestions.push('Viễn tưởng');
+      if (lowerQuery.startsWith('co')) smartSuggestions.push('Cổ trang');
+      if (lowerQuery.startsWith('vo')) smartSuggestions.push('Võ thuật');
+      if (lowerQuery.startsWith('ch')) smartSuggestions.push('Chiến tranh');
+      if (lowerQuery.startsWith('am')) smartSuggestions.push('Âm nhạc');
+      
+      smartSuggestions.forEach(suggestion => {
+        if (!suggestionSet.has(suggestion.toLowerCase())) {
+          suggestions.push({
+            text: suggestion,
+            type: 'category',
+            score: 1
+          });
+          suggestionSet.add(suggestion.toLowerCase());
+        }
+      });
     }
     
-    return Array.from(suggestions).slice(0, limit);
+    // Sắp xếp theo điểm số và loại
+    suggestions.sort((a, b) => {
+      // Ưu tiên theo loại: movie > original_name > category > actor > director
+      const typeOrder = { movie: 5, original_name: 4, category: 3, actor: 2, director: 1 };
+      const aOrder = typeOrder[a.type] || 0;
+      const bOrder = typeOrder[b.type] || 0;
+      
+      if (aOrder !== bOrder) return bOrder - aOrder;
+      return b.score - a.score;
+    });
+    
+    // Trả về chỉ text của gợi ý, giới hạn số lượng
+    const finalSuggestions = suggestions.slice(0, limit).map(s => s.text);
+    
+    debugLog(`Generated ${finalSuggestions.length} suggestions for query "${originalQuery}":`, finalSuggestions);
+    return finalSuggestions;
+    
   } catch (error) {
-    // Đã loại bỏ console.log error chi tiết ở đây
+    console.error('Error in getSuggestions:', error);
     return [];
   }
 }

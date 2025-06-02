@@ -204,16 +204,13 @@ export const AdContextProvider = ({ children }) => {
         clearTimeout(benefitsTimeoutRef.current);
       }
     };
-  }, [isAuthenticated]); // Phụ thuộc vào trạng thái xác thực
-  // Apply overrides for special pages that should never show ads
+  }, [isAuthenticated]); // Phụ thuộc vào trạng thái xác thực  // Apply overrides for special pages that should never show ads
   const finalAdSettings = {
     ...adSettings,
     // Force hide all ads on noaccess page
     hideHomepageAds: isNoAccessPage ? true : adSettings.hideHomepageAds,
     hideVideoAds: isNoAccessPage ? true : adSettings.hideVideoAds,
   };
-
-  console.log(`[AdContext] Final ad settings for ${router.pathname}:`, finalAdSettings);
 
   return (
     <AdContext.Provider value={finalAdSettings}>

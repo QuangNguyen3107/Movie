@@ -1529,7 +1529,8 @@ export default function ProfilePage() {
           <div className="weekly-stats">
             <div className="weekly-chart">
               {statsData.weeklyActivity.map((hours, index) => (
-                <div key={index} className="chart-bar-container">                  <div 
+                <div key={index} className="chart-bar-container">                  
+                <div 
                     className="chart-bar" 
                     style={{ 
                       height: `${Math.min(hours * 15, 150)}px`,
@@ -1537,7 +1538,9 @@ export default function ProfilePage() {
                         ? 'linear-gradient(to top, #e50914, #ff5757)' 
                         : 'linear-gradient(to top, #666, #999)'
                     }}
-                  >                    <span className="hours-label">                      {(() => {
+                  >                    
+                  <span className="hours-label">                      
+                    {(() => {
                         // Vì dữ liệu từ server đã được chuyển thành giờ (hours)
                         // nên cần hiển thị đúng định dạng
                         const h = Math.floor(hours);
@@ -1561,10 +1564,13 @@ export default function ProfilePage() {
               ))}
             </div>
           </div>
-        </motion.div>        <motion.div variants={itemVariants} className="stats-section">
-          <h3 className="stats-title">Phân bố thể loại</h3>          {statsData.genreDistribution && statsData.genreDistribution.length > 0 ? (
+        </motion.div>        
+        <motion.div variants={itemVariants} className="stats-section">
+          <h3 className="stats-title">Phân bố thể loại</h3>          
+          {statsData.genreDistribution && statsData.genreDistribution.length > 0 ? (
             <div className="genre-distribution-vertical">
-              {statsData.genreDistribution.slice(0, 8).map((genre, index) => (                <div key={index} className="genre-stat-vertical">
+              {statsData.genreDistribution.slice(0, 8).map((genre, index) => (                
+                <div key={index} className="genre-stat-vertical">
                   <div className="genre-column-container">
                     <div 
                       className="genre-column" 
