@@ -92,7 +92,7 @@ const UpcomingMovieDetail: React.FC = () => {
         <div className="content-wrapper">
           <div className="content-header">
             <div className="container-fluid">
-              <h1>Chi tiết phim sắp ra mắt</h1>
+              <h1 style={{ color: 'black' }}>Chi tiết phim sắp ra mắt</h1>
             </div>
           </div>
           <div className="content">
@@ -116,7 +116,7 @@ const UpcomingMovieDetail: React.FC = () => {
           <div className="container-fluid">
             <Row>
               <Col>
-                <h1>Chi tiết phim sắp ra mắt</h1>
+                <h1 style={{ color: 'black' }}>Chi tiết phim sắp ra mắt</h1>
               </Col>
             </Row>
           </div>

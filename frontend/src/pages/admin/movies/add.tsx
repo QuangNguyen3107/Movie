@@ -321,9 +321,9 @@ const AddMovie = () => {
               slug: generateSlug(countryId)
             };
           })
-        : [];
-        // Đảm bảo các trường dữ liệu đúng định dạng
-      const formattedMovie = {        ...movie,
+        : [];        // Đảm bảo các trường dữ liệu đúng định dạng
+      const formattedMovie = {
+        ...movie,
         director: directorValue,
         actor: actorValue,
         year: Number(movie.year),
@@ -334,16 +334,25 @@ const AddMovie = () => {
         // Đã loại bỏ backdrop_url khỏi dữ liệu gửi đi
       };
 
-      // Ghi log dữ liệu gửi đi để debug
-      console.log('Sending movie data:', formattedMovie);
+      // Chỉ thêm episodes nếu có dữ liệu hợp lệ
+      const validEpisodes = movie.episodes.filter(episode => 
+        episode.server_data.some(ep => ep.link_embed && ep.link_m3u8)
+      );
+      if (validEpisodes.length > 0) {
+        formattedMovie.episodes = validEpisodes;
+      }
+      // Nếu không có episodes hợp lệ, không gửi trường episodes
 
-      // Gửi request đến API backend
-      const response = await axios.post('/movies', formattedMovie);
-        if (response.data) {
+      // Ghi log dữ liệu gửi đi để debug
+      console.log('Sending movie data:', formattedMovie);      // Gửi request đến API backend
+      const response = await axios.post('/admin/movies', formattedMovie);
+      if (response.data) {
         toast.success('Thêm phim mới thành công');
         console.log('Movie added successfully:', response.data);
         // Type-safe router navigation
-        void router.push('/admin/movies');      }} catch (error) {
+        void router.push('/admin/movies');
+      }
+    } catch (error) {
       console.error('Error adding movie:', error);
       
       // Handle error with type safety
@@ -355,7 +364,6 @@ const AddMovie = () => {
         if ('message' in error && typeof error.message === 'string') {
           errorMessage = error.message;
         }
-        
         // Check for axios response object
         if ('response' in error) {
           const response = error.response;

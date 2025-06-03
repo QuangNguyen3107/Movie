@@ -12,6 +12,7 @@ const getAvatarUrl = (user) => {
   
   let avatarUrl = user.avatar || user.image || "/img/avatar.png";
   
+  // Handle relative paths for local avatars
   if (avatarUrl && avatarUrl.startsWith('/')) {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
     const baseWithoutApi = baseUrl.endsWith('/api') 
@@ -21,7 +22,10 @@ const getAvatarUrl = (user) => {
     avatarUrl = `${baseWithoutApi}${avatarUrl}`;
   }
   
-  if (!avatarUrl.includes('?')) {
+  // Only add cache-busting for non-external URLs (exclude Google, Cloudinary, etc.)
+  if (!avatarUrl.includes('?') && 
+      !avatarUrl.includes('googleusercontent.com') && 
+      !avatarUrl.includes('cloudinary.com')) {
     avatarUrl = `${avatarUrl}?t=${Date.now()}`;
   }
   
@@ -489,14 +493,16 @@ const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
               </div>
             </form>
           ) : (
-            <FaSearch className="text-white fs-5 cursor-pointer" onClick={toggleSearchInput} />          )}
-          <div className="profile-avatar ms-2" onClick={handleAvatarClick}>
+            <FaSearch className="text-white fs-5 cursor-pointer" onClick={toggleSearchInput} />          )}          <div className="profile-avatar ms-2" onClick={handleAvatarClick}>
             <img 
               src={getAvatarUrl(user)} 
               alt="User Avatar" 
               className="rounded-circle" 
-              style={{ width: '32px', height: '32px' }} 
-              onError={(e) => { e.target.src = "/img/avatar.png"; }}
+              style={{ width: '32px', height: '32px', objectFit: 'cover' }} 
+              onError={(e) => { 
+                console.log("Avatar load error, using default"); 
+                e.target.src = "/img/avatar.png"; 
+              }}
             />
           </div>
         </div>
@@ -608,14 +614,16 @@ const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
               onClick={(e) => {
                 e.stopPropagation();
                 setShowFeedbackForm(!showFeedbackForm);
-              }} 
-            /><div className="profile-avatar position-relative" onClick={handleAvatarClick}>
+              }}            /><div className="profile-avatar position-relative" onClick={handleAvatarClick}>
               <img 
                 src={getAvatarUrl(user)} 
                 alt="User Avatar" 
                 className="rounded-circle" 
-                style={{ width: '40px', height: '40px' }} 
-                onError={(e) => { e.target.src = "/img/avatar.png"; }}
+                style={{ width: '40px', height: '40px', objectFit: 'cover' }} 
+                onError={(e) => { 
+                  console.log("Avatar load error, using default"); 
+                  e.target.src = "/img/avatar.png"; 
+                }}
               />
               {isAuthenticated && (
                 <div className="user-status-indicator"></div>
@@ -638,7 +646,7 @@ const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
                   onError={(e) => { e.target.src = "/img/avatar.png"; }}
                 />
                 <div className="user-details">
-                  <p className="user-name">{user?.fullName || user?.name || 'User'}</p>
+                  <p className="user-name">{user?.fullname || user?.name || 'User'}</p>
                   <p className="user-email">{user?.email}</p>
                 </div>
               </div>
@@ -854,6 +862,8 @@ const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
           object-fit: cover;
           border: 2px solid transparent;
           transition: border-color 0.3s ease;
+          background-color: #333;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
         .profile-avatar:hover img {
           border-color: #e50914;
