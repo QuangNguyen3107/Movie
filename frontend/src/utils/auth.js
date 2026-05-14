@@ -102,7 +102,6 @@ export const AuthProvider = ({ children }) => {
 
     checkLoggedIn();
   }, [session, sessionStatus, router.pathname]); // Thêm router.pathname để kiểm tra lại khi đổi trang
-
   // Modified checkAccountStatus function to prevent refresh loops
   const checkAccountStatus = useCallback(async () => {
     try {
@@ -127,30 +126,66 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      // Throttle API calls to prevent excessive requests
+      // Check if we've had too many consecutive failures
+      const failureCount = parseInt(localStorage.getItem('accountStatusCheckFailures') || '0');
+      if (failureCount >= 3) {
+        const lastFailure = parseInt(localStorage.getItem('lastAccountStatusFailure') || '0');
+        const now = Date.now();
+        
+        // If we've had 3+ failures, wait 15 minutes before trying again
+        if (now - lastFailure < 900000) { // 15 minutes
+          console.log('Too many account status check failures, waiting longer before retry');
+          return;
+        } else {
+          // Reset failure count after waiting period
+          localStorage.removeItem('accountStatusCheckFailures');
+          localStorage.removeItem('lastAccountStatusFailure');
+        }
+      }// Throttle API calls to prevent excessive requests
       const now = Date.now();
       const lastCheck = parseInt(localStorage.getItem('lastAccountStatusCheck') || '0');
       
-      // Only check every 30 seconds at most to prevent flooding
-      if (now - lastCheck < 30000) {
+      // Tăng thời gian throttle lên 5 phút để giảm tải backend
+      if (now - lastCheck < 300000) { // 5 minutes instead of 2
+        console.log('Account status check skipped - too soon since last check');
+        return;
+      }
+      localStorage.setItem('lastAccountStatusCheck', now.toString());
+        // Call the API to check account status
+      const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+      if (!token) {
+        console.log('No token found, skipping account status check');
         return;
       }
       
-      localStorage.setItem('lastAccountStatusCheck', now.toString());
-
-      // Call the API to check account status
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/account/status`, {
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/users/account/status`;
+      console.log('Checking account status at:', apiUrl);
+      console.log('Environment API URL:', process.env.NEXT_PUBLIC_API_URL);
+      console.log('Token present:', !!token);
+      
+      const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('auth_token')}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-          // Add cache-busting parameter
           'Cache-Control': 'no-cache'
-        }
+        },
+        // Tăng timeout lên 30 giây
+        signal: AbortSignal.timeout(30000) // 30 seconds timeout
       });
 
       if (!response.ok) {
-        const data = await response.json();
+        // Chỉ parse JSON nếu response có content
+        let data = {};
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            data = await response.json();
+          }
+        } catch (parseError) {
+          console.log('Could not parse error response as JSON');
+        }
+        
         if (response.status === 403 && data.isAccountLocked) {
           console.log('Account is locked according to backend check:', data);
           
@@ -162,9 +197,54 @@ export const AuthProvider = ({ children }) => {
             window.location.href = '/account-locked';
           }
         }
-      }
-    } catch (error) {
+      }    } catch (error) {
       console.error('Error checking account status:', error);
+      console.error('Error type:', error.constructor.name);
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error code:', error.code);
+      console.error('Error stack:', error.stack);
+      console.log('API URL that failed:', `${process.env.NEXT_PUBLIC_API_URL}/users/account/status`);
+      
+      // Track consecutive failures
+      const failureCount = parseInt(localStorage.getItem('accountStatusCheckFailures') || '0') + 1;
+      localStorage.setItem('accountStatusCheckFailures', failureCount.toString());
+      localStorage.setItem('lastAccountStatusFailure', Date.now().toString());
+      
+      // Handle timeout errors
+      if (error.name === 'TimeoutError') {
+        console.log('Account status check timeout - backend may be slow');
+        return;
+      }
+      
+      // Handle AbortError (from timeout)
+      if (error.name === 'AbortError') {
+        console.log('Account status check aborted due to timeout');
+        return;
+      }
+        // Handle specific network errors gracefully
+      if (error.message === 'Failed to fetch' || error.name === 'TypeError' || error.code === 'NETWORK_ERROR') {
+        console.log('Network error - backend may be unavailable, skipping account status check');
+        // Set a much longer delay before next check when network fails
+        localStorage.setItem('lastAccountStatusCheck', (Date.now() + 300000).toString()); // Wait 5 minutes extra
+        return;
+      }
+      
+      // Handle fetch-specific errors
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.log('Fetch error - connection failed, backend may be down');
+        return;
+      }
+      
+      // Handle other types of errors
+      if (error.response && error.response.status === 401) {
+        console.log('Authentication error - token may be invalid');
+        // Don't force logout here as it might be a temporary issue
+        return;
+      }
+      
+      // For any other errors, just log and continue
+      console.log('Unexpected error during account status check, continuing normally:', error.message);
     }
   }, [user]);
 

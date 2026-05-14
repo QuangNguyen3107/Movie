@@ -340,7 +340,8 @@ const UserTable: React.FC<UserTableProps> = ({ users = [], onEdit, onDelete, onB
                     <tr key={user._id} className={isUserInactive ? 'banned-user' : ''}>
                       <td>
                         <div className="d-flex align-items-center">
-                          <div className="user-avatar mr-3">                            {getAvatarUrl(user) ? (
+                          <div className="user-avatar mr-3">                            
+                            {getAvatarUrl(user) ? (
                               <img 
                                 src={getAvatarUrl(user) || '/img/avatar.png'} 
                                 alt={user.fullname || 'User'} 

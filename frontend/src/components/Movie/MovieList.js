@@ -8,7 +8,7 @@ const MovieList = () => {
     {
       id: 'new',
       title: "Phim mới cập nhật",
-      endpoint: 'danh-sach/phim-moi-cap-nhat',
+      endpoint: '/api/movies?limit=10&sort=-createdAt',
       movies: []
     },
 
@@ -19,24 +19,21 @@ const MovieList = () => {
   const [showModal, setShowModal] = useState(false);
 
   const fetchMovieDetail = async (slug) => {
-    const response = await fetch(`http://localhost:5000/api/movies/${movie.slug}`);
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+    const response = await fetch(`${baseUrl}/movies/${slug}`);
     const data = await response.json();
     return data.movie;
   };
 
   const fetchMoviesForCategory = async (endpoint, categoryId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/movies/${movie.slug}`);
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${baseUrl.replace('/api', '')}${endpoint}`);
       const data = await response.json();
       
-      if (data.items) {
-        const moviePromises = data.items.map(async (movie) => {
-          const movieDetail = await fetchMovieDetail(movie.slug);
-          return movieDetail;
-        });
-
-        let movies = await Promise.all(moviePromises);
-        movies = movies.filter(movie => movie !== null);
+      // Handle the correct response format from backend API
+      if (data.data && data.data.movies) {
+        let movies = data.data.movies.filter(movie => movie !== null);
 
         // Lọc theo category
         if (categoryId === 'series') {

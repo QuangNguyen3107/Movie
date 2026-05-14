@@ -1,9 +1,9 @@
-// Movie Service API functions
+// Các hàm API của Movie Service
 
-const API_URL = "http://localhost:5000/api"; // Update this with your actual API URL
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 const movieService = {
-  // Get latest movies
+  // Lấy danh sách phim mới nhất
   getLatestMovies: async () => {
     try {
       const response = await fetch(`${API_URL}/movies`);
@@ -17,7 +17,7 @@ const movieService = {
     }
   },
 
-  // Get top rated movies
+  // Lấy danh sách phim được đánh giá cao nhất
   getTopRatedMovies: async () => {
     try {
       const response = await fetch(`${API_URL}/movies/top-rated`);
@@ -31,7 +31,7 @@ const movieService = {
     }
   },
 
-  // Get movies by category
+  // Lấy danh sách phim theo thể loại
   getMoviesByCategory: async (categoryId) => {
     try {
       const response = await fetch(`${API_URL}/movies/category/${categoryId}`);
@@ -45,7 +45,7 @@ const movieService = {
     }
   },
 
-  // Get movie details by slug
+  // Lấy chi tiết phim theo slug
   getMovieDetails: async (slug) => {
     try {
       const response = await fetch(`${API_URL}/movies/${slug}`);

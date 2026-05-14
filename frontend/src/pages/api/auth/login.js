@@ -11,10 +11,9 @@ export default async function handler(req, res) {
     // Validate required fields
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
-    }
-
-    // Gửi request tới backend API
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/login`, {
+    }    // Gửi request tới backend API
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+    const response = await fetch(`${baseUrl.replace('/api', '')}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

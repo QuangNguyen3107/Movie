@@ -87,18 +87,19 @@ function NotificationContent() {
 
   // State for notification history
   const [notificationHistory, setNotificationHistory] = useState<NotificationHistoryItem[]>([]);
+  // Trạng thái tải lịch sử thông báo
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Load notification history when component mounts or page changes
+  // Tải lịch sử thông báo khi component được mount hoặc khi trang thay đổi
   useEffect(() => {
     if (historyTab) {
       fetchNotificationHistory();
     }
   }, [currentPage, historyTab]);
 
-  // Function to fetch notification history
+  // Hàm để lấy lịch sử thông báo
   const fetchNotificationHistory = async () => {
     try {
       setIsLoadingHistory(true);

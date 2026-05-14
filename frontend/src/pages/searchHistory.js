@@ -19,15 +19,26 @@ export function SearchHistoryContent({ inProfilePage = false }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [filterQuery, setFilterQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-
-  // Chuyển hướng nếu chưa đăng nhập
+  // Chuyển hướng nếu chưa đăng nhập và fetch data với memory leak prevention
   useEffect(() => {
+    let isMounted = true;
+    
     if (!isAuthenticated && !inProfilePage) {
       router.push('/auth/login');
       return;
     }
     
-    fetchSearchHistory();
+    const fetchData = async () => {
+      if (isMounted) {
+        await fetchSearchHistory();
+      }
+    };
+    
+    fetchData();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [isAuthenticated, router, page, inProfilePage]);
 
   // Lấy lịch sử tìm kiếm

@@ -12,7 +12,7 @@ const Footer = () => {
           <div className="col-lg-4 col-md-6 mb-4 mb-md-0">
             <div className="footer-brand mb-3">
               <img
-                src="/img/phimlogo-removebg-preview.PNG"
+                src="/img/phimlogo-removebg-preview.png"
                 alt="Logo"
                 className="footer-logo"
               />

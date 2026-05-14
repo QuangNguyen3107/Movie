@@ -27,6 +27,15 @@ class MovieCrawlController {
             serverErrorResponse(res, 'Lỗi khi crawl dữ liệu phim', error.message);
         }
     }
+
+    async cancelCrawlMoviesAllPage(req, res) {
+        try {
+            movieCrawlService.cancelCrawlAllPage();
+            successResponse(res, 'Đã yêu cầu dừng crawl phim.', { cancelled: true });
+        } catch (error) {
+            serverErrorResponse(res, 'Không thể dừng crawl', error.message);
+        }
+    }
 }
 
 module.exports = new MovieCrawlController();

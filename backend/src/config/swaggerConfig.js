@@ -24,8 +24,8 @@ const options = {
                 }
             }
         },
-        security: [{ BearerAuth: [] }], // 🛑 Thêm BearerAuth cho tất cả API
-        tags: [ // Định nghĩa tag ở đây luôn cho chắc
+        security: [{ BearerAuth: [] }],
+        tags: [
             {
                 name: "Search",
                 description: "API tìm kiếm phim bằng Elasticsearch"
@@ -42,12 +42,11 @@ const options = {
                 name: "Bulk Email",
                 description: "API gửi email hàng loạt đến người dùng"
             }
-            // Thêm các tag khác nếu cần
         ],
-        paths: { // Định nghĩa các đường dẫn API
-            "/api/search": { // Đường dẫn API
-                get: { // Phương thức GET
-                    tags: ["Search"], // Gán tag
+        paths: {
+            "/api/search": {
+                get: {
+                    tags: ["Search"],
                     summary: "Tìm kiếm phim",
                     description: "Tìm kiếm phim theo từ khóa và có hỗ trợ lọc theo trường cụ thể với cú pháp 'field:value'",
                     parameters: [
@@ -149,7 +148,6 @@ const options = {
                         }
                     }
                 }
-                // Thêm các phương thức khác (post, put, delete) nếu có cho path này
             },
             "/api/favorites": {
                 get: {
@@ -303,9 +301,9 @@ const options = {
                                             data: {
                                                 type: "object",
                                                 properties: {
-                                                    isFavorite: { 
+                                                    isFavorite: {
                                                         type: "boolean",
-                                                        description: "True nếu phim nằm trong danh sách yêu thích, ngược lại là false" 
+                                                        description: "True nếu phim nằm trong danh sách yêu thích, ngược lại là false"
                                                     }
                                                 }
                                             },
@@ -330,13 +328,11 @@ const options = {
                     }
                 }
             }
-            // Thêm các đường dẫn API khác nếu muốn định nghĩa ở đây
         }
-        // --- HẾT PHẦN THÊM ---
     },
     apis: [
-        "./src/routes/*.js", // Quét tất cả các file trong routes để lấy API Docs
-        "./src/docs/*.js"    // Quét tất cả các file trong docs để lấy API Docs
+        "./src/routes/*.js",
+        "./src/docs/*.js"
     ],
 };
 

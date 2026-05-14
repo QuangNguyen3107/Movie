@@ -598,7 +598,7 @@ const Series = () => {
                         className="btn btn-sm ms-2 p-0 text-white" 
                         onClick={() => setFilters(prev => ({ ...prev, category: "" }))}
                       >
-                        <i className="fas fa-times">×</i>
+                        <i className="fas fa-times"></i>
                       </button>
                     </span>
                   )}
@@ -610,7 +610,7 @@ const Series = () => {
                         className="btn btn-sm ms-2 p-0 text-white" 
                         onClick={() => setFilters(prev => ({ ...prev, country: "" }))}
                       >
-                        <i className="fas fa-times">×</i>
+                        <i className="fas fa-times"></i>
                       </button>
                     </span>
                   )}
@@ -622,7 +622,7 @@ const Series = () => {
                         className="btn btn-sm ms-2 p-0 text-white" 
                         onClick={() => setFilters(prev => ({ ...prev, year: "" }))}
                       >
-                        <i className="fas fa-times">×</i>
+                        <i className="fas fa-times"></i>
                       </button>
                     </span>
                   )}

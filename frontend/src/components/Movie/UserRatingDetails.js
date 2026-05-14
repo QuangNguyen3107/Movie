@@ -9,22 +9,22 @@ const UserRatingDetails = ({ movieSlug }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [selectedStarFilter, setSelectedStarFilter] = useState(0); // 0 means all ratings
+  const [selectedStarFilter, setSelectedStarFilter] = useState(0); // 0 nghĩa là tất cả đánh giá
   const [sortOrder, setSortOrder] = useState('newest'); // 'newest', 'highest', 'lowest'
 
   useEffect(() => {
     const fetchUserRatings = async () => {
-      // Only fetch data when dropdown is visible and we have a movie slug
+      // Chỉ lấy dữ liệu khi dropdown được hiển thị và có movieSlug
       if (!movieSlug || !showDetails) return;
 
       try {
         setLoading(true);
         setError(null);
         
-        // Define base API URL once for consistency
+        // Định nghĩa URL API cơ bản một lần để đảm bảo tính nhất quán
         const baseApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
         
-        // Step 1: Fetch movie ID from slug
+        // Bước 1: Lấy movie ID từ slug
         const movieResponse = await fetch(`${baseApiUrl}/movies/${movieSlug}`);
         if (!movieResponse.ok) {
           throw new Error(`Failed to fetch movie info: ${movieResponse.status}`);
@@ -37,14 +37,14 @@ const UserRatingDetails = ({ movieSlug }) => {
         
         const movieId = movieData.data._id;
         
-        // Step 2: Fetch ratings with populated user data
+        // Bước 2: Lấy đánh giá với dữ liệu người dùng đã được populate
         const ratingsResponse = await fetch(`${baseApiUrl}/ratings/movie/${movieId}`);
         if (!ratingsResponse.ok) {
           throw new Error(`Failed to fetch ratings: ${ratingsResponse.status}`);
         }
         const ratingsData = await ratingsResponse.json();
         
-        // Step 3: Process the ratings data - user info is already included from backend
+        // Bước 3: Xử lý dữ liệu đánh giá - thông tin người dùng đã được backend cung cấp
         let formattedRatings = [];
         
         if (ratingsData && ratingsData.data && ratingsData.data.ratings) {
@@ -69,7 +69,7 @@ const UserRatingDetails = ({ movieSlug }) => {
             }
           }));
           
-          // Sort ratings by date (newest first)
+          // Sắp xếp đánh giá theo ngày (mới nhất trước)
           formattedRatings.sort((a, b) => b.rawDate - a.rawDate);
         }
         
@@ -84,22 +84,22 @@ const UserRatingDetails = ({ movieSlug }) => {
     };
     
     fetchUserRatings();
-  }, [movieSlug, showDetails]);  // Listen for changes to showStats from RatingStats component
+  }, [movieSlug, showDetails]);  // Lắng nghe thay đổi của showStats từ thành phần RatingStats
   useEffect(() => {
-    // If stats are shown and details are also shown, hide details
+    // Nếu thống kê được hiển thị và chi tiết cũng được hiển thị, ẩn chi tiết
     if (showStats && showDetails) {
       setShowDetails(false);
     }
   }, [showStats]);
 
-  // Apply filter and sort when selectedStarFilter or sortOrder changes
+  // Áp dụng bộ lọc và sắp xếp khi selectedStarFilter hoặc sortOrder thay đổi
   useEffect(() => {
-    // First, filter the ratings
+    // Đầu tiên, lọc các đánh giá
     let result = selectedStarFilter === 0
-      ? [...userRatings] // Copy all ratings
+      ? [...userRatings] // Sao chép tất cả đánh giá
       : userRatings.filter(rating => rating.rating === selectedStarFilter);
       
-    // Then, sort the filtered ratings
+    // Sau đó, sắp xếp các đánh giá đã lọc
     switch (sortOrder) {
       case 'highest':
         result.sort((a, b) => b.rating - a.rating);
@@ -115,25 +115,25 @@ const UserRatingDetails = ({ movieSlug }) => {
     
     setFilteredRatings(result);
   }, [selectedStarFilter, userRatings, sortOrder]);
-  // Format avatar URLs consistently
+  // Định dạng URL avatar một cách nhất quán
   const getAvatarUrl = (avatar) => {
     if (!avatar) return "/img/avatar.png";
     
     let avatarUrl = avatar;
     
-    // Convert relative paths to absolute URLs
+    // Chuyển đổi đường dẫn tương đối thành URL tuyệt đối
     if (avatarUrl && avatarUrl.startsWith('/')) {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-      // Remove /api part if it exists in baseUrl
+      // Loại bỏ phần /api nếu có trong baseUrl
       const baseWithoutApi = baseUrl.endsWith('/api') 
         ? baseUrl.substring(0, baseUrl.length - 4) 
         : baseUrl;
       
-      // Create full URL
+      // Tạo URL đầy đủ
       avatarUrl = `${baseWithoutApi}${avatarUrl}`;
     }
     
-    // Only add cache-busting for non-external URLs (exclude Google, Cloudinary, etc.)
+    // Chỉ thêm cache-busting cho URL không phải bên ngoài (loại trừ Google, Cloudinary, v.v.)
     if (!avatarUrl.includes('?') && 
         !avatarUrl.includes('googleusercontent.com') && 
         !avatarUrl.includes('cloudinary.com')) {
@@ -146,7 +146,7 @@ const UserRatingDetails = ({ movieSlug }) => {
     const newDetailsState = !showDetails;
     setShowDetails(newDetailsState);
     
-    // Update the shared context state
+    // Cập nhật trạng thái chia sẻ trong context
     if (setShowUserRatingDetails) {
       setShowUserRatingDetails(newDetailsState);
     }
@@ -159,7 +159,7 @@ const UserRatingDetails = ({ movieSlug }) => {
   const handleSortChange = (order) => {
     setSortOrder(order);
     
-    // Apply sorting to the filtered ratings
+    // Áp dụng sắp xếp cho các đánh giá đã lọc
     let sortedRatings = [...filteredRatings];
     
     switch (order) {
@@ -221,7 +221,7 @@ const UserRatingDetails = ({ movieSlug }) => {
               </div>
             )}
           </h6>
-            {/* Star Filter */}          <div className={styles.starFilter}>            <button 
+            {/* Bộ lọc sao */}          <div className={styles.starFilter}>            <button 
               className={`${styles.starFilterButton} ${selectedStarFilter === 0 ? styles.active : ''}`}
               onClick={() => handleFilterChange(0)}
               title="Tất cả đánh giá"

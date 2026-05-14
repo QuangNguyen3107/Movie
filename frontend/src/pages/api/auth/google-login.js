@@ -11,10 +11,9 @@ export default async function handler(req, res) {
     // Validate required fields
     if (!email || !googleId) {
       return res.status(400).json({ message: 'Email and Google ID are required' });
-    }
-
-    // Call your backend API endpoint for Google authentication
-    const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/google-login`, {
+    }    // Call your backend API endpoint for Google authentication
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+    const response = await axios.post(`${baseUrl.replace('/api', '')}/api/auth/google-login`, {
       email,
       name,
       googleId,

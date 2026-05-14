@@ -3,8 +3,8 @@ import { useRouter } from 'next/router';
 import { canAccessAdmin, isAuthenticated } from '../../utils/adminUtils';
 
 /**
- * Higher-Order Component to protect admin routes
- * Only allows access to users with admin role
+ * Thành phần Higher-Order Component để bảo vệ các route dành cho admin
+ * Chỉ cho phép truy cập đối với người dùng có vai trò admin
  */
 const AdminRoute = ({ children }) => {
   const router = useRouter();
@@ -13,36 +13,36 @@ const AdminRoute = ({ children }) => {
 
   useEffect(() => {
     const checkAccess = () => {
-      // Check if user is authenticated
+      // Kiểm tra xem người dùng đã xác thực chưa
       if (!isAuthenticated()) {
-        // Redirect to login if not authenticated
+        // Chuyển hướng đến trang đăng nhập nếu chưa xác thực
         router.push('/auth/login?returnUrl=' + encodeURIComponent(router.asPath));
         return;
-      }      // Check if user has admin access
+      }      // Kiểm tra xem người dùng có quyền admin không
       if (!canAccessAdmin()) {
-        // Redirect to no access page
+        // Chuyển hướng đến trang không có quyền truy cập
         router.push('/noaccess');
         return;
       }
 
-      // User has access
+      // Người dùng có quyền truy cập
       setHasAccess(true);
       setIsLoading(false);
     };
 
-    // Small delay to ensure localStorage is available
+    // Thêm một chút độ trễ để đảm bảo localStorage đã sẵn sàng
     const timer = setTimeout(checkAccess, 100);
     
     return () => clearTimeout(timer);
   }, [router]);
 
-  // Show loading spinner while checking access
+  // Hiển thị spinner tải trong khi kiểm tra quyền truy cập
   if (isLoading) {
     return (
       <div className="admin-loading">
         <div className="loading-container">
           <div className="spinner"></div>
-          <p>Checking access permissions...</p>
+          <p>Đang kiểm tra quyền truy cập...</p>
         </div>
         
         <style jsx>{`
@@ -84,7 +84,7 @@ const AdminRoute = ({ children }) => {
     );
   }
 
-  // Render children only if user has access
+  // Render children chỉ khi người dùng có quyền truy cập
   return hasAccess ? children : null;
 };
 

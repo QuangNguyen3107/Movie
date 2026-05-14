@@ -22,10 +22,16 @@ const PerformerDetail = () => {
   const imageBaseUrl = process.env.NEXT_PUBLIC_TMDB_IMAGE_URL || 'https://image.tmdb.org/t/p/w500';
   const placeholderImage = '/img/default-poster.jpg';
   const profilePlaceholder = '/img/user-avatar.png';
-
   useEffect(() => {
     // Only fetch data when id is available (after hydration)
-    if (!id) return;    const fetchPerformerDetails = async () => {
+    if (!id) return;
+    
+    let isMounted = true;
+    const controller = new AbortController();
+    
+    const fetchPerformerDetails = async () => {
+      if (!isMounted) return;
+      
       setLoading(true);
       setError(null);
       try {
@@ -51,9 +57,10 @@ const PerformerDetail = () => {
           headers: {
             'Authorization': `Bearer ${authToken}`,
             'accept': 'application/json'
-          }
-        });
-        
+          },
+          signal: controller.signal
+        });        
+        if (!isMounted) return;
         setPerformer(personResponse.data);
         debugInfo.performerData = personResponse.data;
         
@@ -66,9 +73,11 @@ const PerformerDetail = () => {
           headers: {
             'Authorization': `Bearer ${authToken}`,
             'accept': 'application/json'
-          }
+          },
+          signal: controller.signal
         });
         
+        if (!isMounted) return;
         debugInfo.rawCredits = creditsResponse.data;
         
         // Lọc và sắp xếp các bộ phim theo độ phổ biến
@@ -119,26 +128,39 @@ const PerformerDetail = () => {
           }
           return false;
         });
-        
-        // Thêm field `role` để phân biệt vai trò trong phim
+          // Thêm field `role` để phân biệt vai trò trong phim
         allMovies = allMovies.map(movie => ({
           ...movie,
           role: movie.character ? movie.character : (movie.job ? movie.job : 'Không xác định')
         }));
         
+        if (!isMounted) return;
         setMovies(allMovies);
         debugInfo.processedMovies = allMovies;
         setDebug(debugInfo);
-        setLoading(false);
+        
+        if (isMounted) {
+          setLoading(false);
+        }
       } catch (err) {
-        console.error('Error fetching performer data:', err);
-        setError('Không thể tải thông tin diễn viên. Vui lòng thử lại sau.');
-        setDebug({ error: err.message, stack: err.stack });
-        setLoading(false);
+        if (!axios.isCancel(err)) {
+          console.error('Error fetching performer data:', err);
+          if (isMounted) {
+            setError('Không thể tải thông tin diễn viên. Vui lòng thử lại sau.');
+            setDebug({ error: err.message, stack: err.stack });
+            setLoading(false);
+          }
+        }
       }
     };
 
     fetchPerformerDetails();
+    
+    // Cleanup function to prevent memory leaks
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [id]);
 
   // Format date to display in Vietnamese format

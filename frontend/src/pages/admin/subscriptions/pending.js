@@ -16,27 +16,37 @@ const PendingSubscriptionsPage = () => {
   const [processingAction, setProcessingAction] = useState(false);
   
   const router = useRouter();
-  
-  // Lấy danh sách đăng ký đang chờ duyệt
+    // Lấy danh sách đăng ký đang chờ duyệt
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchPendingSubscriptions = async () => {
       try {
+        if (!isMounted) return;
         setLoading(true);
         const response = await subscriptionService.getAdminPendingSubscriptions();
         
-        if (response) {
+        if (response && isMounted) {
           setPendingSubscriptions(response.pendingSubscriptions || []);
           setPagination(response.pagination || { page: 1, pages: 1, total: 0 });
         }
       } catch (error) {
         console.error("Error fetching pending subscriptions:", error);
-        toast.error("Không thể tải danh sách đăng ký chờ duyệt. Vui lòng thử lại sau.");
+        if (isMounted) {
+          toast.error("Không thể tải danh sách đăng ký chờ duyệt. Vui lòng thử lại sau.");
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
     
     fetchPendingSubscriptions();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
   
   // Xử lý khi admin muốn phê duyệt đăng ký
@@ -52,24 +62,26 @@ const PendingSubscriptionsPage = () => {
     setModalAction('reject');
     setShowConfirmModal(true);
   };
-  
-  // Xử lý xác nhận hành động (phê duyệt hoặc từ chối)
+    // Xử lý xác nhận hành động (phê duyệt hoặc từ chối)
   const handleConfirmAction = async () => {
     if (!selectedSubscription) return;
     
+    let isMounted = true;
+    
     try {
+      if (!isMounted) return;
       setProcessingAction(true);
       
       if (modalAction === 'approve') {
         const response = await subscriptionService.approveSubscription(selectedSubscription._id);
         
-        if (response.success) {
+        if (response.success && isMounted) {
           toast.success("Phê duyệt đăng ký thành công!");
           // Xóa subscription đã duyệt khỏi danh sách
           setPendingSubscriptions(prevSubscriptions => 
             prevSubscriptions.filter(sub => sub._id !== selectedSubscription._id)
           );
-        } else {
+        } else if (isMounted) {
           toast.error(response.message || "Phê duyệt không thành công. Vui lòng thử lại!");
         }
       } else if (modalAction === 'reject') {
@@ -78,46 +90,60 @@ const PendingSubscriptionsPage = () => {
           { reason: rejectionReason }
         );
         
-        if (response.success) {
+        if (response.success && isMounted) {
           toast.success("Từ chối đăng ký thành công!");
           // Xóa subscription đã từ chối khỏi danh sách
           setPendingSubscriptions(prevSubscriptions => 
             prevSubscriptions.filter(sub => sub._id !== selectedSubscription._id)
           );
-        } else {
+        } else if (isMounted) {
           toast.error(response.message || "Từ chối không thành công. Vui lòng thử lại!");
         }
       }
       
       // Đóng modal
-      setShowConfirmModal(false);
-      setSelectedSubscription(null);
-      setRejectionReason('');
+      if (isMounted) {
+        setShowConfirmModal(false);
+        setSelectedSubscription(null);
+        setRejectionReason('');
+      }
     } catch (error) {
       console.error(`Error ${modalAction === 'approve' ? 'approving' : 'rejecting'} subscription:`, error);
-      toast.error(`Không thể ${modalAction === 'approve' ? 'phê duyệt' : 'từ chối'} đăng ký. Vui lòng thử lại sau.`);
+      if (isMounted) {
+        toast.error(`Không thể ${modalAction === 'approve' ? 'phê duyệt' : 'từ chối'} đăng ký. Vui lòng thử lại sau.`);
+      }
     } finally {
-      setProcessingAction(false);
+      if (isMounted) {
+        setProcessingAction(false);
+      }
+      isMounted = false;
     }
   };
-  
-  // Xử lý chuyển trang
+    // Xử lý chuyển trang
   const handlePageChange = async (page) => {
     if (page < 1 || page > pagination.pages || page === pagination.page) return;
     
+    let isMounted = true;
+    
     try {
+      if (!isMounted) return;
       setLoading(true);
       const response = await subscriptionService.getAdminPendingSubscriptions(page);
       
-      if (response) {
+      if (response && isMounted) {
         setPendingSubscriptions(response.pendingSubscriptions || []);
         setPagination(response.pagination || { page: 1, pages: 1, total: 0 });
       }
     } catch (error) {
       console.error("Error fetching pending subscriptions:", error);
-      toast.error("Không thể tải danh sách đăng ký chờ duyệt. Vui lòng thử lại sau.");
+      if (isMounted) {
+        toast.error("Không thể tải danh sách đăng ký chờ duyệt. Vui lòng thử lại sau.");
+      }
     } finally {
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
+      isMounted = false;
     }
   };
   

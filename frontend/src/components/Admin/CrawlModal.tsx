@@ -12,6 +12,7 @@ interface CrawlModalProps {
 
 const CrawlModal: React.FC<CrawlModalProps> = ({ isOpen, onClose }) => {
   const [crawlingAllMovies, setCrawlingAllMovies] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   if (!isOpen) return null;
 
@@ -33,6 +34,20 @@ const CrawlModal: React.FC<CrawlModalProps> = ({ isOpen, onClose }) => {
       console.error("Lỗi khi crawl toàn bộ phim:", error);
       toast.error("Có lỗi xảy ra khi crawl toàn bộ phim");
     } finally {
+      setCrawlingAllMovies(false);
+    }
+  };
+
+  const handleCancelCrawl = async () => {
+    try {
+      setCancelling(true);
+      await movieCrawlService.cancelCrawlAllMovies();
+      toast.warn("Đã yêu cầu dừng crawl phim.");
+    } catch (error) {
+      console.error("Lỗi khi dừng crawl phim:", error);
+      toast.error("Không thể dừng crawl phim");
+    } finally {
+      setCancelling(false);
       setCrawlingAllMovies(false);
     }
   };
@@ -83,6 +98,26 @@ const CrawlModal: React.FC<CrawlModalProps> = ({ isOpen, onClose }) => {
                   </>
                 )}
               </button>
+
+              {crawlingAllMovies && (
+                <button
+                  className={`${styles.crawlOptionButton} ${styles.cancelButton}`}
+                  onClick={handleCancelCrawl}
+                  disabled={cancelling}
+                >
+                  {cancelling ? (
+                    <>
+                      <FaSync className={styles.spinningIcon} />
+                      <span>Đang dừng...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FaExclamationTriangle />
+                      <span>Tạm dừng</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
           

@@ -10,11 +10,11 @@ interface BackToListButtonProps {
 }
 
 /**
- * A reusable button component that navigates back to a list page
+ * Một thành phần nút có thể tái sử dụng để điều hướng trở lại trang danh sách
  * 
- * @param listPath - The path to navigate to (defaults to the previous page)
- * @param className - Additional CSS classes to apply to the button
- * @param variant - Bootstrap button variant (default: 'secondary')
+ * @param listPath - Đường dẫn để điều hướng đến (mặc định là trang trước đó)
+ * @param className - Các lớp CSS bổ sung để áp dụng cho nút
+ * @param variant - Biến thể nút Bootstrap (mặc định: 'secondary')
  */
 const BackToListButton: React.FC<BackToListButtonProps> = ({ 
   listPath,

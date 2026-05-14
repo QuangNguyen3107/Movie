@@ -133,10 +133,8 @@ exports.addToFavorites = async (req, res) => {
                 const matches = idString === movieIdString;
                 debugLog(`Comparing IDs: ${idString} vs ${movieIdString} => ${matches ? 'Match' : 'No match'}`);
                 return matches;
-            });
-
-            if (isMovieAlreadyInFavorites) {
-                return responseHelper.successResponse(res, 'Đã thêm vào danh sách yêu thíchthích', { exists: true, alreadyExists: true });
+            });            if (isMovieAlreadyInFavorites) {
+                return responseHelper.successResponse(res, 'Đã có trong danh sách yêu thích', { exists: true, alreadyExists: true });
             }
 
             try {
@@ -176,7 +174,7 @@ exports.removeFromFavorites = async (req, res) => {
         await favoritesList.save();
 
         debugLog('Removed movie from favorites list:', movieId);
-        return responseHelper.successResponse(res, 'Đã có trong danh sách yêu thích', { removed: true });
+        return responseHelper.successResponse(res, 'Đã Xóa khỏi danh sách yêu thích', { removed: true });
     } catch (error) {
         console.error('Error removing from favorites:', error);
         return responseHelper.serverErrorResponse(res, 'Failed to remove from favorites');

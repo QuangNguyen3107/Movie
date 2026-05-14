@@ -21,7 +21,7 @@ interface MenuItem {
   path: string;
   icon: React.ElementType;
   label: string;
-  badge?: number; // Badge is optional and a number
+  badge?: number; 
 }
 
 const AdminSidebar = () => {
@@ -39,7 +39,6 @@ const AdminSidebar = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
   // Lấy số lượng feedback chưa đọc
   useEffect(() => {
     const fetchUnreadFeedbackCount = async () => {
@@ -47,12 +46,13 @@ const AdminSidebar = () => {
         const token = localStorage.getItem('auth_token');
         if (!token) return;
 
-        const response = await axios.get('http://localhost:5000/api/feedback/unread/count', {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+        const response = await axios.get(`${baseUrl}/feedback/stats`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
         if (response.data.success && response.data.data) {
-          setUnreadFeedbackCount(response.data.data.count);
+          setUnreadFeedbackCount(response.data.data.unread || 0);
         }
       } catch (error) {
         console.error('Error fetching unread feedback count:', error);
@@ -75,7 +75,8 @@ const AdminSidebar = () => {
 
         // Thay vì gọi API /pending-count (đang bị lỗi), sử dụng API /pending-subscriptions
         // và đếm số lượng từ kết quả trả về
-        const response = await fetch('http://localhost:5000/api/subscription/admin/pending-subscriptions', {
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+        const response = await fetch(`${baseUrl}/subscription/admin/pending-subscriptions`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -132,7 +133,7 @@ const AdminSidebar = () => {
         <div className={styles.brand}>
           <div className={styles.brandImageWrapper}>
             <Image 
-              src="/img/logo.png" 
+              src="/img/icons.png" 
               alt="Admin Logo" 
               width={35}
               height={35}

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FaPlus, FaTrash, FaChevronDown } from 'react-icons/fa';
 import styles from '@/styles/AdminMoviesEnhanced.module.css';
 
-// Interface for episode data
+// Interface cho dữ liệu tập phim
 interface Episode {
   name: string;
   slug: string;
@@ -11,7 +11,7 @@ interface Episode {
   link_m3u8: string;
 }
 
-// Interface for server data
+// Interface cho dữ liệu server
 interface ServerData {
   server_name: string;
   server_data: Episode[];

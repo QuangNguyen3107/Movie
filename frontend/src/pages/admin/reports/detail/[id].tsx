@@ -54,10 +54,9 @@ const ReportDetailPage = () => {
       if (!token) {
         router.push('/auth/login');
         return;
-      }
-
+      }      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
       const response = await axios.get(
-        `http://localhost:5000/api/admin/reports/${reportId}`,
+        `${baseUrl}/admin/reports/${reportId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -84,10 +83,9 @@ const ReportDetailPage = () => {
     try {
       setStatusUpdating(true);
       const token = localStorage.getItem('auth_token');
-      if (!token) return;
-
+      if (!token) return;      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
       const response = await axios.patch(
-        `http://localhost:5000/api/admin/reports/${id}`,
+        `${baseUrl}/admin/reports/${id}`,
         { 
           status,
           adminNotes: adminNote
@@ -117,10 +115,9 @@ const ReportDetailPage = () => {
     if (window.confirm('Bạn có chắc chắn muốn xóa báo cáo này?')) {
       try {
         const token = localStorage.getItem('auth_token');
-        if (!token) return;
-
+        if (!token) return;        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
         const response = await axios.delete(
-          `http://localhost:5000/api/admin/reports/${id}`,
+          `${baseUrl}/admin/reports/${id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
 

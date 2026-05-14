@@ -1,9 +1,9 @@
-// Upcoming Movie Service API functions
+// Các hàm API của Upcoming Movie Service
 
-const API_URL = "http://localhost:5000/api"; // Update this with your actual API URL
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"; // Cập nhật URL này với URL API thực tế của bạn
 
 const upcomingMovieService = {
-  // Get upcoming movies with optional filters
+  // Lấy danh sách phim sắp chiếu với các bộ lọc tùy chọn
   getUpcomingMovies: async (page = 1, limit = 10) => {
     try {
       const response = await fetch(
@@ -11,17 +11,17 @@ const upcomingMovieService = {
       );
       
       if (!response.ok) {
-        throw new Error('Failed to fetch upcoming movies');
+        throw new Error('Không thể lấy danh sách phim sắp chiếu');
       }
       const data = await response.json();
       
-      if (data.success && data.upcomingMovies) {        // Process movies to add additional info
+      if (data.success && data.upcomingMovies) {        // Xử lý phim để thêm thông tin bổ sung
         const processedMovies = data.upcomingMovies.map(movie => {
-          // Format release date
+          // Định dạng ngày phát hành
           const releaseDate = new Date(movie.release_date);
           const formattedDate = releaseDate.toLocaleDateString('vi-VN');
           
-          // Make sure URLs are absolute
+          // Đảm bảo URL là tuyệt đối
           const thumb_url = movie.thumb_url?.startsWith('http') 
             ? movie.thumb_url 
             : `${movie.thumb_url}`;
@@ -40,11 +40,11 @@ const upcomingMovieService = {
           };
         });
         
-        // Sort by release date (closest first)
+        // Sắp xếp theo ngày phát hành (gần nhất trước)
         const sortedMovies = processedMovies.sort((a, b) => {
           const dateA = new Date(a.release_date);
           const dateB = new Date(b.release_date);
-          return dateA - dateB; // Sort by closest release date
+          return dateA - dateB; // Sắp xếp theo ngày phát hành gần nhất
         });
         
         return {
@@ -60,17 +60,17 @@ const upcomingMovieService = {
       
       return { success: false, upcomingMovies: [] };
     } catch (error) {
-      console.error('Error fetching upcoming movies:', error);
+      console.error('Lỗi khi lấy danh sách phim sắp chiếu:', error);
       return { success: false, upcomingMovies: [], error: error.message };
     }
   },
   
-  // Get upcoming movie details by ID
+  // Lấy chi tiết phim sắp chiếu theo ID
   getUpcomingMovieById: async (movieId) => {
     try {
       const response = await fetch(`${API_URL}/admin/upcoming-movies/${movieId}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch upcoming movie details');
+        throw new Error('Không thể lấy chi tiết phim sắp chiếu');
       }
       const data = await response.json();
       
@@ -91,29 +91,29 @@ const upcomingMovieService = {
       
       return { success: false, upcomingMovie: null };
     } catch (error) {
-      console.error('Error fetching upcoming movie details:', error);
+      console.error('Lỗi khi lấy chi tiết phim sắp chiếu:', error);
       return { success: false, upcomingMovie: null, error: error.message };
     }
   },
 
-  // Get upcoming movie by slug
+  // Lấy phim sắp chiếu theo slug
   getUpcomingMovieBySlug: async (slug) => {
     try {
       const response = await fetch(`${API_URL}/upcoming-movies/${slug}`);
       
       if (!response.ok) {
-        throw new Error('Failed to fetch upcoming movie');
+        throw new Error('Không thể lấy phim sắp chiếu');
       }
       
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('Error in getUpcomingMovieBySlug:', error);
+      console.error('Lỗi trong hàm getUpcomingMovieBySlug:', error);
       return { success: false, error: error.message };
     }
   },
 
-  // Get upcoming movies by category
+  // Lấy phim sắp chiếu theo thể loại
   getUpcomingMoviesByCategory: async (categorySlug, page = 1, limit = 10) => {
     try {
       const response = await fetch(
@@ -121,19 +121,19 @@ const upcomingMovieService = {
       );
       
       if (!response.ok) {
-        throw new Error('Failed to fetch upcoming movies by category');
+        throw new Error('Không thể lấy phim sắp chiếu theo thể loại');
       }
       
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('Error in getUpcomingMoviesByCategory:', error);
+      console.error('Lỗi trong hàm getUpcomingMoviesByCategory:', error);
       return { success: false, error: error.message };
     }
   }
 };
 
-// Helper function to generate countdown text
+// Hàm trợ giúp để tạo văn bản đếm ngược
 function getCountdownText(releaseDate) {
   const now = new Date();
   const timeDiff = releaseDate.getTime() - now.getTime();

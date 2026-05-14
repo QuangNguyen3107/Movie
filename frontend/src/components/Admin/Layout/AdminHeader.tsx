@@ -22,14 +22,32 @@ const AdminHeader = () => {
   const { logout } = useAuth();
   const userDropdownRef = useRef<HTMLDivElement>(null);
   const notificationBtnRef = useRef<HTMLButtonElement>(null);
-
   useEffect(() => {
+    let isMounted = true;
+    
+    const fetchUnreadCount = async () => {
+      if (!isMounted) return;
+      try {
+        const notifications = await getNotifications();
+        if (!isMounted) return;
+        const unread = notifications.filter(n => !n.isRead).length;
+        setUnreadCount(unread);
+      } catch (error) {
+        console.error('Error fetching unread count:', error);
+      }
+    };
+    
     fetchUnreadCount();
     
     // Set up a timer to periodically check for new notifications
-    const intervalId = setInterval(fetchUnreadCount, 60000); // Check every minute
+    const intervalId = setInterval(() => {
+      if (isMounted) {
+        fetchUnreadCount();
+      }
+    }, 60000); // Check every minute
     
     return () => {
+      isMounted = false;
       clearInterval(intervalId);
     };
   }, []);

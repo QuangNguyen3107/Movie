@@ -3,10 +3,10 @@ import authService from './authService';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 const watchlistService = {
-  // Get watchlist for current user
+  // Lấy danh sách xem sau cho người dùng hiện tại
   getWatchlist: async () => {
     try {
-      // Get auth headers with token refresh if needed
+      // Lấy header xác thực với làm mới token nếu cần
       const headers = await authService.getAuthHeader();
       
       console.log("Fetching watchlist from API...");
@@ -27,18 +27,18 @@ const watchlistService = {
       const responseData = await response.json();
       console.log("Watchlist response data:", responseData);
       
-      // Improved data handling for backend structure
-      // Check for movies in responseData.data (from responseHelper)
+      // Cải thiện xử lý dữ liệu cho cấu trúc backend
+      // Kiểm tra phim trong responseData.data (từ responseHelper)
       if (responseData.data && responseData.data.movies) {
         console.log("Returning watchlist movies from data.movies:", responseData.data.movies);
         return responseData.data.movies;
       }
-      // Then check for movies directly in responseData
+      // Sau đó kiểm tra phim trực tiếp trong responseData
       else if (responseData.movies) {
         console.log("Returning watchlist movies from root:", responseData.movies);
         return responseData.movies;
       }
-      // If neither exists, log and return empty array
+      // Nếu cả hai đều không tồn tại, ghi log và trả về mảng rỗng
       else {
         console.log('Unexpected response format, could not find movies array:', responseData);
         return [];
@@ -49,10 +49,10 @@ const watchlistService = {
     }
   },
   
-  // Add movie to watchlist
+  // Thêm phim vào danh sách xem sau
   addToWatchlist: async (movieData) => {
     try {
-      // Get auth headers with token refresh if needed
+      // Lấy header xác thực với làm mới token nếu cần
       const headers = await authService.getAuthHeader();
       
       const response = await fetch(`${API_URL}/watchlist/add`, {
@@ -75,7 +75,7 @@ const watchlistService = {
         };
       }
       
-      // Access data through proper path which may be in responseData.data
+      // Truy cập dữ liệu qua đường dẫn phù hợp có thể nằm trong responseData.data
       const data = responseData.data || responseData;
       
       return {
@@ -92,10 +92,10 @@ const watchlistService = {
     }
   },
   
-  // Check if movie is in watchlist
+  // Kiểm tra xem phim có trong danh sách xem sau không
   isInWatchlist: async (movieId) => {
     try {
-      // Get auth headers with token refresh if needed
+      // Lấy header xác thực với làm mới token nếu cần
       const headers = await authService.getAuthHeader();
       
       const response = await fetch(`${API_URL}/watchlist/check/${movieId}`, {
@@ -112,7 +112,7 @@ const watchlistService = {
         return false;
       }
       
-      // Access data through proper path which may be in responseData.data
+      // Truy cập dữ liệu qua đường dẫn phù hợp có thể nằm trong responseData.data
       const data = responseData.data || responseData;
       return data.isInWatchlist || false;
     } catch (error) {
@@ -121,10 +121,10 @@ const watchlistService = {
     }
   },
   
-  // Remove movie from watchlist
+  // Xóa phim khỏi danh sách xem sau
   removeFromWatchlist: async (movieId) => {
     try {
-      // Get auth headers with token refresh if needed
+      // Lấy header xác thực với làm mới token nếu cần
       const headers = await authService.getAuthHeader();
       
       const response = await fetch(`${API_URL}/watchlist/remove/${movieId}`, {
@@ -158,10 +158,10 @@ const watchlistService = {
     }
   },
   
-  // Clear watchlist
+  // Xóa danh sách xem sau
   clearWatchlist: async () => {
     try {
-      // Get auth headers with token refresh if needed
+      // Lấy header xác thực với làm mới token nếu cần
       const headers = await authService.getAuthHeader();
       
       const response = await fetch(`${API_URL}/watchlist/clear`, {

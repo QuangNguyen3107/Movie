@@ -17,14 +17,25 @@ const WatchLater = ({ inProfilePage = false }) => {
   const [selectedMovies, setSelectedMovies] = useState([]);
   const { isAuthenticated, user } = useAuth();
   const router = useRouter();
-
   useEffect(() => {
+    let isMounted = true;
+    
     if (!isAuthenticated && !inProfilePage) {
       router.push('/auth/login');
       return;
     }
 
-    fetchWatchlist();
+    const fetchData = async () => {
+      if (isMounted) {
+        await fetchWatchlist();
+      }
+    };
+    
+    fetchData();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [isAuthenticated, router, inProfilePage]);
 
   const fetchWatchlist = async () => {

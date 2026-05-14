@@ -11,14 +11,16 @@ export const WebSocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState(null);
-
-  // Khởi tạo kết nối WebSocket
-  useEffect(() => {
+  // Khởi tạo kết nối WebSocket với memory leak prevention
+  useEffect(() => {    let isMounted = true;
+    
     // Tạo kết nối WebSocket
-    const ws = new WebSocket('ws://localhost:5000');
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:5000';
+    const ws = new WebSocket(wsUrl);
 
     // Xử lý sự kiện khi kết nối mở
     ws.onopen = () => {
+      if (!isMounted) return;
       console.log('WebSocket kết nối thành công');
       setIsConnected(true);
 
@@ -34,6 +36,7 @@ export const WebSocketProvider = ({ children }) => {
 
     // Xử lý khi nhận tin nhắn
     ws.onmessage = (event) => {
+      if (!isMounted) return;
       try {
         const data = JSON.parse(event.data);
         console.log('WebSocket message received:', data);
@@ -45,6 +48,7 @@ export const WebSocketProvider = ({ children }) => {
 
     // Xử lý khi kết nối đóng
     ws.onclose = () => {
+      if (!isMounted) return;
       console.log('WebSocket đã ngắt kết nối');
       setIsConnected(false);
     };
@@ -55,10 +59,13 @@ export const WebSocketProvider = ({ children }) => {
     };
 
     // Lưu socket vào state
-    setSocket(ws);
+    if (isMounted) {
+      setSocket(ws);
+    }
 
     // Đóng kết nối khi unmount
     return () => {
+      isMounted = false;
       if (ws) {
         ws.close();
       }

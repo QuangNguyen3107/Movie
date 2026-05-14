@@ -13,20 +13,18 @@ const axiosInstance = axios.create({
   withCredentials: true // Thêm để hỗ trợ CORS với credentials
 });
 
-// Add request interceptor for auth token
-axiosInstance.interceptors.request.use((config) => {  // Lấy token từ localStorage - check multiple potential keys
+// Thêm request interceptor cho auth token
+axiosInstance.interceptors.request.use((config) => {  // Lấy token từ localStorage - kiểm tra nhiều key có thể có
   const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || localStorage.getItem('authToken');
   
   if (token && token !== 'undefined' && token !== 'null') {
     config.headers.Authorization = `Bearer ${token}`;
-    
-    // Only log for important API calls to avoid console spam
+      // Chỉ log cho các API calls quan trọng để tránh spam console
     const importantEndpoints = ['/subscription/', '/user/', '/auth/'];
     if (importantEndpoints.some(endpoint => config.url.includes(endpoint))) {
       console.log('[API] Using auth token for request:', config.url);
-    }
-  } else {
-    // Check if this is an endpoint that needs authentication
+    }  } else {
+    // Kiểm tra xem đây có phải endpoint cần xác thực không
     const authRequiredEndpoints = [
       '/subscription/ad-benefits',
       '/subscription/current',
@@ -55,7 +53,7 @@ axiosInstance.interceptors.request.use((config) => {  // Lấy token từ localS
   return Promise.reject(error);
 });
 
-// Add response interceptor for error handling
+// Thêm response interceptor để xử lý lỗi
 axiosInstance.interceptors.response.use(
   (response) => {
     // Log response status và data summary để debug
@@ -81,15 +79,13 @@ axiosInstance.interceptors.response.use(
         message: error.message
       });
     }
-    
-    // Check for account locked status (403 Forbidden with isAccountLocked flag)
+      // Kiểm tra trạng thái tài khoản bị khóa (403 Forbidden với flag isAccountLocked)
     if (error.response?.status === 403 && error.response?.data?.isAccountLocked === true) {
       console.log('Account is locked, redirecting to account-locked page');
-      
-      // Save account locked state to localStorage to persist across refreshes
+        // Lưu trạng thái tài khoản bị khóa vào localStorage để duy trì qua các lần refresh
       localStorage.setItem('isAccountLocked', 'true');
       
-      // Redirect to account locked page if in browser context
+      // Chuyển hướng đến trang tài khoản bị khóa nếu trong môi trường browser
       if (typeof window !== 'undefined') {
         window.location.href = '/account-locked';
       }

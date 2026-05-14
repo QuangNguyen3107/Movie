@@ -3,8 +3,8 @@ import Link from "next/link";
 import { FaSearch, FaComment, FaBars, FaTimes, FaHome, FaFilm, FaTv, FaHeart, FaBookmark, FaHistory, FaSignOutAlt,FaBell, FaUserCircle, FaPlay, FaEye, FaTrash, FaTimesCircle, FaLightbulb } from "react-icons/fa";
 import { useRouter } from "next/router";
 import { useAuth } from "../../utils/auth";
-import searchHistoryService from "../../API/services/searchHistoryService"; // Import service mới
-import searchSuggestionService from "../../API/services/searchSuggestionService"; // Import new service
+import searchHistoryService from "../../API/services/searchHistoryService"; // Import dịch vụ lịch sử tìm kiếm
+import searchSuggestionService from "../../API/services/searchSuggestionService"; // Import dịch vụ gợi ý tìm kiếm
 import FeedbackForm from "../Feedback/FeedbackForm";
 
 const getAvatarUrl = (user) => {
@@ -12,7 +12,7 @@ const getAvatarUrl = (user) => {
   
   let avatarUrl = user.avatar || user.image || "/img/avatar.png";
   
-  // Handle relative paths for local avatars
+  // Xử lý đường dẫn tương đối cho avatar nội bộ
   if (avatarUrl && avatarUrl.startsWith('/')) {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
     const baseWithoutApi = baseUrl.endsWith('/api') 
@@ -22,7 +22,7 @@ const getAvatarUrl = (user) => {
     avatarUrl = `${baseWithoutApi}${avatarUrl}`;
   }
   
-  // Only add cache-busting for non-external URLs (exclude Google, Cloudinary, etc.)
+  // Chỉ thêm cache-busting cho URL không phải bên ngoài (loại trừ Google, Cloudinary, v.v.)
   if (!avatarUrl.includes('?') && 
       !avatarUrl.includes('googleusercontent.com') && 
       !avatarUrl.includes('cloudinary.com')) {
@@ -138,20 +138,20 @@ const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
     const newQuery = e.target.value;
     setSearchQuery(newQuery);
     
-    // Show search history if no query, otherwise fetch suggestions
+    // Hiển thị lịch sử tìm kiếm nếu không có query, nếu không thì lấy gợi ý
     if (newQuery.trim().length < 2) {
       setSearchSuggestions([]);
       setShowSuggestions(false);
       
-      // Show search history if input is empty and user is authenticated
+      // Hiển thị lịch sử tìm kiếm nếu input trống và người dùng đã xác thực
       if (newQuery.trim() === '' && isAuthenticated) {
         toggleSearchHistory(true);
       }
     } else {
-      // Hide search history when typing
+      // Ẩn lịch sử tìm kiếm khi đang nhập
       setShowSearchHistory(false);
       
-      // Fetch search suggestions
+      // Lấy gợi ý tìm kiếm
       fetchSearchSuggestions(newQuery);
     }
   };
@@ -181,14 +181,14 @@ const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
   const handleSuggestionClick = (suggestion) => {
     setSearchQuery(suggestion);
     
-    // Save to search history
+    // Lưu vào lịch sử tìm kiếm
     if (isAuthenticated) {
       saveToSearchHistory(suggestion);
     }
     
     localStorage.setItem('lastSearchQuery', suggestion.trim());
     
-    // Navigate to search page
+    // Điều hướng đến trang tìm kiếm
     router.push(`/search?q=${encodeURIComponent(suggestion.trim())}`);
     setShowSearchInput(false);
     setShowSuggestions(false);
@@ -463,7 +463,7 @@ const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
           
           <Link href="/" className="navbar-brand text-danger fw-bold ms-1 me-lg-4 mx-lg-0">
             <img
-              src="/img/phimlogo-removebg-preview.PNG"
+              src="/img/phimlogo-removebg-preview.png"
               alt="Logo"
               className="navbar-logo"
               style={{ width: "120px", height: "32px" }}
@@ -493,7 +493,8 @@ const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
               </div>
             </form>
           ) : (
-            <FaSearch className="text-white fs-5 cursor-pointer" onClick={toggleSearchInput} />          )}          <div className="profile-avatar ms-2" onClick={handleAvatarClick}>
+            <FaSearch className="text-white fs-5 cursor-pointer" onClick={toggleSearchInput} />          )}          
+            <div className="profile-avatar ms-2" onClick={handleAvatarClick}>
             <img 
               src={getAvatarUrl(user)} 
               alt="User Avatar" 
@@ -609,12 +610,14 @@ const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
                 </button>
               </form>            ) : (
               <FaSearch className="text-white fs-5 cursor-pointer" onClick={toggleSearchInput} />
-            )}            <FaComment 
+            )}            
+            <FaComment 
               className="text-white fs-5 cursor-pointer feedback-button" 
               onClick={(e) => {
                 e.stopPropagation();
                 setShowFeedbackForm(!showFeedbackForm);
-              }}            /><div className="profile-avatar position-relative" onClick={handleAvatarClick}>
+              }}            />
+              <div className="profile-avatar position-relative" onClick={handleAvatarClick}>
               <img 
                 src={getAvatarUrl(user)} 
                 alt="User Avatar" 
@@ -623,7 +626,7 @@ const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
                 onError={(e) => { 
                   console.log("Avatar load error, using default"); 
                   e.target.src = "/img/avatar.png"; 
-                }}
+                }}  
               />
               {isAuthenticated && (
                 <div className="user-status-indicator"></div>
@@ -1061,15 +1064,15 @@ const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
           border-left: 8px solid transparent;
           border-right: 8px solid transparent;
           border-bottom: 8px solid #212529;
-        }
-          @media (max-width: 992px) {
+        }        @media (max-width: 992px) {
           .search-history-dropdown {
             position: fixed;
-            top: 50%;
-            left: 60%;
-            transform: translate(-50%, -50%);
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
             width: 90%;
             max-width: 320px;
+            right: auto;
           }
           
           .search-history-dropdown:before {
@@ -1331,15 +1334,15 @@ const Navbar = () => {  const [isScrolled, setIsScrolled] = useState(false);
           border-left: 8px solid transparent;
           border-right: 8px solid transparent;
           border-bottom: 8px solid #212529;
-        }
-          @media (max-width: 992px) {
+        }          @media (max-width: 992px) {
           .search-suggestions-dropdown {
             position: fixed;
-            top: 50%;
-            left: 60%;
-            transform: translate(-50%, -50%);
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
             width: 90%;
             max-width: 320px;
+            right: auto;
           }
           
           .search-suggestions-dropdown:before {

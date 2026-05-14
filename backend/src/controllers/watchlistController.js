@@ -2,6 +2,7 @@ const Watchlist = require('../models/watchlist');
 const Movie = require('../models/movie');
 const mongoose = require('mongoose');
 const responseHelper = require('../utils/responseHelper');
+const { getCache, setCache, deleteCache } = require('../config/redis');
 
 // Get watchlist for current user
 exports.getWatchlist = async (req, res) => {
@@ -14,40 +15,47 @@ exports.getWatchlist = async (req, res) => {
             return responseHelper.unauthorizedResponse(res, 'Không thể xác định người dùng');
         }
 
-        // Find the user's watchlist
-        const watchlist = await Watchlist.findOne({ userId });
-
-        if (!watchlist) {
-            // If no watchlist exists, create one
-            const newWatchlist = new Watchlist({
-                userId,
-                movieIds: []
-            });
-            await newWatchlist.save();
-            
-            return responseHelper.successResponse(res, 'Danh sách xem sau trống', {
-                movies: []
-            });
+        // Try cache first
+        const cacheKey = `watchlist:${userId}`;
+        const cachedData = await getCache(cacheKey);
+        if (cachedData) {
+            return responseHelper.successResponse(res, 'Đã lấy danh sách xem sau thành công', cachedData);
         }
 
-        // Get the movies from the watchlist
+        // Find the user's watchlist with lean() for better performance
+        const watchlist = await Watchlist.findOne({ userId }).lean();
+
+        if (!watchlist || watchlist.movieIds.length === 0) {
+            const emptyResult = { movies: [] };
+            await setCache(cacheKey, emptyResult, 600); // Cache 10 minutes
+            return responseHelper.successResponse(res, 'Danh sách xem sau trống', emptyResult);
+        }
+
+        // Get the movies from the watchlist with lean() and select specific fields
         const movies = await Movie.find({
             _id: { $in: watchlist.movieIds }
-        }).select('name original_title thumb_url poster_url slug year time duration quality');
+        })
+        .select('name original_title thumb_url poster_url slug year time duration quality type')
+        .lean();
 
-        return responseHelper.successResponse(res, 'Đã lấy danh sách xem sau thành công', {
+        const result = {
             movies: movies.map(movie => ({
                 id: movie._id,
-                title: movie.name,                       // name field instead of title
+                title: movie.name,
                 original_title: movie.original_title,
                 slug: movie.slug,
-                thumbnail: movie.thumb_url || movie.poster_url,  // Use thumb_url or poster_url
+                thumbnail: movie.thumb_url || movie.poster_url,
                 year: movie.year,
-                duration: movie.time || movie.duration,  // Use time or duration
+                duration: movie.time || movie.duration,
                 quality: movie.quality,
                 type: movie.type
             }))
-        });
+        };
+
+        // Cache result for 10 minutes
+        await setCache(cacheKey, result, 600);
+
+        return responseHelper.successResponse(res, 'Đã lấy danh sách xem sau thành công', result);
     } catch (error) {
         console.error('Error getting watchlist:', error);
         return responseHelper.serverErrorResponse(res, 'Không thể lấy danh sách xem sau');
@@ -69,12 +77,12 @@ exports.addToWatchlist = async (req, res) => {
             return responseHelper.badRequestResponse(res, 'Thiếu thông tin phim');
         }
 
-        // Find the movie by slug or id
+        // Find the movie by slug or id with lean() and select only _id
         let movie;
         if (movieId) {
-            movie = await Movie.findById(movieId);
+            movie = await Movie.findById(movieId).select('_id').lean();
         } else {
-            movie = await Movie.findOne({ slug });
+            movie = await Movie.findOne({ slug }).select('_id').lean();
         }
 
         if (!movie) {
@@ -91,13 +99,16 @@ exports.addToWatchlist = async (req, res) => {
             });
             await watchlist.save();
             
+            // Clear cache
+            await deleteCache(`watchlist:${userId}`);
+            
             return responseHelper.successResponse(res, 'Đã thêm phim vào danh sách xem sau', {
                 movieId: movie._id
             });
         }
 
         // Check if the movie is already in the watchlist
-        if (watchlist.movieIds.includes(movie._id)) {
+        if (watchlist.movieIds.some(id => id.toString() === movie._id.toString())) {
             return responseHelper.successResponse(res, 'Phim đã có trong danh sách xem sau', {
                 alreadyExists: true,
                 movieId: movie._id
@@ -107,6 +118,9 @@ exports.addToWatchlist = async (req, res) => {
         // Add the movie to the watchlist
         watchlist.movieIds.push(movie._id);
         await watchlist.save();
+
+        // Clear cache
+        await deleteCache(`watchlist:${userId}`);
 
         return responseHelper.successResponse(res, 'Đã thêm phim vào danh sách xem sau', {
             movieId: movie._id
@@ -187,6 +201,9 @@ exports.removeFromWatchlist = async (req, res) => {
         watchlist.movieIds.splice(movieIndex, 1);
         await watchlist.save();
 
+        // Clear cache
+        await deleteCache(`watchlist:${userId}`);
+
         return responseHelper.successResponse(res, 'Đã xóa phim khỏi danh sách xem sau');
     } catch (error) {
         console.error('Error removing from watchlist:', error);
@@ -213,6 +230,9 @@ exports.clearWatchlist = async (req, res) => {
         // Clear the watchlist
         watchlist.movieIds = [];
         await watchlist.save();
+
+        // Clear cache
+        await deleteCache(`watchlist:${userId}`);
 
         return responseHelper.successResponse(res, 'Đã xóa tất cả phim trong danh sách xem sau');
     } catch (error) {

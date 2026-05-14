@@ -1,9 +1,9 @@
-// Ad Context to manage advertisement visibility based on user subscriptions
+// Ngữ cảnh quảng cáo để quản lý việc hiển thị quảng cáo dựa trên gói đăng ký của người dùng
 import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import subscriptionService from '../API/services/subscriptionService';
 
-// Create the context with default values
+// Tạo context với giá trị mặc định
 const AdContext = createContext({
   hideHomepageAds: false,
   hideVideoAds: false,
@@ -12,13 +12,13 @@ const AdContext = createContext({
   hasActiveSubscription: false,
 });
 
-// Export custom hook for easy access to the context
+// Export custom hook để truy cập context dễ dàng
 export const useAdContext = () => useContext(AdContext);
 
 export const AdContextProvider = ({ children }) => {
   const router = useRouter();
   
-  // State to track ad visibility settings with proper defaults
+  // State để theo dõi cài đặt hiển thị quảng cáo với giá trị mặc định phù hợp
   const [adSettings, setAdSettings] = useState({
     hideHomepageAds: false,
     hideVideoAds: false,
@@ -27,16 +27,16 @@ export const AdContextProvider = ({ children }) => {
     hasActiveSubscription: false,
   });
   
-  // Track authentication status
+  // Theo dõi trạng thái xác thực
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   // Sử dụng ref để theo dõi việc fetch benefits
   const isFetchingRef = useRef(false);
   const benefitsTimeoutRef = useRef(null);
 
-  // Check if current page should never show ads
+  // Kiểm tra xem trang hiện tại có phải là trang không cho phép truy cập quảng cáo không
   const isNoAccessPage = router.pathname === '/noaccess';
 
-  // Check if user is authenticated - và chỉ chạy 1 lần khi mount
+  // Kiểm tra người dùng đã xác thực - chỉ chạy 1 lần khi mount
   useEffect(() => {
     const checkAuth = () => {
       const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || localStorage.getItem('authToken');
@@ -51,10 +51,10 @@ export const AdContextProvider = ({ children }) => {
       });
     };
     
-    // Initial check
+    // Kiểm tra ban đầu
     checkAuth();
     
-    // Set up listener for storage changes (in case token is updated in another tab)
+    // Lắng nghe sự kiện thay đổi storage (trường hợp token thay đổi ở tab khác)
     const handleStorageChange = (e) => {
       if (e.key === 'auth_token' || e.key === 'token' || e.key === 'authToken') {
         console.log(`[AdContext] Storage event detected for ${e.key}`);
@@ -71,13 +71,11 @@ export const AdContextProvider = ({ children }) => {
       }
     };
   }, []); // Không phụ thuộc isAuthenticated để tránh render loop
-
-  // Fetch subscription status and ad benefits on component mount or auth changes
+  // Lấy trạng thái đăng ký và quyền lợi quảng cáo khi component mount hoặc khi trạng thái xác thực thay đổi
   useEffect(() => {
-    // Keep track of retry attempts
+    let isComponentMounted = true; // Theo dõi component còn mounted không
     let retryCount = 0;
     const MAX_RETRIES = 3;
-    let isComponentMounted = true; // Theo dõi component có còn mounted không
     
     const fetchSubscriptionBenefits = async () => {
       // Tránh fetch đồng thời nhiều lần
@@ -88,17 +86,17 @@ export const AdContextProvider = ({ children }) => {
       
       isFetchingRef.current = true;
       
-      // Set loading state
+      // Đặt trạng thái loading
       if (isComponentMounted) {
         setAdSettings(prev => ({ ...prev, isLoading: true }));
       }
       
       try {
-        // Only attempt to fetch benefits if authenticated
+        // Chỉ fetch quyền lợi nếu đã xác thực
         if (!isAuthenticated) {
           console.log('[AdContext] Not authenticated, skipping benefits check');
           if (isComponentMounted) {
-            setAdSettings(prev => ({ 
+            setAdSettings(prev => ({
               ...prev,
               hideHomepageAds: false,
               hideVideoAds: false, 
@@ -113,20 +111,20 @@ export const AdContextProvider = ({ children }) => {
         
         console.log('[AdContext] Fetching ad benefits from API...', new Date().toISOString());
         
-        // Get subscription benefits from API
+        // Lấy quyền lợi quảng cáo từ API
         const benefits = await subscriptionService.getUserAdBenefits();
         
-        // Check if component still mounted
+        // Kiểm tra component còn mounted không
         if (!isComponentMounted) {
           console.log('[AdContext] Component unmounted during API fetch, abandoning update');
           isFetchingRef.current = false;
           return;
         }
-          // Check if we got an auth error
+          // Kiểm tra lỗi xác thực
         if (benefits.authError) {
           console.warn('[AdContext] Authentication error detected');
           if (retryCount < MAX_RETRIES) {
-            // Try again after a delay
+            // Thử lại sau một khoảng thời gian
             retryCount++;
             console.log(`[AdContext] Will retry in 2 seconds (attempt ${retryCount + 1}/${MAX_RETRIES})`);
             benefitsTimeoutRef.current = setTimeout(fetchSubscriptionBenefits, 2000);
@@ -143,16 +141,16 @@ export const AdContextProvider = ({ children }) => {
           console.log('%c[AdContext] PREMIUM 15K PACKAGE DETECTED!', 'color: #FF0000; font-size: 16px; font-weight: bold');
         }
         
-        // Đảm bảo các giá trị boolean là đúng kiểu
+        // Đảm bảo các giá trị boolean đúng kiểu
         const hideHomepageAds = benefits.hideHomepageAds === true || isPremium15k;
         const hideVideoAds = benefits.hideVideoAds === true || isPremium15k;
         const hasActiveSubscription = benefits.hasActiveSubscription === true;
         
-        // Log chi tiết về quyền lợi cho việc debug
+        // Log chi tiết về quyền lợi để debug
         console.log(`[AdContext] ✅ Benefits received - hideHomepageAds: ${hideHomepageAds}, hideVideoAds: ${hideVideoAds}`);
         console.log(`[AdContext] 📦 Package type: ${benefits.packageType || 'None'}, Active sub: ${hasActiveSubscription}`);
         
-        // Update state with benefits data
+        // Cập nhật state với dữ liệu quyền lợi
         if (isComponentMounted) {
           setAdSettings({
             hideHomepageAds: hideHomepageAds,
@@ -165,38 +163,38 @@ export const AdContextProvider = ({ children }) => {
         }
         
         console.log('[AdContext] Ad settings updated successfully');
-        // Reset retry counter upon success
+        // Reset bộ đếm thử lại khi thành công
         retryCount = 0;
       } catch (error) {
         console.error('[AdContext] Failed to fetch ad benefits:', error);
         
-        // Retry logic for network errors
+        // Logic thử lại khi gặp lỗi mạng
         if (retryCount < MAX_RETRIES) {
           retryCount++;
-          const delay = 1000 * Math.pow(2, retryCount); // Exponential backoff
+          const delay = 1000 * Math.pow(2, retryCount); // Tăng dần thời gian chờ
           console.log(`[AdContext] Network error, retrying in ${delay/1000} seconds (attempt ${retryCount + 1}/${MAX_RETRIES})`);
           
           if (isComponentMounted) {
             benefitsTimeoutRef.current = setTimeout(fetchSubscriptionBenefits, delay);
           }
         } else {
-          // Set loading to false after max retries
+          // Đặt loading = false sau khi thử tối đa số lần
           if (isComponentMounted) {
             setAdSettings(prev => ({ ...prev, isLoading: false }));
           }
         }
       } finally {
-        isFetchingRef.current = false; // Reset fetching flag
+        isFetchingRef.current = false; // Reset cờ fetch
       }
     };
 
     // Bắt đầu fetch quyền lợi
     fetchSubscriptionBenefits();
     
-    // Refresh subscription benefits every 15 minutes (reduced from hourly)
+    // Làm mới quyền lợi mỗi 15 phút (giảm từ mỗi giờ)
     const refreshInterval = setInterval(fetchSubscriptionBenefits, 15 * 60 * 1000);
     
-    // Cleanup function
+    // Hàm dọn dẹp
     return () => {
       isComponentMounted = false; // Component đã unmount
       clearInterval(refreshInterval);
@@ -204,10 +202,11 @@ export const AdContextProvider = ({ children }) => {
         clearTimeout(benefitsTimeoutRef.current);
       }
     };
-  }, [isAuthenticated]); // Phụ thuộc vào trạng thái xác thực  // Apply overrides for special pages that should never show ads
+  }, [isAuthenticated]); // Phụ thuộc vào trạng thái xác thực
+  // Áp dụng ghi đè cho các trang đặc biệt không bao giờ hiển thị quảng cáo
   const finalAdSettings = {
     ...adSettings,
-    // Force hide all ads on noaccess page
+    // Bắt buộc ẩn tất cả quảng cáo trên trang noaccess
     hideHomepageAds: isNoAccessPage ? true : adSettings.hideHomepageAds,
     hideVideoAds: isNoAccessPage ? true : adSettings.hideVideoAds,
   };

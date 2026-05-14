@@ -3,10 +3,10 @@ import React, { useState } from 'react';
 const MovieRating = ({ movieId }) => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
-
   const handleSubmit = async () => {
     try {
-      await fetch('http://localhost:5000/api/movies/rate', {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      await fetch(`${baseUrl}/movies/rate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

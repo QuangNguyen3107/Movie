@@ -1,18 +1,20 @@
 import "bootstrap/dist/css/bootstrap.min.css";
 import Head from "next/head";
 import '../styles/animation.css';
-import '../styles/subscription-details.css'; // Import CSS for subscription details
-// import '../styles/admin-fix.css'; 
-import '../styles/feedbackAdmin.css'; // Import CSS for feedback admin
+import '../styles/subscription-details.css';
+import '../styles/feedbackAdmin.css';
 import { SessionProvider } from "next-auth/react";
 import { AuthProvider, withAccountStatus } from "../utils/auth";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from 'next/router';
-import Layout from "../components/Layout";
-import OfflineNotice from "../components/OfflineNotice";
-import NetworkStatusBar from "../components/NetworkStatusBar";
-import AdContextProvider from "../context/AdContext";
+import dynamic from 'next/dynamic';
 import { registerServiceWorker } from "../utils/serviceWorker";
+
+// Lazy load components
+const Layout = dynamic(() => import("../components/Layout"), { ssr: true });
+const OfflineNotice = dynamic(() => import("../components/OfflineNotice"), { ssr: false });
+const NetworkStatusBar = dynamic(() => import("../components/NetworkStatusBar"), { ssr: false });
+const AdContextProvider = dynamic(() => import("../context/AdContext"), { ssr: true });
 
 function MyApp({ Component, pageProps: { session, ...pageProps } }) {
   const router = useRouter();
@@ -20,8 +22,12 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }) {
   const [isInitialized, setIsInitialized] = useState(false);  // Khởi tạo Bootstrap JS chỉ ở phía client để tránh lỗi hydration
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Sử dụng require thay vì dynamic import để tránh lỗi chunk loading
-      require("bootstrap/dist/js/bootstrap.bundle.min.js");
+      // Lazy load Bootstrap JS
+      import("bootstrap/dist/js/bootstrap.bundle.min.js")
+        .then(() => {
+          console.log('Bootstrap JS loaded');
+        })
+        .catch(err => console.error('Failed to load Bootstrap:', err));
       
       // Register service worker for offline functionality
       registerServiceWorker();
@@ -83,7 +89,7 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }) {
       <AuthProvider>
         <AdContextProvider>          
           <Head>
-            <title>Đồ án Nhóm 6</title>
+            <title>MovieStreaming</title>
             <meta name="description" content="Xem phim trực tuyến miễn phí HD" />
             <meta name="viewport" content="width=device-width, initial-scale=1" />
             <link rel="icon" href="/img/icons.png" />

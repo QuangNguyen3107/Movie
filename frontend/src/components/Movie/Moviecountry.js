@@ -112,11 +112,11 @@ const Moviecountry = () => {
           ...prev[countryKey],
           loading: true,
           movies: []
-        }
-      }));
+        }      }));
   
       // Gọi API để lấy tất cả phim (hoặc có thể thêm filter phía server nếu hỗ trợ)
-      const response = await fetch(`http://localhost:5000/api/movies?page=1&limit=100`);
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${baseUrl}/movies?page=1&limit=100`);
       const result = await response.json();
   
       if (result.data?.movies) {

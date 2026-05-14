@@ -4,7 +4,7 @@
 
 import axiosInstance from '../../config/axiosConfig';
 
-// Define interfaces for improved type safety
+// Định nghĩa kiểu dữ liệu cho các tham số báo cáo
 interface ReportParams {
   page?: number;
   limit?: number;

@@ -81,6 +81,44 @@ const movieSchema = new Schema({
     ]
 }, {timestamps: true});
 
+// Add database indexes for better query performance
+// Index for search functionality
+movieSchema.index({ name: "text", origin_name: "text", content: "text", actor: "text", director: "text" });
+
+// Indexes for frequently queried fields
+movieSchema.index({ slug: 1 }); // Unique already handles this, but explicit for clarity
+movieSchema.index({ year: 1 });
+movieSchema.index({ type: 1 });
+movieSchema.index({ status: 1 });
+movieSchema.index({ quality: 1 });
+movieSchema.index({ lang: 1 });
+movieSchema.index({ view: -1 }); // For most viewed queries
+movieSchema.index({ "created.time": -1 }); // For newest first sorting
+movieSchema.index({ "modified.time": -1 }); // For recently updated
+
+// Compound indexes for common query patterns
+movieSchema.index({ name: 1, year: 1 }); // For search with name and year
+movieSchema.index({ type: 1, year: 1 }); // Filter by type and year
+movieSchema.index({ type: 1, status: 1 }); // Filter by type and status
+movieSchema.index({ "category.name": 1, year: 1 }); // Category-based queries
+movieSchema.index({ "category.slug": 1 }); // Category slug queries
+movieSchema.index({ "country.name": 1 }); // Country-based queries
+movieSchema.index({ "country.slug": 1 }); // Country slug queries
+
+// Rating-related indexes
+movieSchema.index({ rating: -1 }); // For top rated queries
+movieSchema.index({ rating_count: -1 }); // For most rated queries
+movieSchema.index({ rating: -1, rating_count: -1 }); // Combined rating queries
+
+// TMDB indexes for external data queries
+movieSchema.index({ "tmdb.id": 1 });
+movieSchema.index({ "tmdb.vote_average": -1 });
+movieSchema.index({ "imdb.id": 1 });
+
+// Performance optimized compound indexes
+movieSchema.index({ type: 1, year: -1, view: -1 }); // Popular content by type and year
+movieSchema.index({ status: 1, "created.time": -1 }); // Recent content by status
+
 // Middleware Hooks cho Elasticsearch Sync
 // =========================================================
 

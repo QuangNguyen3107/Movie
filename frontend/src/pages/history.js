@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import Navbar from '../components/Layout/Navbar';
@@ -22,18 +22,29 @@ export function HistoryContent({ inProfilePage = false }) {
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
-
-  // Fetch watch history
+  // Fetch watch history with memory leak prevention
   useEffect(() => {
+    let isMounted = true;
+    
     if (!isAuthenticated && !inProfilePage) {
       router.push('/auth/login');
       return;
     }
     
-    fetchHistory();
+    const fetchData = async () => {
+      if (isMounted) {
+        await fetchHistory();
+      }
+    };
+    
+    fetchData();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [isAuthenticated, router, page, filter, sortBy, inProfilePage, searchQuery]);
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     try {
       setLoading(true);
       const limit = inProfilePage ? 20 : 10; // Hiển thị nhiều hơn trong trang profile
@@ -47,7 +58,7 @@ export function HistoryContent({ inProfilePage = false }) {
       setError('Không thể tải lịch sử xem phim. Vui lòng thử lại sau!');
       setLoading(false);
     }
-  };
+  }, [page, filter, sortBy, searchQuery, inProfilePage]);
 
   const handleDeleteHistory = async (historyId) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa phim này khỏi lịch sử?')) {

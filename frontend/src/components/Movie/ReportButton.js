@@ -7,7 +7,7 @@ const ReportButton = ({ movieId }) => {
 
   const handleSubmit = async () => {
     try {
-      await fetch('http://localhost:5000/api/movies/report', {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/movies/report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -77,4 +77,4 @@ const ReportButton = ({ movieId }) => {
   );
 };
 
-export default ReportButton; 
+export default ReportButton;

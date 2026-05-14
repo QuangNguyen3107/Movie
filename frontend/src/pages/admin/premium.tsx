@@ -320,9 +320,9 @@ const AdminPremiumPage: NextPageWithLayout<AdminPremiumPageProps> = () => {
             token: testToken.substring(0, 20) + '...',
             exists: true,
           });
-          
-          // Try to send test request with token
-          const testResponse = await fetch('http://localhost:5000/api/subscription/admin/pending-subscriptions', {
+            // Try to send test request with token
+          const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+          const testResponse = await fetch(`${baseUrl}/subscription/admin/pending-subscriptions`, {
             headers: {
               'Authorization': `Bearer ${testToken}`
             }
@@ -391,9 +391,9 @@ const AdminPremiumPage: NextPageWithLayout<AdminPremiumPageProps> = () => {
         closeButton: false,
         draggable: false
       });
-      
-      // Use direct fetch for debugging purposes
-      const response = await fetch(`http://localhost:5000${endpoint}${statusFilter}`, {
+        // Use direct fetch for debugging purposes
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${baseUrl.replace('/api', '')}${endpoint}${statusFilter}`, {
         headers: {
           'Authorization': `Bearer ${testToken}`
         }
@@ -602,11 +602,11 @@ const AdminPremiumPage: NextPageWithLayout<AdminPremiumPageProps> = () => {
         toast.error('Không tìm thấy token xác thực. Vui lòng đăng nhập lại.');
         throw new Error('No authentication token found');
       }
-      
-      console.log(`Attempting to approve subscription: ${subscriptionId}`);
+        console.log(`Attempting to approve subscription: ${subscriptionId}`);
       
       // Sửa đường dẫn API endpoint để phù hợp với backend
-      const response = await fetch(`http://localhost:5000/api/subscription/admin/approve/${subscriptionId}`, {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${baseUrl}/subscription/admin/approve/${subscriptionId}`, {
         method: 'POST', // Đảm bảo phương thức là POST
         headers: {
           'Authorization': `Bearer ${testToken}`,
@@ -697,10 +697,10 @@ const AdminPremiumPage: NextPageWithLayout<AdminPremiumPageProps> = () => {
       if (!testToken) {
         toast.dismiss(toastId);
         toast.error('Không tìm thấy token xác thực. Vui lòng đăng nhập lại.');
-        throw new Error('No authentication token found');
-      }
+        throw new Error('No authentication token found');      }
       
-      const response = await fetch(`http://localhost:5000/api/subscription/admin/reject/${subscriptionId}`, {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${baseUrl}/subscription/admin/reject/${subscriptionId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${testToken}`,
@@ -786,9 +786,9 @@ const AdminPremiumPage: NextPageWithLayout<AdminPremiumPageProps> = () => {
       }
       
       console.log(`Attempting to cancel subscription with ID: ${subscriptionId}`);
-      
-      // Đường dẫn API cần có dấu slash ở đầu để đảm bảo đường dẫn hoàn chỉnh
-      const response = await fetch(`http://localhost:5000/api/subscription/admin/cancel/${subscriptionId}`, {
+        // Đường dẫn API cần có dấu slash ở đầu để đảm bảo đường dẫn hoàn chỉnh
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${baseUrl}/subscription/admin/cancel/${subscriptionId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${testToken}`,
@@ -851,12 +851,12 @@ const AdminPremiumPage: NextPageWithLayout<AdminPremiumPageProps> = () => {
         toast.error('Không tìm thấy token xác thực!');
         return;
       }
-      
-      // Hiển thị thông báo đang tải
+        // Hiển thị thông báo đang tải
       const toastId = toast.loading('Đang tải thông tin người dùng...');
       
       // Gọi API để lấy thông tin chi tiết của người dùng
-      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${baseUrl}/admin/users/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

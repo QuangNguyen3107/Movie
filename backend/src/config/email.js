@@ -1,24 +1,19 @@
-// src/config/email.js
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-// Tạo transporter để gửi email
 let transporterConfig;
 
-// Kiểm tra xem có cấu hình SMTP tùy chỉnh không
 if (process.env.SMTP_HOST && process.env.SMTP_PORT) {
-    // Sử dụng cấu hình SMTP tùy chỉnh
     transporterConfig = {
         host: process.env.SMTP_HOST,
         port: parseInt(process.env.SMTP_PORT, 10),
-        secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+        secure: process.env.SMTP_SECURE === 'true',
         auth: {
             user: process.env.EMAIL_USER,
             pass: process.env.EMAIL_PASS
         }
     };
 } else {
-    // Sử dụng Gmail mặc định
     transporterConfig = {
         service: 'gmail',
         auth: {
@@ -30,7 +25,6 @@ if (process.env.SMTP_HOST && process.env.SMTP_PORT) {
 
 const transporter = nodemailer.createTransport(transporterConfig);
 
-// Kiểm tra kết nối với máy chủ email
 const verifyEmailConfig = async () => {
     try {
         await transporter.verify();

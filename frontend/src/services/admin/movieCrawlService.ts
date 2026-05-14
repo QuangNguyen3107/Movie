@@ -32,6 +32,16 @@ class MovieCrawlService {
       throw new Error(error.response?.data?.message || 'Failed to crawl all movies');
     }
   }
+
+  // Cancel crawling all movies
+  async cancelCrawlAllMovies(): Promise<{ message: string }> {
+    try {
+      const response = await axiosInstance.post(endpoints.crawl.moviesAll() + '/cancel');
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to cancel crawl');
+    }
+  }
 }
 
 export default new MovieCrawlService();

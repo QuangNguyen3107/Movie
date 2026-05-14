@@ -37,6 +37,87 @@ exports.getAllAdvertisements = async (req, res) => {
       success: false,
       message: 'Error fetching advertisements',
       error: error.message
+    });  }
+};
+
+// Get random advertisement(s) by type
+exports.getRandomAd = async (req, res) => {
+  try {
+    const { type, limit } = req.query;
+    const requestedLimit = parseInt(limit) || 1; // Default to 1 if not specified
+    
+    const filter = { 
+      active: true,
+      $or: [
+        { startDate: { $lte: new Date() }, endDate: { $gte: new Date() } },
+        { startDate: { $exists: false }, endDate: { $exists: false } }
+      ]
+    };
+    
+    // Apply type filter if provided
+    if (type) filter.type = type;
+    
+    // Get count of matching ads
+    const count = await Advertisement.countDocuments(filter);
+    
+    if (count === 0) {
+      return res.status(200).json({
+        success: true,
+        advertisements: [],
+        advertisement: null, // Keep for backward compatibility
+        message: 'No active advertisements found'
+      });
+    }
+    
+    let advertisements = [];
+    
+    if (requestedLimit === 1) {
+      // For single ad request, use the original logic
+      const randomSkip = Math.floor(Math.random() * count);
+      const advertisement = await Advertisement.findOne(filter)
+        .skip(randomSkip)
+        .sort({ priority: -1, createdAt: -1 });
+      
+      if (!advertisement) {
+        return res.status(200).json({
+          success: true,
+          advertisements: [],
+          advertisement: null,
+          message: 'No advertisement found'
+        });
+      }
+      
+      advertisements = [advertisement];
+      
+      // Return both formats for compatibility
+      return res.status(200).json({
+        success: true,
+        advertisement, // Single ad for backward compatibility
+        advertisements // Array format for new requests
+      });
+    } else {
+      // For multiple ads, get random sample
+      const limitToUse = Math.min(requestedLimit, count);
+      
+      // Use aggregation to get random samples
+      advertisements = await Advertisement.aggregate([
+        { $match: filter },
+        { $sample: { size: limitToUse } },
+        { $sort: { priority: -1, createdAt: -1 } }
+      ]);
+      
+      return res.status(200).json({
+        success: true,
+        advertisements,
+        advertisement: advertisements[0] || null // First ad for backward compatibility
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching random advertisement:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching random advertisement',
+      error: error.message
     });
   }
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import Navbar from "../components/Layout/Navbar";
@@ -97,11 +97,22 @@ const Movies = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
-  // Initial load and fetch filters
+  }, []);  // Initial load and fetch filters with cleanup
   useEffect(() => {
+    let isMounted = true;
+    
     // Fetch initial movies on mount
-    fetchMovies(1, false);
+    const loadInitialMovies = async () => {
+      if (isMounted) {
+        await fetchMovies(1, false);
+      }
+    };
+    
+    loadInitialMovies();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []); // Run only once on mount
   
   // We're removing the automatic filter refresh on filter/sort change
@@ -192,8 +203,7 @@ const Movies = () => {
     setShowCategoryDropdown(false);
     setShowCountryDropdown(false);
     setShowYearDropdown(false);
-  };
-  const fetchMovies = async (pageNumber, isLoadMore = false) => {
+  };  const fetchMovies = useCallback(async (pageNumber, isLoadMore = false) => {
     // Prevent duplicate fetching while already loading
     if (loading && !refreshing && pageNumber > 1) {
       console.log('Already loading, skipping fetch request');
@@ -357,7 +367,7 @@ const Movies = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [filters, sortOption, loading, refreshing]);
   const loadMore = () => {
     if (!loading && hasMore) {
       // Set a loading state
@@ -558,7 +568,7 @@ const Movies = () => {
                         className="btn btn-sm ms-2 p-0 text-white" 
                         onClick={() => setFilters(prev => ({ ...prev, category: "" }))}
                       >
-                        <i className="fas fa-times">×</i>
+                        <i className="fas fa-times"></i>
                       </button>
                     </span>
                   )}
@@ -570,7 +580,7 @@ const Movies = () => {
                         className="btn btn-sm ms-2 p-0 text-white" 
                         onClick={() => setFilters(prev => ({ ...prev, country: "" }))}
                       >
-                        <i className="fas fa-times">×</i>
+                        <i className="fas fa-times"></i>
                       </button>
                     </span>
                   )}
@@ -582,7 +592,7 @@ const Movies = () => {
                         className="btn btn-sm ms-2 p-0 text-white" 
                         onClick={() => setFilters(prev => ({ ...prev, year: "" }))}
                       >
-                        <i className="fas fa-times">×</i>
+                        <i className="fas fa-times"></i>
                       </button>
                     </span>
                   )}

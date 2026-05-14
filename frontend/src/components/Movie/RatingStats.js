@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, createContext, useContext } from 'r
 import styles from '../../styles/RatingStats.module.css';
 import UserRatingDetails from './UserRatingDetails';
 
-// Create a context to share state between components
+// Tạo một context để chia sẻ trạng thái giữa các thành phần
 export const RatingContext = createContext();
 
 const RatingStats = ({ userRatingsStats, averageRating, ratingCount, movieSlug }) => {
@@ -12,7 +12,7 @@ const RatingStats = ({ userRatingsStats, averageRating, ratingCount, movieSlug }
   const toggleButtonRef = useRef(null);
   const [showUserRatings, setShowUserRatings] = useState(false);
   const [showUserRatingDetails, setShowUserRatingDetails] = useState(false);
-  // Handle clicks outside the dropdown to close it
+  // Xử lý các click bên ngoài dropdown để đóng nó
   useEffect(() => {
     let startY = 0;
     
@@ -21,11 +21,11 @@ const RatingStats = ({ userRatingsStats, averageRating, ratingCount, movieSlug }
     };
     
     const handleTouchEnd = (event) => {
-      // Don't close if it was just a scroll
+      // Không đóng nếu chỉ là cuộn trang
       const endY = event.changedTouches[0].clientY;
       const deltaY = Math.abs(endY - startY);
       
-      if (deltaY < 10 && // If it wasn't a significant scroll
+      if (deltaY < 10 && // Nếu không phải là cuộn đáng kể
           showStats && 
           dropdownRef.current && 
           !dropdownRef.current.contains(event.target) &&
@@ -45,37 +45,37 @@ const RatingStats = ({ userRatingsStats, averageRating, ratingCount, movieSlug }
       }
     };
     
-    // Add event listeners when dropdown is shown
+    // Thêm các sự kiện khi dropdown được hiển thị
     if (showStats) {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('touchstart', handleTouchStart);
       document.addEventListener('touchend', handleTouchEnd);
     }
     
-    // Clean up
+    // Dọn dẹp
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [showStats]);  // Toggle stats display
+  }, [showStats]);  // Bật/tắt hiển thị thống kê
   const toggleStats = (e) => {
-    e.stopPropagation(); // Prevent event bubbling
+    e.stopPropagation(); // Ngăn sự kiện lan truyền
     setShowStats(!showStats);
     
-    // Auto-hide user rating details when showing stats
+    // Tự động ẩn chi tiết đánh giá của người dùng khi hiển thị thống kê
     if (!showStats) {
       setShowUserRatingDetails(false);
     }
   };
-  // Ensure userRatingsStats is an object
+  // Đảm bảo userRatingsStats là một đối tượng
   const ratingDistribution = userRatingsStats || {};
   
-  // Debug rating distribution data
+  // Debug dữ liệu phân phối đánh giá
   console.log("Rating distribution data:", ratingDistribution);
   console.log("Rating count:", ratingCount);
 
-  // Generate percentage for each star rating
+  // Tạo phần trăm cho mỗi mức đánh giá sao
   const calculatePercentage = (count) => {
     if (!ratingCount || ratingCount === 0) return 0;
     return Math.round((count / ratingCount) * 100);
@@ -118,7 +118,7 @@ const RatingStats = ({ userRatingsStats, averageRating, ratingCount, movieSlug }
                 <span className={styles.ratingMax}>/10</span>
               </div>              <div className={styles.ratingStarIcons}>
                 {[...Array(10)].map((_, i) => {
-                  // No need to convert, directly use the index for 10-scale
+                  // Không cần chuyển đổi, sử dụng trực tiếp chỉ số cho thang điểm 10
                   const starValue = i + 1;
                   const filled = averageRating >= starValue;
                   const halfFilled = !filled && averageRating > starValue - 0.5;
@@ -132,7 +132,7 @@ const RatingStats = ({ userRatingsStats, averageRating, ratingCount, movieSlug }
                     starType = 'bi-star';
                   }
 
-                  // Calculate delay for animation based on position
+                  // Tính toán độ trễ cho hiệu ứng dựa trên vị trí
                   const animationDelay = `${i * 0.3}s`;
 
                   return (
@@ -141,7 +141,7 @@ const RatingStats = ({ userRatingsStats, averageRating, ratingCount, movieSlug }
                       className={`bi ${starType} ${styles.starIcon}`}
                       style={{ 
                         animationDelay,
-                        '--star-index': i // For browsers that support custom properties
+                        '--star-index': i // Đối với trình duyệt hỗ trợ custom properties
                       }}
                       aria-label={`${starValue} star${starValue > 1 ? 's' : ''}`}
                     ></i>
@@ -158,7 +158,7 @@ const RatingStats = ({ userRatingsStats, averageRating, ratingCount, movieSlug }
               <>
                 <div className={styles.ratingBars}>
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((star) => {
-                    // Make sure we have a number value for count
+                    // Đảm bảo chúng ta có giá trị số cho count
                     const count = parseInt(ratingDistribution[star] || 0, 10);
                     const percentage = calculatePercentage(count);
                       return (

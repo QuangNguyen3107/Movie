@@ -232,12 +232,12 @@ const AdminUsersPage = () => {
   // Setup WebSocket connection
   useEffect(() => {
     // Initialize WebSocket connection
-    const setupWebSocket = () => {
-      if (wsRef.current) {
+    const setupWebSocket = () => {      if (wsRef.current) {
         wsRef.current.close();
       }
       
-      const ws = new WebSocket('ws://localhost:5000');
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:5000';
+      const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {

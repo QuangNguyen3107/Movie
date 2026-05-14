@@ -1,11 +1,11 @@
-// This file manages the ad-related API calls and logic
+// Tệp này quản lý các lệnh gọi API và logic liên quan đến quảng cáo
 
-// Import our API configuration
+// Nhập cấu hình API của chúng ta
 import axios from 'axios';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-// Cache to prevent multiple identical requests
+// Bộ nhớ đệm để ngăn chặn nhiều yêu cầu giống hệt nhau
 const requestCache = {
   videoAd: null,
   videoAdTimestamp: 0,
@@ -13,14 +13,15 @@ const requestCache = {
   bannerTopTimestamp: 0,
   bannerBottomAd: null,
   bannerBottomTimestamp: 0,
-  // Clear cache after 5 minutes (300000ms)
+  // Xóa bộ nhớ đệm sau 5 phút (300000ms)
   cacheDuration: 300000
 };
 
-const adService = {  // Get a random video ad to display before content
+const adService = {
+  // Lấy một quảng cáo video ngẫu nhiên để hiển thị trước nội dung
   getRandomVideoAd: async () => {
     try {
-      // Check if we have a cached video ad that's not expired
+      // Kiểm tra xem chúng ta có quảng cáo video trong bộ nhớ đệm chưa hết hạn không
       const now = Date.now();
       if (requestCache.videoAd && 
           (now - requestCache.videoAdTimestamp) < requestCache.cacheDuration) {
@@ -31,47 +32,60 @@ const adService = {  // Get a random video ad to display before content
       console.log('Fetching new video ad from server...');
       const response = await axios.get(`${API_URL}/advertisements/random?type=video`);
       if (response.data.success && response.data.advertisement) {
-        // Store in cache with timestamp
+        // Lưu trữ trong bộ nhớ đệm với dấu thời gian
         requestCache.videoAd = response.data.advertisement;
         requestCache.videoAdTimestamp = now;
-        return response.data.advertisement;
+        return response.data.advertisement; 
       }
       console.log('No video ad available from server');
-      return null; // Return null instead of a fallback ad
+      return null; // Trả về null thay vì quảng cáo dự phòng
     } catch (error) {
+      // Xử lý graceful cho lỗi 404 (không có quảng cáo)
+      if (error.response && error.response.status === 404) {
+        console.log('No video advertisements are currently active');
+        return null;
+      }
       console.error('Error fetching video ad:', error);
-      return null; // Return null on error instead of using fallback ad
+      return null; // Trả về null khi có lỗi thay vì sử dụng quảng cáo dự phòng
     }
   },
-  
-  // Get banner ads for the main screen (top position)
+    // Lấy quảng cáo biểu ngữ cho màn hình chính (vị trí trên cùng)
   getTopBannerAd: async () => {
     try {
       const response = await axios.get(`${API_URL}/advertisements/random?type=banner_top`);
       if (response.data.success && response.data.advertisement) {
         return response.data.advertisement;
       }
-      return null; // No banner ad to show is fine
+      return null; // Không có quảng cáo biểu ngữ để hiển thị cũng không sao
     } catch (error) {
+      // Xử lý graceful cho lỗi 404 (không có quảng cáo)
+      if (error.response && error.response.status === 404) {
+        console.log('No top banner advertisements are currently active');
+        return null;
+      }
       console.error('Error fetching top banner ad:', error);
       return null;
     }
   },
   
-  // Get banner ads for the main screen (bottom position)
+  // Lấy quảng cáo biểu ngữ cho màn hình chính (vị trí dưới cùng)
   getBottomBannerAd: async () => {
     try {
       const response = await axios.get(`${API_URL}/advertisements/random?type=banner_bottom`);
       if (response.data.success && response.data.advertisement) {
         return response.data.advertisement;
       }
-      return null; // No banner ad to show is fine
+      return null; // Không có quảng cáo biểu ngữ để hiển thị cũng không sao
     } catch (error) {
+      // Xử lý graceful cho lỗi 404 (không có quảng cáo)
+      if (error.response && error.response.status === 404) {
+        console.log('No bottom banner advertisements are currently active');
+        return null;
+      }
       console.error('Error fetching bottom banner ad:', error);
       return null;
     }
-  },
-  // Get multiple banner ads for a specific position
+  },  // Lấy nhiều quảng cáo biểu ngữ cho một vị trí cụ thể
   getMultipleBannerAds: async (position = 'top', limit = 3) => {
     try {
       const type = position === 'top' ? 'banner_top' : 'banner_bottom';
@@ -79,18 +93,23 @@ const adService = {  // Get a random video ad to display before content
       if (response.data.success && response.data.advertisements && response.data.advertisements.length > 0) {
         return response.data.advertisements;
       }
-      // Try to get at least one ad if multiple aren't available
+      // Cố gắng lấy ít nhất một quảng cáo nếu không có nhiều quảng cáo
       const singleAd = await (position === 'top' ? adService.getTopBannerAd() : adService.getBottomBannerAd());
       return singleAd ? [singleAd] : [];
     } catch (error) {
+      // Xử lý graceful cho lỗi 404 (không có quảng cáo)
+      if (error.response && error.response.status === 404) {
+        console.log(`No ${position} banner advertisements are currently active`);
+        return [];
+      }
       console.error(`Error fetching multiple ${position} banner ads:`, error);
       return [];
     }
   },
-    // Get multiple video ads (limit defaults to 1 to ensure only one ad at a time)
+  // Lấy nhiều quảng cáo video (giới hạn mặc định là 1 để đảm bảo chỉ có một quảng cáo tại một thời điểm)
   getMultipleVideoAds: async (limit = 1) => {
     try {
-      // Always use cache for first ad if available to prevent switching
+      // Luôn sử dụng bộ nhớ đệm cho quảng cáo đầu tiên nếu có để tránh chuyển đổi
       const now = Date.now();
       if (limit === 1 && requestCache.videoAd && 
           (now - requestCache.videoAdTimestamp) < requestCache.cacheDuration) {
@@ -101,7 +120,7 @@ const adService = {  // Get a random video ad to display before content
       console.log('Fetching multiple video ads from server...');
       const response = await axios.get(`${API_URL}/advertisements/random?type=video&limit=${limit}`);
       if (response.data.success && response.data.advertisements && response.data.advertisements.length > 0) {
-        // Store first ad in cache
+        // Lưu trữ quảng cáo đầu tiên trong bộ nhớ đệm
         if (response.data.advertisements.length > 0) {
           requestCache.videoAd = response.data.advertisements[0];
           requestCache.videoAdTimestamp = now;
@@ -109,15 +128,20 @@ const adService = {  // Get a random video ad to display before content
         return response.data.advertisements;
       }
       
-      // Fallback to single video ad if the multiple endpoint didn't return an array
+      // Dự phòng cho quảng cáo video đơn nếu điểm cuối nhiều quảng cáo không trả về một mảng
       const singleAd = await adService.getRandomVideoAd();
       return singleAd ? [singleAd] : [];
     } catch (error) {
+      // Xử lý graceful cho lỗi 404 (không có quảng cáo)
+      if (error.response && error.response.status === 404) {
+        console.log('No video advertisements are currently active');
+        return [];
+      }
       console.error('Error fetching multiple video ads:', error);
       return [];
     }
   },
-    // Log that an ad was viewed (for analytics)
+    // Ghi lại rằng một quảng cáo đã được xem (cho mục đích phân tích)
   trackAdImpression: async (adId) => {
     try {
       const response = await axios.post(`${API_URL}/advertisements/view`, { adId });
@@ -128,7 +152,7 @@ const adService = {  // Get a random video ad to display before content
     }
   },
   
-  // Log that an ad was clicked (for analytics)
+  // Ghi lại rằng một quảng cáo đã được nhấp (cho mục đích phân tích)
   trackAdClick: async (adId) => {
     try {
       const response = await axios.post(`${API_URL}/advertisements/click`, { adId });
@@ -139,7 +163,7 @@ const adService = {  // Get a random video ad to display before content
     }
   },
   
-  // Log that an ad was skipped (for analytics)
+  // Ghi lại rằng một quảng cáo đã bị bỏ qua (cho mục đích phân tích)
   trackAdSkip: async (adId) => {
     try {
       const response = await axios.post(`${API_URL}/advertisements/skip`, { adId });
@@ -149,14 +173,14 @@ const adService = {  // Get a random video ad to display before content
       return false;
     }
   },
-  // For Admin: Get all advertisements with optional filtering
+  // Dành cho Quản trị viên: Lấy tất cả quảng cáo với tùy chọn lọc
   getAllAds: async (page = 1, limit = 10, type = null, active = null) => {
     try {
       let url = `${API_URL}/advertisements?page=${page}&limit=${limit}`;
       if (type) url += `&type=${type}`;
       if (active !== null) url += `&active=${active}`;
       
-      // For development: add a small delay to simulate network latency and catch timeout issues
+      // Dành cho phát triển: thêm một chút chậm trễ để mô phỏng độ trễ mạng và phát hiện các sự cố hết thời gian chờ
       // await new Promise(resolve => setTimeout(resolve, 500));
       
       const response = await axios.get(url);
@@ -164,19 +188,19 @@ const adService = {  // Get a random video ad to display before content
     } catch (error) {
       console.error('Error fetching all ads:', error);
       
-      // Handle different types of errors
+      // Xử lý các loại lỗi khác nhau
       if (error.response) {
-        // Server responded with an error status code
+        // Máy chủ đã phản hồi với mã trạng thái lỗi
         console.log('Server error:', error.response.status, error.response.data);
       } else if (error.request) {
-        // Request was made but no response was received
+        // Yêu cầu đã được thực hiện nhưng không nhận được phản hồi
         console.log('Network error - no response received');
       } else {
-        // Something else caused the error
+        // Một cái gì đó khác đã gây ra lỗi
         console.log('Error setting up request:', error.message);
       }
       
-      // Return a structured error response instead of throwing
+      // Trả về phản hồi lỗi có cấu trúc thay vì ném lỗi
       return {
         success: false,
         advertisements: [],
@@ -186,7 +210,7 @@ const adService = {  // Get a random video ad to display before content
     }
   },
   
-  // For Admin: Get a single advertisement by ID
+  // Dành cho Quản trị viên: Lấy một quảng cáo đơn lẻ theo ID
   getAdById: async (id) => {
     try {
       const response = await axios.get(`${API_URL}/advertisements/${id}`);
@@ -196,7 +220,7 @@ const adService = {  // Get a random video ad to display before content
       throw error;
     }
   },
-  // For Admin: Create a new advertisement
+  // Dành cho Quản trị viên: Tạo quảng cáo mới
   createAd: async (adData) => {
     try {
       console.log('Creating ad with data:', adData);
@@ -206,10 +230,10 @@ const adService = {  // Get a random video ad to display before content
     } catch (error) {
       console.error('Error creating ad:', error);
       
-      // Enhanced error handling
+      // Xử lý lỗi nâng cao
       if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
+        // Yêu cầu đã được thực hiện và máy chủ đã phản hồi với mã trạng thái
+        // nằm ngoài phạm vi 2xx
         console.log('Server error response:', error.response.status, error.response.data);
         return {
           success: false,
@@ -217,14 +241,14 @@ const adService = {  // Get a random video ad to display before content
           details: error.response.data
         };
       } else if (error.request) {
-        // The request was made but no response was received
+        // Yêu cầu đã được thực hiện nhưng không nhận được phản hồi
         console.log('No response received:', error.request);
         return {
           success: false,
           error: 'No response received from server'
         };
       } else {
-        // Something happened in setting up the request that triggered an Error
+        // Đã xảy ra sự cố khi thiết lập yêu cầu gây ra Lỗi
         return {
           success: false,
           error: error.message || 'Unknown error when creating advertisement'
@@ -233,28 +257,28 @@ const adService = {  // Get a random video ad to display before content
     }
   },
   
-  // For Admin: Update an existing advertisement
+  // Dành cho Quản trị viên: Cập nhật quảng cáo hiện có
   updateAd: async (id, adData) => {
     try {
       const response = await axios.put(`${API_URL}/advertisements/${id}`, adData);
       return response.data;
     } catch (error) {
       console.error('Error updating ad:', error);
-      // Return error response instead of throwing
+      // Trả về phản hồi lỗi thay vì ném lỗi
       return {
         success: false,
         error: error.message || 'Network error when updating advertisement'
       };
     }  },
   
-  // For Admin: Delete an advertisement
+  // Dành cho Quản trị viên: Xóa quảng cáo
   deleteAd: async (id) => {
     try {
       const response = await axios.delete(`${API_URL}/advertisements/${id}`);
       return response.data;
     } catch (error) {
       console.error('Error deleting ad:', error);
-      // Return error response instead of throwing
+      // Trả về phản hồi lỗi thay vì ném lỗi
       return {
         success: false,
         error: error.message || 'Network error when deleting advertisement'
@@ -262,7 +286,7 @@ const adService = {  // Get a random video ad to display before content
     }
   },
   
-  // Clear ad cache to force fresh ad fetch
+  // Xóa bộ nhớ đệm quảng cáo để buộc tìm nạp quảng cáo mới
   clearCache: () => {
     console.log('Clearing ad service cache');
     requestCache.videoAd = null;

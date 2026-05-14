@@ -86,17 +86,18 @@ async function searchWithMongoDB(query, field, limit, skip, req) {
         if (req.query.duration) {
             mongoQuery['duration'] = req.query.duration;
         }
-    }
-
-    // Thực hiện truy vấn với MongoDB và đếm tổng số kết quả
-    const totalCount = await Movie.countDocuments(mongoQuery);
+    }    // Thực hiện truy vấn với MongoDB và đếm tổng số kết quả (tối ưu hóa)
+    // Sử dụng countDocuments với hint để sử dụng index
+    const totalCount = await Movie.countDocuments(mongoQuery).hint({ name: 1 });
     
-    // Thực hiện truy vấn với limit và skip
+    // Thực hiện truy vấn với limit và skip (đã tối ưu)
     const results = await Movie.find(mongoQuery)
-        .select('-episodes') // Bỏ qua field episodes để giảm kích thước response
+        .select('-episodes -content -backdrop_url') // Bỏ qua thêm các field không cần thiết để giảm network load
         .limit(limit)
         .skip(skip)
-        .lean(); // Trả về plain object thay vì Mongoose document
+        .hint({ name: 1, year: 1 }) // Sử dụng compound index
+        .lean() // Trả về plain object thay vì Mongoose document
+        .maxTimeMS(15000); // Giới hạn thời gian query tối đa 15s
 
     const hits = results.map(movie => ({
         id: movie._id.toString(),

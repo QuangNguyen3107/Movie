@@ -1,4 +1,4 @@
-// Banner advertisement component that can be displayed at the top or bottom of the page
+// Thành phần quảng cáo banner có thể hiển thị ở đầu hoặc cuối trang
 import React, { useState, useEffect } from 'react';
 import { FaTimes } from 'react-icons/fa';
 import adService from '@/API/services/adService';
@@ -6,10 +6,10 @@ import styles from '@/styles/Advertisement.module.css';
 import { useAdContext } from '@/context/AdContext';
 
 /**
- * Displays multiple banner advertisements in a fixed layout
+ * Hiển thị nhiều quảng cáo banner trong bố cục cố định
  * @param {Object} props
- * @param {string} props.position - Position of the banner (top or bottom)
- * @param {number} props.maxAds - Maximum number of ads to display (default: 3)
+ * @param {string} props.position - Vị trí của banner (top hoặc bottom)
+ * @param {number} props.maxAds - Số lượng quảng cáo tối đa hiển thị (mặc định: 3)
  */
 const BannerAd = ({ position = 'top', maxAds = 3 }) => {
   const [ads, setAds] = useState([]);
@@ -17,7 +17,7 @@ const BannerAd = ({ position = 'top', maxAds = 3 }) => {
   const [adsTracked, setAdsTracked] = useState({});
   const { hideHomepageAds, isLoading } = useAdContext();
   
-  // Log when ad visibility changes
+  // Ghi log khi trạng thái hiển thị quảng cáo thay đổi
   useEffect(() => {
     console.log(`%c[BannerAd ${position}] Ad visibility status:`, 'color: blue; font-weight: bold', { 
       hideHomepageAds, 
@@ -25,31 +25,31 @@ const BannerAd = ({ position = 'top', maxAds = 3 }) => {
     });
   }, [hideHomepageAds, isLoading, position]);
 
-  // Fetch the appropriate ads based on position
+  // Lấy quảng cáo phù hợp dựa trên vị trí
   useEffect(() => {
     const fetchAds = async () => {
-      // Always log the current position and ad visibility at the beginning
+      // Luôn log vị trí hiện tại và trạng thái hiển thị quảng cáo khi bắt đầu
       console.log(`%c[BannerAd ${position}] Starting ad fetch with hideHomepageAds=${hideHomepageAds}`, 'color: purple; font-weight: bold');
       
-      // First, wait if the AdContext is still loading its settings
+      // Đầu tiên, đợi nếu AdContext vẫn đang tải các thiết lập
       if (isLoading) {
         console.log(`%c[BannerAd ${position}] AdContext is loading. Waiting to fetch ad...`, 'color: orange; font-weight: bold');
-        setAds([]); // Clear any existing ads while context loads
+        setAds([]); // Xóa quảng cáo hiện có khi context đang tải
         return;
       }
 
-      // Now, AdContext is loaded, check if ads should be hidden for ANY position
-      // Force both top AND bottom banner ads to be hidden if user is premium
+      // Bây giờ, AdContext đã tải xong, kiểm tra xem có nên ẩn quảng cáo cho BẤT KỲ vị trí nào không
+      // Bắt buộc ẩn cả banner top VÀ bottom nếu người dùng là premium
       if (hideHomepageAds) {
         console.log(`%c[BannerAd ${position}] Homepage ads hidden due to premium subscription (position: ${position}).`, 'color: green; font-weight: bold');
-        setAds([]); // Ensure ads are cleared if they were previously shown
+        setAds([]); // Đảm bảo xóa quảng cáo nếu trước đó đã hiển thị
         return;
       }
 
-      // If AdContext is loaded and ads are not hidden, proceed to fetch
+      // Nếu AdContext đã tải và quảng cáo không bị ẩn, tiến hành lấy quảng cáo
       console.log(`%c[BannerAd ${position}] AdContext loaded, fetching ads...`, 'color: blue; font-weight: bold');
       try {
-        // Double check that we still want to show ads based on premium status
+        // Kiểm tra lại một lần nữa trạng thái premium trước khi lấy quảng cáo
         if (hideHomepageAds) {
           console.log(`%c[BannerAd ${position}] Premium user detected, not fetching ads`, 'color: red; font-weight: bold');
           return;  
@@ -73,7 +73,7 @@ const BannerAd = ({ position = 'top', maxAds = 3 }) => {
     fetchAds();
   }, [position, hideHomepageAds, isLoading, maxAds]);
 
-  // Track impression when ads are viewed
+  // Ghi nhận lượt xem khi quảng cáo được hiển thị
   useEffect(() => {
     const trackImpressions = async () => {
       for (const ad of ads) {
@@ -93,7 +93,7 @@ const BannerAd = ({ position = 'top', maxAds = 3 }) => {
     }
   }, [ads, adsTracked]);
 
-  // Handle ad click for a specific ad
+  // Xử lý khi click vào quảng cáo cụ thể
   const handleAdClick = async (adId) => {
     const ad = ads.find(a => a._id === adId);
     if (!ad) return;
@@ -103,19 +103,19 @@ const BannerAd = ({ position = 'top', maxAds = 3 }) => {
       window.open(ad.link, '_blank');
     } catch (error) {
       console.error('Error tracking ad click:', error);
-      // Still open the link even if tracking fails
+      // Vẫn mở liên kết dù tracking thất bại
       window.open(ad.link, '_blank');
     }
   };
 
-  // Handle closing the ads
+  // Xử lý khi đóng quảng cáo
   const handleClose = () => {
     setClosed(true);
   };
-  // Determine whether to render the ad
+  // Xác định có nên render quảng cáo không
   const shouldRender = ads.length > 0 && !closed;
 
-  // Don't render if there are no ads or it's been closed
+  // Không render nếu không có quảng cáo hoặc đã bị đóng
   if (!shouldRender) {
     return null;
   }

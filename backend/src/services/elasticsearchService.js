@@ -515,17 +515,48 @@ function preprocessQuery(query) {
     /\b(phim |movie |film )(năm|year|in|của năm|from|from year|xuất bản năm|sản xuất năm|ra mắt năm|công chiếu năm)\s?(\d{4})\b/i,
     /\bnăm (\d{4})\b/i,
   ];
-  
-  // Mẫu nhận dạng thể loại - chỉ áp dụng khi có từ khóa định danh
+    // Mẫu nhận dạng thể loại - chỉ áp dụng khi có từ khóa định danh
   const genrePatterns = [
     /\b(phim |movie |film )(thể loại|genre|loại|kiểu|dạng|chủ đề|thể loại phim|loại phim|kiểu phim|phim loại)\s+([a-zA-ZÀ-ỹ\s]+)(phim)?\b/i,
     /\b(phim|movie|film) ([a-zA-ZÀ-ỹ\s]+) (thể loại|genre|loại|kiểu|dạng|chủ đề)\b/i,
   ];
-  
-  // Mẫu nhận dạng quốc gia - chỉ áp dụng khi có từ khóa định danh
+
+  // Mẫu nhận dạng thể loại linh hoạt - không cần từ khóa định danh
+  const flexibleGenrePatterns = [
+    /\b(hành động|hanh dong|action|chiến đấu)\b/i,
+    /\b(tình cảm|tinh cam|tình yêu|romance|romantic|lãng mạn|lang man)\b/i,
+    /\b(hài|hai|hài hước|hai huoc|comedy|vui nhộn|hài kịch)\b/i,
+    /\b(cổ trang|co trang|historical)\b/i,
+    /\b(tâm lý|tam ly|psychological|drama|kịch tính)\b/i,
+    /\b(hình sự|hinh su|crime|tội phạm|toi pham)\b/i,
+    /\b(chiến tranh|chien tranh|war)\b/i,
+    /\b(thể thao|the thao|sport)\b/i,
+    /\b(võ thuật|vo thuat|martial arts|kung fu)\b/i,
+    /\b(viễn tưởng|vien tuong|sci-fi|science fiction|khoa học viễn tưởng)\b/i,
+    /\b(phiêu lưu|phieu luu|adventure|mạo hiểm)\b/i,
+    /\b(khoa học|khoa hoc|science)\b/i,
+    /\b(kinh dị|kinh di|horror|ma quái|ma quai|thriller|rùng rợn|rung ron)\b/i,
+    /\b(âm nhạc|am nhac|music|nhạc)\b/i,
+    /\b(thần thoại|than thoai|mythology)\b/i,
+    /\b(hoạt hình|hoat hinh|animation|cartoon|anime)\b/i
+  ];
+    // Mẫu nhận dạng quốc gia - chỉ áp dụng khi có từ khóa định danh
   const countryPatterns = [
     /\b(phim |movie |film )(quốc gia|country|nước|đất nước|của|xuất xứ|nguồn gốc|sản xuất tại)\s+([a-zA-ZÀ-ỹ\s]+)\b/i,
     /\b(phim|movie|film) ([a-zA-ZÀ-ỹ\s]+) (quốc gia|country|nước|đất nước)\b/i,
+  ];
+
+  // Mẫu nhận dạng quốc gia linh hoạt - không cần từ khóa định danh
+  const flexibleCountryPatterns = [
+    /\b(mỹ|my|america|american|us|usa|anh|úc|pháp|phap)\b/i,
+    /\b(trung|trung quốc|trung quoc|china|chinese)\b/i,
+    /\b(hàn|han|hàn quốc|han quoc|korea|korean)\b/i,
+    /\b(nhật|nhat|nhật bản|nhat ban|japan|japanese)\b/i,
+    /\b(việt|viet|việt nam|viet nam|vietnam|vietnamese)\b/i,
+    /\b(thái|thai|thái lan|thai lan|thailand)\b/i,
+    /\b(đài|đài loan|dai loan|taiwan|taiwanese)\b/i,
+    /\b(hồng kông|hong kong|hongkong)\b/i,
+    /\b(ấn độ|an do|india|indian)\b/i
   ];
   
   // Mẫu nhận dạng đạo diễn - chỉ áp dụng khi có từ khóa định danh
@@ -591,6 +622,20 @@ function preprocessQuery(query) {
         intent = intent === 'general' ? 'genre_search' : 'complex_search';
         break;
       }
+    }  }
+  
+  // Nếu không tìm thấy thể loại với pattern nghiêm ngặt, thử pattern linh hoạt
+  if (!extractedGenre) {
+    for (const pattern of flexibleGenrePatterns) {
+      const genreMatch = processed.match(pattern);
+      if (genreMatch) {
+        extractedGenre = genreMatch[0].trim();
+        // Lưu lại phần văn bản gốc trước khi thay thế
+        const originalText = genreMatch[0];
+        processed = processed.replace(originalText, ' ').trim();
+        intent = intent === 'general' ? 'genre_search' : 'complex_search';
+        break;
+      }
     }
   }
   
@@ -608,8 +653,23 @@ function preprocessQuery(query) {
         intent = intent === 'general' ? 'country_search' : 'complex_search';
         break;
       }
+    }  }
+  
+  // Nếu không tìm thấy quốc gia với pattern nghiêm ngặt, thử pattern linh hoạt
+  if (!extractedCountry) {
+    for (const pattern of flexibleCountryPatterns) {
+      const countryMatch = processed.match(pattern);
+      if (countryMatch) {
+        extractedCountry = countryMatch[0].trim();
+        // Lưu lại phần văn bản gốc trước khi thay thế
+        const originalText = countryMatch[0];
+        processed = processed.replace(originalText, ' ').trim();
+        intent = intent === 'general' ? 'country_search' : 'complex_search';
+        break;
+      }
     }
   }
+
     // Trích xuất đạo diễn
   for (const pattern of directorPatterns) {
     const directorMatch = processed.match(pattern);
@@ -875,20 +935,14 @@ function buildSearchQuery(queryInfo, field, filters) {
     } else if (field === 'year' || field === 'năm') {
       searchBody.query.bool.must.push({ 
         term: { year: parseInt(processed) || parseInt(year) || 0 } 
-      });
-    } else if (['category', 'country', 'thể loại', 'quốc gia', 'đất nước'].includes(field)) {
+      });    } else if (['category', 'country', 'thể loại', 'quốc gia', 'đất nước'].includes(field)) {
       const path = field === 'category' || field === 'thể loại' ? 'category' : 'country';
       searchBody.query.bool.must.push({
-        nested: {
-          path: path,
-          query: {
-            bool: {
-              should: [
-                { match: { [`${path}.name`]: processed } },
-                { match: { [`${path}.slug`]: processed } }
-              ]
-            }
-          }
+        bool: {
+          should: [
+            { match: { [`${path}.name`]: processed } },
+            { match: { [`${path}.slug`]: processed } }
+          ]
         }
       });
     } else if (field === 'director' || field === 'đạo diễn') {
@@ -1062,35 +1116,24 @@ function buildSearchQuery(queryInfo, field, filters) {
   if (year && intent !== 'general') {
     searchBody.query.bool.filter.push({ term: { year: parseInt(year) } });
   }
-  
-  if (genre && intent !== 'general') {
+    if (genre && intent !== 'general') {
     searchBody.query.bool.filter.push({
-      nested: {
-        path: 'category',
-        query: {
-          bool: {
-            should: [
-              { match: { 'category.name': genre } },
-              { match: { 'category.slug': genre } }
-            ]
-          }
-        }
+      bool: {
+        should: [
+          { match: { 'category.name': genre } },
+          { match: { 'category.slug': genre } }
+        ]
       }
     });
   }
   
   if (country && intent !== 'general') {
     searchBody.query.bool.filter.push({
-      nested: {
-        path: 'country',
-        query: {
-          bool: {
-            should: [
-              { match: { 'country.name': country } },
-              { match: { 'country.slug': country } }
-            ]
-          }
-        }
+      bool: {
+        should: [
+          { match: { 'country.name': country } },
+          { match: { 'country.slug': country } }
+        ]
       }
     });
   }
@@ -1109,33 +1152,22 @@ function buildSearchQuery(queryInfo, field, filters) {
       if (!value) return;
       
       if (key === 'year' && value) {
-        searchBody.query.bool.filter.push({ term: { year: parseInt(value) } });
-      } else if (key === 'genre' || key === 'category') {
+        searchBody.query.bool.filter.push({ term: { year: parseInt(value) } });      } else if (key === 'genre' || key === 'category') {
         searchBody.query.bool.filter.push({
-          nested: {
-            path: 'category',
-            query: {
-              bool: {
-                should: [
-                  { match: { 'category.name': value } },
-                  { match: { 'category.slug': value } }
-                ]
-              }
-            }
+          bool: {
+            should: [
+              { match: { 'category.name': value } },
+              { match: { 'category.slug': value } }
+            ]
           }
         });
       } else if (key === 'country') {
         searchBody.query.bool.filter.push({
-          nested: {
-            path: 'country',
-            query: {
-              bool: {
-                should: [
-                  { match: { 'country.name': value } },
-                  { match: { 'country.slug': value } }
-                ]
-              }
-            }
+          bool: {
+            should: [
+              { match: { 'country.name': value } },
+              { match: { 'country.slug': value } }
+            ]
           }
         });
       } else if (key === 'type') {

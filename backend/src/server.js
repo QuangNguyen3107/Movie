@@ -1,23 +1,28 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const compression = require("compression"); // Thêm compression để giảm kích thước response
+const helmet = require("helmet"); // Thêm helmet cho security headers
 
-// --- Hàm khởi động Server ---"cors");
 const path = require("path");
 const http = require("http"); // Thêm module http
 const { Server } = require("socket.io"); // Thêm Socket.IO
 const { connectDB } = require("./config/db");
+const { initRedis } = require('./config/redis'); // Thêm Redis
 // Thêm Elasticsearch Service
 const { initClient: initElasticsearchClient } = require('./services/elasticsearchService');
 const swaggerDocs = require("./config/swaggerConfig");
 const setupWebSocket = require('./utils/websocket'); // Thêm module WebSocket
 const { setupCronJobs } = require('./config/cronJobs'); // Thêm cron jobs
+const { setupDatabaseIndexes } = require('./utils/dbIndexes'); // Thêm database indexes
+const performanceMonitor = require('./utils/performanceMonitor'); // Thêm performance monitor
 const movieRoutes = require("./routes/movieRoutes");
 const movieCrawlRoutes = require('./routes/movieCrawlRoutes');
 const commentRoutes = require("./routes/comments");
 const ratingRoutes = require("./routes/ratings");
 const historyRoutes = require("./routes/histories");
 const authRoutes = require("./routes/auth");
+const userRoutes = require("./routes/userRoutes");
 const searchRoutes = require('./routes/search');
 const searchHistoryRoutes = require('./routes/searchHistory');
 const userStatsRoutes = require('./routes/userStatsRoutes'); 
@@ -41,6 +46,26 @@ const movieViewRoutes = require('./routes/movieViewRoutes');
 const favoritesRoutes = require('./routes/favorites');
 const likesRoutes = require('./routes/likes');
 const watchlistRoutes = require('./routes/watchlist');
+
+// ===== SECURITY & PERFORMANCE MIDDLEWARES =====
+// Helmet for security headers
+app.use(helmet({
+  contentSecurityPolicy: false, // Tắt CSP cho development
+  crossOriginEmbedderPolicy: false
+}));
+
+// Compression middleware - nén response để giảm băng thông
+app.use(compression({
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    return compression.filter(req, res);
+  },
+  level: 6, // Compression level (0-9, 6 is default)
+  threshold: 1024 // Only compress responses > 1KB
+}));
+
 // Cấu hình CORS đầy đủ hơn
 app.use(cors({
   origin: ['http://localhost:3000', 'http://localhost:5000', '*'], // Hoặc domain cụ thể của frontend
@@ -51,13 +76,28 @@ app.use(cors({
   maxAge: 86400 // 24 giờ
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Giới hạn kích thước JSON
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Cấu hình phục vụ file tĩnh - không hiển thị log
+// Performance monitoring middleware
+app.use(performanceMonitor.trackRequest());
+
+// Cấu hình phục vụ file tĩnh với cache tối ưu
 const uploadsDir = path.join(__dirname, '../uploads');
 
-// Cấu hình đúng đường dẫn tĩnh
-app.use('/uploads', express.static(uploadsDir));
+// Optimize static files với cache headers
+app.use('/uploads', express.static(uploadsDir, {
+  maxAge: '7d', // Cache 7 ngày cho static files
+  etag: true,
+  lastModified: true,
+  immutable: true,
+  setHeaders: (res, path) => {
+    // Cache images và videos lâu hơn
+    if (path.match(/\.(jpg|jpeg|png|gif|webp|mp4|webm)$/i)) {
+      res.setHeader('Cache-Control', 'public, max-age=604800, immutable'); // 7 days
+    }
+  }
+}));
 
 // Thêm middleware để ghi log các request có chứa file uploads
 app.use((req, res, next) => {
@@ -70,7 +110,8 @@ app.use((req, res, next) => {
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use("/api", movieRoutes);   
+app.use("/api/users", userRoutes);
+app.use("/api", movieRoutes);
 app.use('/api', movieCrawlRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/ratings', ratingRoutes);
@@ -110,6 +151,18 @@ async function startServer() {
       // 🟢 Kết nối MongoDB
       await connectDB();
       console.log("✅ MongoDB connected successfully");
+
+      // 🟢 Setup database indexes
+      await setupDatabaseIndexes();
+      console.log("✅ Database indexes setup completed");
+
+      // 🟢 Khởi tạo Redis Cache (optional)
+      try {
+        await initRedis();
+        console.log("✅ Redis cache initialized");
+      } catch (redisError) {
+        console.warn("⚠️ Redis not available, continuing without cache:", redisError.message);
+      }
 
       // 🟢 Khởi tạo Elasticsearch Client
       await initElasticsearchClient();
@@ -172,6 +225,11 @@ async function startServer() {
       server.listen(PORT, () => {
           console.log(`🚀 Server đang chạy trên cổng ${PORT}`);
           console.log(`🔌 Socket.IO đã sẵn sàng nhận kết nối`);
+          
+          // Log performance metrics mỗi 5 phút
+          setInterval(() => {
+              performanceMonitor.logMetrics();
+          }, 5 * 60 * 1000); // 5 minutes
       });
 
   } catch (error) {

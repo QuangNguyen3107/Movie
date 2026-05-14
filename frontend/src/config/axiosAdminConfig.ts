@@ -3,33 +3,33 @@ import axios from 'axios';
 
 const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
-// Create axios instance with base configuration for admin routes
+// Tạo instance axios với cấu hình cơ bản cho các route admin
 const axiosInstance = axios.create({
   baseURL: baseURL,
-  timeout: 30000, // 30 seconds timeout
+  timeout: 30000, // Timeout 30 giây
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   },
-  withCredentials: true // For CORS with credentials
+  withCredentials: true // Cho phép CORS với credentials
 });
 
-// Add request interceptor for auth token
+// Thêm interceptor cho request để gắn token xác thực
 axiosInstance.interceptors.request.use((config) => {
-  // Get token from localStorage
+  // Lấy token từ localStorage
   const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
   
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   
-  // Add additional headers for CORS with PATCH requests
+  // Thêm header bổ sung cho CORS với các request PATCH
   if (config.method === 'patch' || config.method === 'PATCH') {
     config.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, PATCH, OPTIONS';
     config.headers['Access-Control-Allow-Origin'] = '*';
   }
   
-  // Log request for debugging
+  // Log request để debug
   console.log(`[Admin API Request] ${config.method?.toUpperCase()} ${config.url}`, 
     config.headers.Authorization ? 'Token: Yes' : 'Token: No');
   
@@ -39,32 +39,32 @@ axiosInstance.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
-// Add response interceptor for error handling
+// Thêm interceptor cho response để xử lý lỗi
 axiosInstance.interceptors.response.use(
   (response) => {
-    // Log response for debugging
+    // Log response để debug
     console.log(`[Admin API Response] ${response.status} ${response.config.url}`);
     return response;
   },
   (error) => {
-    // Handle unauthorized responses (status 401)
+    // Xử lý lỗi không xác thực (status 401)
     if (error.response && error.response.status === 401) {
       console.error('[Admin API] Unauthorized access. Redirecting to login...');
-      // For client-side operations only
+      // Chỉ thực hiện phía client
       if (typeof window !== 'undefined') {
-        // Clear auth tokens
+        // Xóa token xác thực
         localStorage.removeItem('auth_token');
         localStorage.removeItem('token');
         
-        // Redirect to login page
+        // Chuyển hướng đến trang đăng nhập
         window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
       }
     }
     
-    // Handle forbidden responses (status 403)
+    // Xử lý lỗi bị cấm truy cập (status 403)
     if (error.response && error.response.status === 403) {
       console.error('[Admin API] Forbidden access.');
-      // You might want to redirect to an access denied page
+      // Bạn có thể muốn chuyển hướng đến trang từ chối truy cập
     }
     
     return Promise.reject(error);

@@ -118,7 +118,7 @@ const MovieEditPage = () => {
   // State để kiểm soát hiển thị nút back to top
   const [showBackToTop, setShowBackToTop] = useState(false);
 
-  // Fetch movie data and categories
+  // Lấy dữ liệu phim và danh mục
   useEffect(() => {
     const fetchData = async () => {
       if (!id) return;

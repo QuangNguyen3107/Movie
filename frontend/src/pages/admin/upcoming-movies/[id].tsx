@@ -19,19 +19,28 @@ const UpcomingMovieDetail: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
   const [releasedMovieId, setReleasedMovieId] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
-
   useEffect(() => {
+    let isMounted = true;
+    
     if (id) {
-      fetchMovie(id as string);
+      fetchMovie(id as string, isMounted);
     }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [id]);
 
-  const fetchMovie = async (movieId: string) => {
+  const fetchMovie = async (movieId: string, isMounted: boolean = true) => {
+    if (!isMounted) return;
+    
     setLoading(true);
     setError(null);
     try {
       const response = await getUpcomingMovieById(movieId);
       console.log('Movie data:', response.data);
+      
+      if (!isMounted) return;
       
       if (response.data?.upcomingMovie) {
         setMovie(response.data.upcomingMovie);
@@ -42,30 +51,45 @@ const UpcomingMovieDetail: React.FC = () => {
       }
     } catch (err) {
       console.error('Error fetching movie:', err);
-      setError('Đã xảy ra lỗi khi tải thông tin phim');
+      if (isMounted) {
+        setError('Đã xảy ra lỗi khi tải thông tin phim');
+      }
     } finally {
-      setLoading(false);
+      if (isMounted) {
+        setLoading(false);
+      }
     }
   };
-
   const handleDelete = async () => {
     if (!id) return;
     
+    let isMounted = true;
+    
     try {
       await deleteUpcomingMovie(id as string);
-      router.push('/admin/upcoming-movies');
+      if (isMounted) {
+        router.push('/admin/upcoming-movies');
+      }
     } catch (err) {
       console.error('Error deleting movie:', err);
-      setError('Đã xảy ra lỗi khi xóa phim');
+      if (isMounted) {
+        setError('Đã xảy ra lỗi khi xóa phim');
+      }
+    } finally {
+      isMounted = false;
     }
   };
 
   const handleRelease = async () => {
     if (!id) return;
     
+    let isMounted = true;
+    
     try {
       const response = await releaseUpcomingMovie(id as string);
       console.log('Release response:', response.data);
+      
+      if (!isMounted) return;
       
       // Get the ID of the newly created regular movie
       if (response.data?.movie?._id) {
@@ -77,7 +101,11 @@ const UpcomingMovieDetail: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Error releasing movie:', err);
-      setError(err.response?.data?.message || 'Đã xảy ra lỗi khi chuyển trạng thái phim');
+      if (isMounted) {
+        setError(err.response?.data?.message || 'Đã xảy ra lỗi khi chuyển trạng thái phim');
+      }
+    } finally {
+      isMounted = false;
     }
   };
 

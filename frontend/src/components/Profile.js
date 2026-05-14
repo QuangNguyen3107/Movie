@@ -185,13 +185,16 @@ export default function ProfilePage() {
       toast.error("Không thể lấy dữ liệu thống kê. Vui lòng thử lại sau.");
     }
   }, []);
-
   // Fetch user data including profile, history, favorites, watchlist, and stats
   const fetchUserData = useCallback(async () => {
+    let isMounted = true;
     setLoadingProfile(true);
+    
     try {
       // Lấy dữ liệu người dùng từ context
       const userData = user || {};
+      
+      if (!isMounted) return;
       
       // Cập nhật thông tin cơ bản từ context auth
       setProfileData({
@@ -268,31 +271,43 @@ export default function ProfilePage() {
               setWatchLaterData([]);
             })
         );
-        
-        // Execute all promises in parallel
-        await Promise.all(promises);
+          // Execute all promises in parallel with cancellation check
+        if (isMounted) {
+          await Promise.all(promises);
+        }
         
         // Không tải thống kê ngay khi load trang, chỉ tải khi người dùng chọn tab thống kê
         // await fetchStatsData();
         
         // Mark profile tab as loaded
-        setTabDataLoaded(prev => ({ ...prev, profile: true }));
+        if (isMounted) {
+          setTabDataLoaded(prev => ({ ...prev, profile: true }));
+        }
         
       } catch (apiError) {
         console.error("Lỗi khi gọi API:", apiError);
       }
     } catch (error) {
       console.error("Lỗi khi lấy dữ liệu người dùng:", error);
-      toast.error("Không thể lấy thông tin cá nhân. Vui lòng thử lại sau.");
+      if (isMounted) {
+        toast.error("Không thể lấy thông tin cá nhân. Vui lòng thử lại sau.");
+      }
     } finally {
-      setLoadingProfile(false);
+      if (isMounted) {
+        setLoadingProfile(false);
+      }
     }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [user]);
-
-  // Initial data loading
+  // Initial data loading with cleanup
   useEffect(() => {
+    let cleanup = null;
+    
     if (user) {
-      fetchUserData();
+      cleanup = fetchUserData();
       
       // Set avatar URL properly with absolute path
       if (user.avatar) {
@@ -2391,14 +2406,50 @@ export default function ProfilePage() {
             aria-label="Quay lại"
           >
             <FaArrowLeft />
-          </button>
-          <div className="mobile-user-info">
-            <img 
-              src={avatar} 
-              alt="User Avatar" 
-              className="mobile-avatar"
-              onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
-            />
+          </button>          <div className="mobile-user-info">
+            <div className="mobile-avatar-wrapper">
+              <img 
+                src={avatar} 
+                alt="User Avatar" 
+                className="mobile-avatar"
+                onError={(e) => { e.target.src = DEFAULT_AVATAR; }}
+              />
+              
+              {isUploading ? (
+                <div className="mobile-upload-overlay">
+                  <div className="mobile-upload-spinner"></div>
+                </div>
+              ) : (
+                <button 
+                  className="mobile-avatar-change-button" 
+                  onClick={() => setShowAvatarOptions(!showAvatarOptions)}
+                  aria-label="Change avatar"
+                >
+                  <FaCamera />
+                </button>
+              )}
+              
+              {showAvatarOptions && (
+                <div className="mobile-avatar-options">
+                  <button 
+                    className="mobile-avatar-option"
+                    onClick={triggerFileInput}
+                  >
+                    <FaCamera /> Tải hình lên
+                  </button>
+                  <button 
+                    className="mobile-avatar-option"
+                    onClick={() => {
+                      setAvatar(DEFAULT_AVATAR);
+                      setShowAvatarOptions(false);
+                      toast.success('Đã đặt lại ảnh mặc định!');
+                    }}
+                  >
+                    <FaUser /> Dùng ảnh mặc định
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="mobile-user-text">
               <h1 className="mobile-user-name">{profileData.fullName || 'Người dùng'}</h1>
               <p className="mobile-user-email">{profileData.email || 'Chưa có email'}</p>
@@ -2637,11 +2688,15 @@ export default function ProfilePage() {
         .mobile-back-button:hover {
           color: #e50914;
         }
-        
-        .mobile-user-info {
+          .mobile-user-info {
           display: flex;
           align-items: center;
           flex: 1;
+        }
+        
+        .mobile-avatar-wrapper {
+          position: relative;
+          margin-right: 10px;
         }
         
         .mobile-avatar {
@@ -2650,7 +2705,90 @@ export default function ProfilePage() {
           border-radius: 50%;
           object-fit: cover;
           border: 2px solid rgba(255, 255, 255, 0.15);
-          margin-right: 10px;
+        }
+        
+        .mobile-avatar-change-button {
+          position: absolute;
+          bottom: -2px;
+          right: -2px;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #e50914;
+          color: white;
+          border: none;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .mobile-avatar-change-button:hover {
+          transform: scale(1.1);
+          box-shadow: 0 3px 8px rgba(229, 9, 20, 0.5);
+        }
+        
+        .mobile-upload-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background: rgba(0, 0, 0, 0.7);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        
+        .mobile-upload-spinner {
+          width: 20px;
+          height: 20px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-radius: 50%;
+          border-top-color: #fff;
+          animation: spin 1s linear infinite;
+        }
+        
+        .mobile-avatar-options {
+          position: absolute;
+          top: 45px;
+          left: 0;
+          background: #1e1e2d;
+          border-radius: 8px;
+          padding: 8px;
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+          z-index: 1001;
+          min-width: 150px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          animation: fadeIn 0.2s ease-out;
+        }
+        
+        .mobile-avatar-option {
+          display: flex;
+          align-items: center;
+          background: transparent;
+          border: none;
+          color: #f5f5f7;
+          padding: 8px 10px;
+          width: 100%;
+          text-align: left;
+          font-size: 12px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: background 0.2s ease;
+        }
+        
+        .mobile-avatar-option:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .mobile-avatar-option svg {
+          margin-right: 8px;
+          font-size: 12px;
         }
         
         .mobile-user-text {

@@ -44,5 +44,6 @@ router.post('/crawl/movies', movieCrawlController.crawlMovies);
  *         description: Lỗi khi crawl dữ liệu từ OPhim
  */
 router.post('/crawl/moviesall', movieCrawlController.crawlMoviesAllPage);
+router.post('/crawl/moviesall/cancel', movieCrawlController.cancelCrawlMoviesAllPage);
 
 module.exports = router;

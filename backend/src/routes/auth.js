@@ -210,6 +210,9 @@ router.post("/login", async (req, res) => {
         }
 
         // Kiểm tra mật khẩu
+        if (!user.password || typeof user.password !== 'string') {
+            return res.status(400).json({ error: "Tài khoản này cần đặt lại mật khẩu. Vui lòng dùng chức năng Quên mật khẩu." });
+        }
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ error: "Mật khẩu không đúng" });

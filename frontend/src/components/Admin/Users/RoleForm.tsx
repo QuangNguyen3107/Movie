@@ -3,7 +3,7 @@ import { FaSave, FaTimes, FaPlus, FaTrash } from 'react-icons/fa';
 import axiosInstance from '@/API/config/axiosConfig';
 import { API_URL } from '@/config/API';
 
-// Extended RoleForAdmin interface to include permissions
+// Mở rộng interface RoleForAdmin để bao gồm các quyền
 interface RoleForAdmin {
   _id: string;
   name: string;
@@ -11,7 +11,7 @@ interface RoleForAdmin {
   permissions: string[];
 }
 
-// Functions to create and update roles
+// Các hàm để tạo và cập nhật vai trò
 const createRoleByAdmin = async (roleData: { name: string; description: string; permissions: string[] }) => {
   try {
     const response = await axiosInstance.post(`${API_URL}/admin/roles`, roleData);
@@ -40,7 +40,7 @@ interface RoleFormProps {
   onSave: () => void;
 }
 
-// Predefined list of available permissions
+// Danh sách các quyền có sẵn được xác định trước
 const AVAILABLE_PERMISSIONS = [
   'users:read',
   'users:write',
@@ -92,7 +92,7 @@ const RoleForm: React.FC<RoleFormProps> = ({
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Clear error when field is changed
+    // Xóa lỗi khi trường được thay đổi
     if (errors[name]) {
       setErrors(prev => {
         const newErrors = { ...prev };

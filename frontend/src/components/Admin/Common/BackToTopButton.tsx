@@ -9,7 +9,7 @@ interface BackToTopButtonProps {
 }
 
 /**
- * A button that scrolls back to the top of the page
+ * Nút cuộn trở lại đầu trang
  */
 const BackToTopButton: React.FC<BackToTopButtonProps> = ({
   className = '',
@@ -17,13 +17,13 @@ const BackToTopButton: React.FC<BackToTopButtonProps> = ({
   onClick
 }) => {
   const handleClick = () => {
-    // Scroll to top of page
+    // Cuộn lên đầu trang
     window.scrollTo({
       top: 0,
       behavior: 'smooth'
     });
     
-    // Call additional onClick handler if provided
+    // Gọi trình xử lý onClick bổ sung nếu được cung cấp
     if (onClick) {
       onClick();
     }

@@ -11,10 +11,9 @@ export default async function handler(req, res) {
     // Validate required fields
     if (!email || !facebookId) {
       return res.status(400).json({ message: 'Email and Facebook ID are required' });
-    }
-
-    // Call your backend API endpoint for Facebook authentication
-    const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/facebook-login`, {
+    }    // Call your backend API endpoint for Facebook authentication
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+    const response = await axios.post(`${baseUrl.replace('/api', '')}/api/auth/facebook-login`, {
       email,
       name,
       facebookId,

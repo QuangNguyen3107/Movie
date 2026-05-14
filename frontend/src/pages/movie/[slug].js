@@ -21,6 +21,10 @@ import { useAdContext } from "../../context/AdContext"; // Import AdContext
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import RatingStats from '../../components/Movie/RatingStats';
+import useActorImageCache from '../../hooks/useActorImageCache';
+import useCommentsCache from '../../hooks/useCommentsCache';
+import useRatingsCache from '../../hooks/useRatingsCache';
+import useRelatedMoviesCache from '../../hooks/useRelatedMoviesCache';
 
 const MAX_COMMENTS_PER_DAY = 4; // Maximum comments allowed per day
 
@@ -47,133 +51,13 @@ const checkCommentLimit = (username) => {
 };
 
 const ActorCard = ({ actorName }) => {
-  const [actorImage, setActorImage] = useState(null);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const imageBaseUrl = process.env.NEXT_PUBLIC_TMDB_IMAGE_URL || 'https://image.tmdb.org/t/p/w500';
-  const profilePlaceholder = '/img/user-avatar.png';
+  const { actorImage, loading, profilePlaceholder } = useActorImageCache(actorName);
   
   // If actor name is empty, don't render anything
   if (!actorName || actorName.trim() === '') {
     return null;
   }
-  
-  // Fetch actor image on component mount
-  useEffect(() => {
-    let isMounted = true;
-    const controller = new AbortController();
-    
-    const fetchActorImage = async () => {
-      try {
-        // Check if actor name exists and has at least 2 characters
-        if (!actorName || actorName.length < 2) {
-          setLoading(false);
-          return;
-        }
-        
-        // Check if we've already tried to fetch this image in this session
-        const sessionImageCache = JSON.parse(sessionStorage.getItem('actorImageCache') || '{}');
-        if (sessionImageCache[actorName.toLowerCase()]) {
-          if (sessionImageCache[actorName.toLowerCase()] !== 'notfound') {
-            setActorImage(sessionImageCache[actorName.toLowerCase()]);
-          }
-          setLoading(false);
-          return;
-        }
-        
-        // Check if actor ID is cached first
-        const actorCache = JSON.parse(localStorage.getItem('actorCache') || '{}');
-        let actorId = actorCache[actorName.toLowerCase()];
-        
-        if (!actorId) {
-          // Search for actor on TMDB
-          const response = await axios.get(`${process.env.NEXT_PUBLIC_TMDB_BASE_URL || 'https://api.themoviedb.org/3'}/search/person`, {
-            params: {
-              query: actorName,
-              include_adult: false,
-              language: 'vi-VN,en-US',
-              page: 1,
-              api_key: process.env.NEXT_PUBLIC_TMDB_API_KEY
-            },
-            headers: {
-              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_TMDB_AUTH_TOKEN}`,
-              'accept': 'application/json'
-            },
-            signal: controller.signal
-          });
-          
-          if (isMounted && response.data.results && response.data.results.length > 0) {
-            actorId = response.data.results[0].id;
-            
-            // Cache the actor ID for future use
-            const updatedCache = JSON.parse(localStorage.getItem('actorCache') || '{}');
-            updatedCache[actorName.toLowerCase()] = actorId;
-            localStorage.setItem('actorCache', JSON.stringify(updatedCache));
-            
-            // Get the profile path
-            if (response.data.results[0].profile_path) {
-              const imagePath = `${imageBaseUrl}${response.data.results[0].profile_path}`;
-              setActorImage(imagePath);
-              
-              // Cache the image path in session storage
-              const imageCache = JSON.parse(sessionStorage.getItem('actorImageCache') || '{}');
-              imageCache[actorName.toLowerCase()] = imagePath;
-              sessionStorage.setItem('actorImageCache', JSON.stringify(imageCache));
-            } else {
-              // Mark as not found in session cache to avoid repeated lookups
-              const imageCache = JSON.parse(sessionStorage.getItem('actorImageCache') || '{}');
-              imageCache[actorName.toLowerCase()] = 'notfound';
-              sessionStorage.setItem('actorImageCache', JSON.stringify(imageCache));
-            }
-          }
-        } else {
-          // If we have the actor ID already, get their details directly
-          const personResponse = await axios.get(`${process.env.NEXT_PUBLIC_TMDB_BASE_URL || 'https://api.themoviedb.org/3'}/person/${actorId}`, {
-            params: {
-              api_key: process.env.NEXT_PUBLIC_TMDB_API_KEY,
-              language: 'vi-VN,en-US',
-            },
-            headers: {
-              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_TMDB_AUTH_TOKEN}`,
-              'accept': 'application/json'
-            },
-            signal: controller.signal
-          });
-          
-          if (isMounted && personResponse.data.profile_path) {
-            const imagePath = `${imageBaseUrl}${personResponse.data.profile_path}`;
-            setActorImage(imagePath);
-            
-            // Cache the image path in session storage
-            const imageCache = JSON.parse(sessionStorage.getItem('actorImageCache') || '{}');
-            imageCache[actorName.toLowerCase()] = imagePath;
-            sessionStorage.setItem('actorImageCache', JSON.stringify(imageCache));
-          } else if (isMounted) {
-            // Mark as not found in session cache to avoid repeated lookups
-            const imageCache = JSON.parse(sessionStorage.getItem('actorImageCache') || '{}');
-            imageCache[actorName.toLowerCase()] = 'notfound';
-            sessionStorage.setItem('actorImageCache', JSON.stringify(imageCache));
-          }
-        }
-      } catch (error) {
-        if (!axios.isCancel(error)) {
-          console.error(`Error fetching actor image for ${actorName}:`, error);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-    
-    fetchActorImage();
-    
-    // Cleanup function to prevent memory leaks and state updates on unmounted components
-    return () => {
-      isMounted = false;
-      controller.abort();
-    };
-  }, [actorName, imageBaseUrl]);
     // Use a function to search for actor on TMDB
   const handleActorClick = async (e) => {
     e.preventDefault();
@@ -293,6 +177,25 @@ const MovieDetail = ({ slug: slugProp }) => {
   const router = useRouter();
   const { slug: routerSlug } = router.query;
   const slug = slugProp || routerSlug;
+  // Use optimized comments caching hook
+  const {
+    comments,
+    loading: commentsLoading,
+    error: commentsError,
+    updateCommentsCache,
+    removeCommentFromCache,
+    updateCommentInCache,
+    setComments
+  } = useCommentsCache(slug);
+
+  // Use optimized ratings caching hook
+  const {
+    averageRating,
+    ratingCount,
+    userRatingsStats,
+    loading: ratingsLoading,
+    updateRatingsCache
+  } = useRatingsCache(slug);
     // Verify TMDB API environment variables
   useEffect(() => {
     if (!process.env.NEXT_PUBLIC_TMDB_API_KEY || !process.env.NEXT_PUBLIC_TMDB_BASE_URL || !process.env.NEXT_PUBLIC_TMDB_AUTH_TOKEN) {
@@ -325,10 +228,7 @@ const MovieDetail = ({ slug: slugProp }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedServer, setSelectedServer] = useState(0);
-  const [selectedEpisode, setSelectedEpisode] = useState(0);
-  const [selectedQuality, setSelectedQuality] = useState('auto');  const [relatedMovies, setRelatedMovies] = useState([]);
-  const [similarNameMovies, setSimilarNameMovies] = useState([]);
-  const [comments, setComments] = useState([]);
+  const [selectedEpisode, setSelectedEpisode] = useState(0);  const [selectedQuality, setSelectedQuality] = useState('auto');
   const [newComment, setNewComment] = useState("");
   const [user, setUser] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -352,13 +252,9 @@ const MovieDetail = ({ slug: slugProp }) => {
     { label: '1080p', value: '1080' },
     { label: '720p', value: '720' },
     { label: '480p', value: '480' },
-    { label: '360p', value: '360' }
-  ]);
+    { label: '360p', value: '360' }  ]);
 
-  // Add state variables to track ratings
-  const [averageRating, setAverageRating] = useState(0);  const [ratingCount, setRatingCount] = useState(0);  const [userRatingsStats, setUserRatingsStats] = useState(null);
-  const [ratingLoading, setRatingLoading] = useState(false);
-  const [ratingStatsData, setRatingStatsData] = useState({});
+  // Removed redundant ratingStatsData state - now handled by useRatingsCache hook
   const [showFullDescription, setShowFullDescription] = useState(false);
 
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -395,8 +291,15 @@ const MovieDetail = ({ slug: slugProp }) => {
   const [activeReplyId, setActiveReplyId] = useState(null);
   const [reportType, setReportType] = useState('');
   const [reportMessage, setReportMessage] = useState('');
-  const [reportLoading, setReportLoading] = useState(false);
-  const [reportSuccess, setReportSuccess] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);  const [reportSuccess, setReportSuccess] = useState(false);
+
+  // Use optimized related movies caching hook (moved after state declarations to fix initialization order)
+  const {
+    relatedMovies,
+    similarNameMovies,
+    loading: relatedMoviesLoading,
+    prefetchRelatedMovies
+  } = useRelatedMoviesCache(slug, movie?.category || []);
 
   const toggleCommentMenu = (commentId) => {
     if (openMenuId === commentId) {
@@ -462,11 +365,9 @@ const MovieDetail = ({ slug: slugProp }) => {
             : `${baseUrl}${endpoint}`;
             
           const response = await axios.delete(url);
-          
-          if (response.status === 200 || response.status === 204) {
-            // Xóa bình luận khỏi danh sách
-            const updatedComments = comments.filter(comment => comment.id !== commentId);
-            setComments(updatedComments);
+            if (response.status === 200 || response.status === 204) {
+            // Remove comment from cache using optimized cache method
+            removeCommentFromCache(commentId);
             
             // Xóa ID bình luận khỏi localStorage
             const updatedAnonymousComments = anonymousCommentIds.filter(id => id !== commentId);
@@ -506,11 +407,9 @@ const MovieDetail = ({ slug: slugProp }) => {
             'Authorization': `Bearer ${token}`
           }
         });
-        
-        if (response.status === 200 || response.status === 204) {
-          // Use the id property to filter comments, as that's what's returned from the backend
-          const updatedComments = comments.filter(comment => comment.id !== commentId);
-          setComments(updatedComments);
+          if (response.status === 200 || response.status === 204) {
+          // Remove comment from cache using optimized cache method
+          removeCommentFromCache(commentId);
           toast.success('Đã xóa bình luận thành công!');
         } else {
           toast.error("Không thể xóa bình luận.");
@@ -539,9 +438,9 @@ const MovieDetail = ({ slug: slugProp }) => {
     }
     
     previewTimeoutRef.current = setTimeout(async () => {
-      if (!movie.episodes || !movie.episodes.length) {
-        try {
-          const response = await fetch(`http://localhost:5000/api/movies${movie.slug}`);
+      if (!movie.episodes || !movie.episodes.length) {        try {
+          const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+          const response = await fetch(`${baseUrl}/movies${movie.slug}`);
           const data = await response.json();
           
           if (data.status && data.movie && data.episodes && data.episodes.length > 0) {
@@ -763,10 +662,11 @@ const MovieDetail = ({ slug: slugProp }) => {
         localStorage.removeItem('token');
       }
     }
-  }, []);
-
-  useEffect(() => {    const fetchMovie = async () => {
-      if (!slug) return;
+  }, []);  useEffect(() => {
+    let isMounted = true;
+    
+    const fetchMovie = async () => {
+      if (!slug || !isMounted) return;
       
       // Reset view tracking refs for new movie fetch
       viewRecordedRef.current = false;
@@ -777,11 +677,12 @@ const MovieDetail = ({ slug: slugProp }) => {
       }
 
       try {
+        if (!isMounted) return;
         setLoading(true);
         setContentLoaded(false);
-        
-        // Fetch movie data from API
-        const response = await fetch(`http://localhost:5000/api/movies/${slug}`);
+          // Fetch movie data from API
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+        const response = await fetch(`${baseUrl}/movies/${slug}`);
         
         if (!response.ok) {
           throw new Error(`API responded with status: ${response.status}`);
@@ -790,97 +691,131 @@ const MovieDetail = ({ slug: slugProp }) => {
         const result = await response.json();
         console.log("Movie API Response:", result);
         
-        if (result.data) {
+        if (result.data && isMounted) {
           // Movie data is inside the data property based on responseHelper.js
           const movieData = result.data;
           console.log("Movie data loaded:", movieData);
           
           // Set the movie data first
           setMovie(movieData);
+              // Set initial rating state from movie data as a fallback
+          updateRatingsCache({
+            averageRating: movieData.rating || 0,
+            ratingCount: movieData.rating_count || 0
+          });
           
-          // Set initial rating state from movie data as a fallback
-          setAverageRating(movieData.rating || 0);
-          setRatingCount(movieData.rating_count || 0);
+          // Tối ưu hóa: Thực hiện tất cả các API calls song song thay vì tuần tự
+          const parallelRequests = [];
           
-          // Check if the movie is in the user's favorites list
+          // 1. Check favorite status nếu user đã đăng nhập
           if (user) {
-            try {
-              const isFav = await favoritesService.checkFavoriteStatus(slug);
-              setIsFavorite(isFav);
-            } catch (err) {
-              console.error("Error checking favorite status:", err);
-            }
+            parallelRequests.push(
+              favoritesService.checkFavoriteStatus(slug)
+                .then(isFav => ({ type: 'favorite', data: isFav }))
+                .catch(err => {
+                  console.error("Error checking favorite status:", err);
+                  return { type: 'favorite', data: false, error: err };
+                })
+            );
+            
+            // Gọi fetchUserRating (không chờ kết quả)
+            fetchUserRating();
+          }
+            // 2. Fetch movies với tên tương tự
+          if (movieData.name) {
+            const mainMovieName = movieData.name.replace(/ (phần|season|mùa|tập) \d+/gi, '').trim();
+            parallelRequests.push(
+              fetch(`${baseUrl}/search?q=${encodeURIComponent(mainMovieName)}&size=8`)
+                .then(res => res.json())
+                .then(similarNameResult => {
+                  let similarNameMovies = [];
+                  if (similarNameResult.success && similarNameResult.hits) {
+                    const seenSlugs = new Set([slug]);
+                    similarNameMovies = similarNameResult.hits
+                      .filter(similar => {
+                        if (seenSlugs.has(similar.slug)) return false;
+                        seenSlugs.add(similar.slug);
+                        return true;
+                      })
+                      .slice(0, 5);
+                  }
+                  return { type: 'similarName', data: similarNameMovies };
+                })
+                .catch(err => {
+                  console.error("Error fetching movies with similar names:", err);
+                  return { type: 'similarName', data: [], error: err };
+                })
+            );
           }
           
-          // Fetch user's personal rating if user is logged in
-          if (user) {
-            fetchUserRating();
-          }          // Fetch movies with similar names and combine with category movies
-          let similarNameMovies = [];
-          if (movieData.name) {
-            try {
-              // Extract the main part of the movie name (before season/part numbers)
-              const mainMovieName = movieData.name.replace(/ (phần|season|mùa|tập) \d+/gi, '').trim();
-              console.log("Searching for movies with similar names:", mainMovieName);
-              
-              // Search for movies with similar names
-              const similarNameResponse = await fetch(`http://localhost:5000/api/search?q=${encodeURIComponent(mainMovieName)}&size=8`);
-              const similarNameResult = await similarNameResponse.json();
-              console.log("Similar name search result:", similarNameResult);
-              
-              if (similarNameResult.success && similarNameResult.hits) {
-                // Filter out the current movie and limit to 4 movies
-                // Use a Set of slugs to prevent duplicate movie entries
-                const seenSlugs = new Set([slug]); // Add current movie slug to prevent showing it
-                similarNameMovies = similarNameResult.hits
-                  .filter(similar => {
-                    // Skip if this is the current movie or we've seen this slug before
-                    if (seenSlugs.has(similar.slug)) return false;
-                    // Add to seen set and keep this movie
-                    seenSlugs.add(similar.slug);
-                    return true;
-                  })
-                  .slice(0, 5);
-                console.log("Found similar name movies:", similarNameMovies);
-              }
-            } catch (similarNameError) {
-              console.error("Error fetching movies with similar names:", similarNameError);
-            }
-          }          // Fetch related movies by category and combine with similar name movies
+          // 3. Fetch related movies theo category
           if (movieData.category && movieData.category.length > 0) {
+            let categoryName;
+            if (typeof movieData.category[0] === 'object') {
+              categoryName = movieData.category[0].name;
+            } else {
+              categoryName = movieData.category[0];
+            }
+              parallelRequests.push(
+              fetch(`${baseUrl}/movies?category=${encodeURIComponent(categoryName)}&limit=20`)
+                .then(res => res.json())
+                .then(relatedResult => {
+                  let categoryMovies = [];
+                  if (relatedResult.data && relatedResult.data.movies) {
+                    categoryMovies = relatedResult.data.movies
+                      .filter(related => related.slug !== slug)
+                      .slice(0, 12);
+                  }
+                  return { type: 'category', data: categoryMovies };
+                })
+                .catch(err => {
+                  console.error("Error fetching related movies:", err);
+                  return { type: 'category', data: [], error: err };
+                })
+            );
+          }
+          
+          // Thực hiện tất cả các requests song song
+          if (parallelRequests.length > 0) {
             try {
-              // Get first category name
-              let categoryName;
-              if (typeof movieData.category[0] === 'object') {
-                categoryName = movieData.category[0].name;
-              } else {
-                categoryName = movieData.category[0];
-              }
+              const results = await Promise.allSettled(parallelRequests);
               
-              // Fetch related movies by category
-              const relatedResponse = await fetch(`http://localhost:5000/api/movies?category=${encodeURIComponent(categoryName)}&limit=20`);
-              const relatedResult = await relatedResponse.json();
+              let similarNameMovies = [];
+              let categoryMovies = [];
               
-              if (relatedResult.data && relatedResult.data.movies) {
-                // Create a Set of all slugs we've already seen to prevent duplicates
+              results.forEach(result => {
+                if (result.status === 'fulfilled') {
+                  const { type, data, error } = result.value;
+                  
+                  switch (type) {
+                    case 'favorite':
+                      if (!error && isMounted) {
+                        setIsFavorite(data);
+                      }
+                      break;
+                    case 'similarName':
+                      similarNameMovies = data;
+                      break;
+                    case 'category':
+                      categoryMovies = data;
+                      break;
+                  }
+                }
+              });
+              
+              // Kết hợp similar name movies và category movies
+              if (isMounted) {
                 const seenSlugs = new Set([slug, ...similarNameMovies.map(movie => movie.slug)]);
                 
-                // Filter out the current movie, similar name movies, and any duplicates
-                const categoryMovies = relatedResult.data.movies
-                  .filter(related => {
-                    // Skip if we've already seen this slug
-                    if (seenSlugs.has(related.slug)) return false;
-                    // Add to seen set and keep this movie
-                    seenSlugs.add(related.slug);
-                    return true;
-                  })
-                  .slice(0, 12); // Get up to 12 category movies to ensure we have enough content
+                const filteredCategoryMovies = categoryMovies.filter(related => {
+                  if (seenSlugs.has(related.slug)) return false;
+                  seenSlugs.add(related.slug);
+                  return true;
+                });
                 
-                // Combine similar name movies (first) with category movies
-                const combinedMovies = [...similarNameMovies, ...categoryMovies];
-                console.log("Combined movies (similar names + category):", combinedMovies.length);
+                const combinedMovies = [...similarNameMovies, ...filteredCategoryMovies];
                 
-                // Check for any potential duplicates in the final list
+                // Loại bỏ duplicates cuối cùng
                 const finalMovies = [];
                 const finalSeenSlugs = new Set();
                 
@@ -890,97 +825,127 @@ const MovieDetail = ({ slug: slugProp }) => {
                     finalMovies.push(movie);
                   }
                 });
-                
-                console.log("Final movies after deduplication:", finalMovies.length);
-                
-                // Set both states for backward compatibility
-                setSimilarNameMovies(similarNameMovies);
-                setRelatedMovies(finalMovies);
+                    console.log("Final movies after parallel processing:", finalMovies.length);
+                // Note: Related movies are now managed by useRelatedMoviesCache hook
+                // No need to manually set state here as the hook handles it automatically
               }
-            } catch (relatedError) {
-              console.error("Error fetching related movies:", relatedError);
+            } catch (parallelError) {
+              console.error("Error in parallel requests:", parallelError);
             }
           }
           
-          setLoading(false);
+          if (isMounted) {
+            setLoading(false);
+          }
         } else {
-          setError("Không tìm thấy phim");
-          setLoading(false);
+          if (isMounted) {
+            setError("Không tìm thấy phim");
+            setLoading(false);
+          }
         }
       } catch (err) {
         console.error("Error fetching movie:", err);
-        setError("Có lỗi xảy ra khi tải phim");
-        setLoading(false);
+        if (isMounted) {
+          setError("Có lỗi xảy ra khi tải phim");
+          setLoading(false);
+        }
       }
     };
 
     fetchMovie();
-  }, [slug, user]);
-
-  useEffect(() => {
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [slug, user]);  useEffect(() => {
+    let isMounted = true;
+    
     const checkUserPreferences = () => {
+      if (!isMounted) return;
+      
       const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
       const watchLater = JSON.parse(localStorage.getItem('watchLater') || '[]');
       
       setIsFavorite(favorites.includes(slug));
       setIsWatchLater(watchLater.includes(slug));
-    };
+    };    // fetchRatingsStats is now handled by useRatingsCache hook
 
-    const fetchRatingsStats = async () => {
-      if (!slug) return;
+    // Tối ưu hóa: Chạy tất cả các tác vụ song song
+    const runParallelTasks = async () => {
+      // Kiểm tra user preferences ngay lập tức (không cần await)
+      checkUserPreferences();
       
-      try {
-        console.log("Fetching ratings stats for movie slug:", slug);
-        // Use fetch to avoid any issues with axiosInstance
-        const response = await fetch(`http://localhost:5000/api/ratings/stats/${slug}`);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch rating stats: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log("Raw rating stats response:", data);
-        
-        if (data.data) {
-          const ratingData = data.data;
-          console.log("Setting rating data from stats endpoint:", ratingData);
-          
-          // Update the rating states with fetched data
-          setAverageRating(ratingData.averageRating || 0);
-          setRatingCount(ratingData.ratingCount || 0);
-          
-          // Store detailed rating statistics if available - backend returns userRatingsStats, not ratingDistribution
-          if (ratingData.userRatingsStats) {
-            console.log("User ratings distribution received:", ratingData.userRatingsStats);
-            setUserRatingsStats(ratingData.userRatingsStats);
-          } else {
-            // If the API doesn't return rating distribution, create a placeholder
-            console.log("No rating distribution found, creating placeholder");
-            const distribution = {};
-            for (let i = 1; i <= 10; i++) {
-              distribution[i] = 0;
+      // Tạo array các promises cho các API calls
+      const parallelTasks = [];
+      
+      // Thêm fetchUserRating nếu có user
+      if (user && slug) {
+        parallelTasks.push(
+          (async () => {
+            try {
+              await fetchUserRating();
+              return { type: 'userRating', success: true };
+            } catch (error) {
+              console.error("Error in fetchUserRating:", error);
+              return { type: 'userRating', success: false, error };
             }
-            setUserRatingsStats(distribution);
+          })()
+        );
+      }
+      
+      // Thêm fetchRatingsStats
+      if (slug) {
+        parallelTasks.push(
+          (async () => {
+            try {
+              await fetchRatingsStats();
+              return { type: 'ratingsStats', success: true };
+            } catch (error) {
+              console.error("Error in fetchRatingsStats:", error);
+              return { type: 'ratingsStats', success: false, error };
+            }
+          })()
+        );
+      }
+      
+      // Thêm fetchHistoryRecommendations
+      parallelTasks.push(
+        (async () => {
+          try {
+            await fetchHistoryRecommendations();
+            return { type: 'historyRecommendations', success: true };
+          } catch (error) {
+            console.error("Error in fetchHistoryRecommendations:", error);
+            return { type: 'historyRecommendations', success: false, error };
           }
+        })()
+      );
+      
+      // Chạy tất cả các tasks song song
+      if (parallelTasks.length > 0) {
+        try {
+          const results = await Promise.allSettled(parallelTasks);
+          console.log("Parallel tasks completed:", results);
           
-          // Also update the movie object for consistency
-          setMovie(prev => ({
-            ...prev,
-            rating: ratingData && ratingData.averageRating ? ratingData.averageRating : ((prev && prev.rating) || 0),
-            rating_count: ratingData && ratingData.ratingCount ? ratingData.ratingCount : ((prev && prev.rating_count) || 0)
-          }));
-        } else {
-          console.error("Rating stats data not found in response:", data);
+          // Log kết quả để debug
+          results.forEach((result, index) => {
+            if (result.status === 'fulfilled') {
+              console.log(`Task ${result.value.type} completed successfully`);
+            } else {
+              console.error(`Task failed:`, result.reason);
+            }
+          });
+        } catch (error) {
+          console.error("Error in parallel tasks execution:", error);
         }
-      } catch (error) {
-        console.error("Error fetching ratings stats:", error);
       }
     };
 
-    checkUserPreferences();
-    fetchUserRating();
-    fetchRatingsStats();
-    fetchHistoryRecommendations();
+    runParallelTasks();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [slug, user]);
 
   useEffect(() => {
@@ -1071,11 +1036,11 @@ const MovieDetail = ({ slug: slugProp }) => {
       } else {
         // If not in favorites, add it
         const result = await favoritesService.addToFavorites({ slug });
-        
-        if (result.success) {
+          if (result.success) {
           if (result.alreadyExists) {
-            // Phim đã tồn tại trong danh sách yêu thích - đây không phải là lỗi
-            toast.info("Phim đã có trong danh sách yêu thích");
+            // Phim đã tồn tại trong danh sách yêu thích - cập nhật trạng thái UI
+            setIsFavorite(true);
+            toast.info(result.message || "Đã có trong danh sách yêu thích");
           } else {
             setIsFavorite(true);
             toast.success(result.message || "Đã thêm vào danh sách yêu thích");
@@ -1259,10 +1224,10 @@ if (!user) {
         message: reportMessage || reportType,
         episode: selectedEpisode + 1 // Thêm thông tin tập phim đang xem
       };
-      
-      // Gửi báo cáo đến API endpoint
+        // Gửi báo cáo đến API endpoint
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
       const response = await axios.post(
-        'http://localhost:5000/api/reports/movie', 
+        `${baseUrl}/reports/movie`,
         reportData,
         {
           headers: {
@@ -1287,15 +1252,11 @@ if (!user) {
     } finally {
       setReportLoading(false);
     }
-  };
-
-  const handleRating = async (value) => {
+  };  const handleRating = async (value) => {
     if (!user) {
       router.push('/auth/login');
       return;
     }
-
-    setRatingLoading(true);
 
     try {
       console.log("Sending rating:", {
@@ -1303,9 +1264,9 @@ if (!user) {
         rating: value,
         userId: user._id
       });
-      
-      // Use direct fetch with the full URL to avoid any path issues with axiosInstance
-      const response = await fetch('http://localhost:5000/api/ratings', {
+        // Use direct fetch with the full URL to avoid any path issues with axiosInstance
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${baseUrl}/ratings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1329,10 +1290,13 @@ if (!user) {
         // Update local state with response values
         setUserRating(value);
         
-        // Update average rating and rating count from the API response
+        // Update ratings cache with new data from API response
         const ratingData = result.data;
-        setAverageRating(ratingData.averageRating || 0);
-        setRatingCount(ratingData.ratingCount || 0);
+        updateRatingsCache({
+          averageRating: ratingData.averageRating || 0,
+          ratingCount: ratingData.ratingCount || 0,
+          userRatingsStats: ratingData.userRatingsStats || userRatingsStats
+        });
         
         // Update the movie rating information in the movie object
         setMovie(prev => ({
@@ -1347,12 +1311,10 @@ if (!user) {
         fetchUserRating();
       } else {
         toast.error('Có lỗi xảy ra khi lưu đánh giá');
-      }
-    } catch (error) {
+      }    } catch (error) {
       console.error("Error saving rating to API:", error);
       toast.error('Có lỗi xảy ra khi lưu đánh giá: ' + error.message);
     } finally {
-      setRatingLoading(false);
       setShowRatingModal(false);
     }
   };
@@ -1360,39 +1322,27 @@ if (!user) {
   const fetchRatingsStats = async () => {
     if (!slug) return;
     
-    try {
-      console.log("Fetching ratings stats for movie slug:", slug);
+    try {      console.log("Fetching ratings stats for movie slug:", slug);
       // Use fetch to avoid any issues with axiosInstance
-      const response = await fetch(`http://localhost:5000/api/ratings/stats/${slug}`);
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${baseUrl}/ratings/stats/${slug}`);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch rating stats: ${response.status}`);
       }
-      
-      const data = await response.json();
+        const data = await response.json();
       console.log("Raw rating stats response:", data);
       
       if (data.data) {
         const ratingData = data.data;
         console.log("Setting rating data from stats endpoint:", ratingData);
         
-        // Update the rating states with fetched data
-        setAverageRating(ratingData.averageRating || 0);
-        setRatingCount(ratingData.ratingCount || 0);
-        
-        // Store detailed rating statistics if available - backend returns userRatingsStats, not ratingDistribution
-        if (ratingData.userRatingsStats) {
-          console.log("User ratings distribution received:", ratingData.userRatingsStats);
-          setUserRatingsStats(ratingData.userRatingsStats);
-        } else {
-          // If the API doesn't return rating distribution, create a placeholder
-          console.log("No rating distribution found, creating placeholder");
-          const distribution = {};
-          for (let i = 1; i <= 10; i++) {
-            distribution[i] = 0;
-          }
-          setUserRatingsStats(distribution);
-        }
+        // Update the rating states with fetched data using the cache
+        updateRatingsCache({
+          averageRating: ratingData.averageRating || 0,
+          ratingCount: ratingData.ratingCount || 0,
+          userRatingsStats: ratingData.userRatingsStats || null
+        });
         
         // Also update the movie object for consistency
         setMovie(prev => ({
@@ -1402,6 +1352,15 @@ if (!user) {
         }));
       } else {
         console.error("Rating stats data not found in response:", data);
+        // If the API doesn't return rating distribution, create a placeholder
+        console.log("No rating distribution found, creating placeholder");
+        const distribution = {};
+        for (let i = 1; i <= 10; i++) {
+          distribution[i] = 0;
+        }
+        updateRatingsCache({
+          userRatingsStats: distribution
+        });
       }
     } catch (error) {
       console.error("Error fetching ratings stats:", error);
@@ -1428,9 +1387,9 @@ if (!user) {
         console.log("No auth token found, skipping user rating fetch");
         return;
       }
-      
-      console.log("Making request to get user rating with user ID:", currentUser._id);
-      const response = await fetch(`http://localhost:5000/api/ratings/user/${currentUser._id}/movie/${slug}`, {
+        console.log("Making request to get user rating with user ID:", currentUser._id);
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${baseUrl}/ratings/user/${currentUser._id}/movie/${slug}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -1775,10 +1734,10 @@ if (!user) {
     try {
       // Kiểm tra gói Premium 15k trước (ID: 682f7d849c310399aa715c9d)
       const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || localStorage.getItem('authToken');
-      if (token) {
-        // Nếu có token, kiểm tra quyền lợi từ API trước khi hiển thị quảng cáo
+      if (token) {        // Nếu có token, kiểm tra quyền lợi từ API trước khi hiển thị quảng cáo
         try {
-          const response = await fetch('http://localhost:5000/api/subscription/ad-benefits', {
+          const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+          const response = await fetch(`${baseUrl}/subscription/ad-benefits`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -1929,10 +1888,9 @@ if (!user) {
       if (!commentId) {
         toast.error("Không thể xác định ID bình luận");
         return;
-      }
-
-      // Gọi API để toggle like - sử dụng API mới
-      const response = await fetch('http://localhost:5000/api/likes', {
+      }      // Gọi API để toggle like - sử dụng API mới
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${baseUrl}/likes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1946,20 +1904,18 @@ if (!user) {
 
       if (response.ok) {
         const responseData = await response.json();
-        
-        // Cập nhật UI dựa trên kết quả từ server
+          // Cập nhật UI dựa trên kết quả từ server
         if (responseData.success && responseData.data) {
           const { likeCount, dislikeCount, action } = responseData.data;
+          const commentId = comments[index].id;
           
-          const updatedComments = [...comments];
-          updatedComments[index].likes = likeCount;
-          updatedComments[index].dislikes = dislikeCount;
-          
-          // Cập nhật trạng thái UI
-          updatedComments[index].liked = action !== 'removed'; // true nếu đã thêm hoặc thay đổi, false nếu đã xóa
-          updatedComments[index].disliked = false; // Nếu like thành công, dislike luôn là false
-          
-          setComments(updatedComments);
+          // Update comment in cache using optimized cache method
+          updateCommentInCache(commentId, {
+            likes: likeCount,
+            dislikes: dislikeCount,
+            liked: action !== 'removed', // true nếu đã thêm hoặc thay đổi, false nếu đã xóa
+            disliked: false // Nếu like thành công, dislike luôn là false
+          });
         }
       } else {
         const errorData = await response.json();
@@ -1983,10 +1939,9 @@ if (!user) {
       if (!commentId) {
         toast.error("Không thể xác định ID bình luận");
         return;
-      }
-
-      // Gọi API để toggle dislike - sử dụng API mới
-      const response = await fetch('http://localhost:5000/api/likes', {
+      }      // Gọi API để toggle dislike - sử dụng API mới
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${baseUrl}/likes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1996,24 +1951,21 @@ if (!user) {
           commentId,
           type: 'dislike'
         })
-      });
-
-      if (response.ok) {
+      });      if (response.ok) {
         const responseData = await response.json();
         
         // Cập nhật UI dựa trên kết quả từ server
         if (responseData.success && responseData.data) {
           const { likeCount, dislikeCount, action } = responseData.data;
+          const commentId = comments[index].id;
           
-          const updatedComments = [...comments];
-          updatedComments[index].likes = likeCount;
-          updatedComments[index].dislikes = dislikeCount;
-          
-          // Cập nhật trạng thái UI
-          updatedComments[index].disliked = action !== 'removed'; // true nếu đã thêm hoặc thay đổi, false nếu đã xóa
-          updatedComments[index].liked = false; // Nếu dislike thành công, like luôn là false
-          
-          setComments(updatedComments);
+          // Update comment in cache using optimized cache method
+          updateCommentInCache(commentId, {
+            likes: likeCount,
+            dislikes: dislikeCount,
+            disliked: action !== 'removed', // true nếu đã thêm hoặc thay đổi, false nếu đã xóa
+            liked: false // Nếu dislike thành công, like luôn là false
+          });
         }
       } else {
         const errorData = await response.json();
@@ -2126,9 +2078,8 @@ if (!user) {
           userComments[response.data.comment.id] = user._id;
           localStorage.setItem('userComments', JSON.stringify(userComments));
         }
-        
-        // Add new comment to the beginning of the comments array (top of the list)
-        setComments([newCommentData, ...comments]);
+          // Add new comment to cache using the optimized cache method
+        updateCommentsCache(newCommentData);
         setNewComment("");
         toast.success("Bình luận đã được đăng thành công!");
       } else {
@@ -2163,40 +2114,8 @@ if (!user) {
       avatarUrl = `${avatarUrl}?t=${Date.now()}`;
     }
     
-    return avatarUrl;
-  };
+    return avatarUrl;  };
 
-
-  useEffect(() => {
-    const fetchComments = async () => {
-      try {
-        // Clear any previous comments first
-        setComments([]);
-        
-        // Fetch the latest comments data
-        const response = await axios.get(`${API_URL}/comments?movieSlug=${slug}`);
-        if (response.status === 200) {
-          // Process comments to apply consistent avatar handling
-          const processedComments = response.data.comments.map(comment => {
-            return {
-              ...comment,
-              avatar: getAvatarUrl(comment.avatar)
-            };
-          });
-          
-          setComments(processedComments || []);
-        } else {
-          console.error("Error fetching comments:", response.statusText);
-        }
-      } catch (error) {
-        console.error("Error fetching comments:", error);
-      }
-    };
-
-    if (slug) {
-      fetchComments();
-    }
-  }, [slug]);
 
   // Add a function to fetch movie recommendations based on viewing history
   const fetchHistoryRecommendations = async () => {
@@ -2256,12 +2175,11 @@ if (!user) {
       const topCategories = sortedCategories.slice(0, 2);
       console.log("Using top categories for recommendations:", topCategories);
       
-      const allRecommendations = [];
-      
-      // Fetch movies from each top category
-      for (const category of topCategories) {
-        try {
-          const response = await fetch(`http://localhost:5000/api/movies?category=${encodeURIComponent(category)}&limit=15`);
+      const allRecommendations = [];        // Fetch movies from each top category
+        for (const category of topCategories) {
+          try {
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+            const response = await fetch(`${baseUrl}/movies?category=${encodeURIComponent(category)}&limit=15`);
           
           if (response.ok) {
             const result = await response.json();
@@ -3159,10 +3077,9 @@ if (!user) {
               <div className={styles.ratingButtons}>
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => (
                   <button
-                    key={score}
-                    className={`${styles.ratingButton} ${tempRating === score ? styles.ratingActive : ''}`}
+                    key={score}                className={`${styles.ratingButton} ${tempRating === score ? styles.ratingActive : ''}`}
                     onClick={() => setTempRating(score)}
-                    disabled={ratingLoading}
+                    disabled={ratingsLoading}
                   >
                     {score}
                   </button>
@@ -3181,13 +3098,12 @@ if (!user) {
                 {tempRating === 9 && "Rất hay"}
                 {tempRating === 10 && "Tuyệt vời"}
               </div>
-            </div>
-            <div className={styles.modalFooter}>
+            </div>            <div className={styles.modalFooter}>
               <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={() => setShowRatingModal(false)}
-                disabled={ratingLoading}
+                disabled={ratingsLoading}
               >
                 Hủy
               </button>
@@ -3195,9 +3111,8 @@ if (!user) {
                 type="button"
                 className="btn btn-danger"
                 onClick={() => handleRating(tempRating)}
-                disabled={tempRating === 0 || ratingLoading}
-              >
-                {ratingLoading ? (
+                disabled={tempRating === 0 || ratingsLoading}              >
+                {ratingsLoading ? (
                   <>
                     <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                     Đang lưu...

@@ -1,7 +1,7 @@
 import axiosClient from '../config/axiosConfig';
 
 const movieViewService = {
-  // Record a view when user watches a movie
+  // Ghi lại một lượt xem khi người dùng xem phim
   recordMovieView: async (movieId) => {
     try {
       const response = await axiosClient.post('/movie-views/record', { movieId });
@@ -12,7 +12,7 @@ const movieViewService = {
     }
   },
 
-  // Get most viewed movies (optionally specify timeframe in days)
+  // Lấy danh sách phim được xem nhiều nhất (tùy chọn chỉ định khung thời gian theo ngày)
   getMostViewedMovies: async (days = 1, limit = 10) => {
     try {
       const response = await axiosClient.get(`/movie-views/most-viewed?days=${days}&limit=${limit}`);
@@ -23,7 +23,7 @@ const movieViewService = {
     }
   },
 
-  // Get view statistics for a specific movie
+  // Lấy số liệu thống kê lượt xem cho một bộ phim cụ thể
   getMovieViewStats: async (movieId) => {
     try {
       const response = await axiosClient.get(`/movie-views/stats/${movieId}`);

@@ -4,31 +4,31 @@ import 'react-toastify/dist/ReactToastify.css';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '@/API/services/admin/notificationService';
 
-// Define Notification interface
+// Định nghĩa interface Thông báo
 /**
  * @typedef {Object} Notification
- * @property {string} _id - Notification ID
- * @property {string} title - Notification title
- * @property {string} message - Notification message
- * @property {string} type - Notification type
- * @property {boolean} isRead - Whether notification has been read
- * @property {string} createdAt - Creation timestamp
- * @property {Object} [entity] - Related entity
- * @property {string} [entity.id] - Entity ID
- * @property {string} [entity.type] - Entity type
+ * @property {string} _id - ID thông báo
+ * @property {string} title - Tiêu đề thông báo
+ * @property {string} message - Nội dung thông báo
+ * @property {string} type - Loại thông báo
+ * @property {boolean} isRead - Thông báo đã được đọc hay chưa
+ * @property {string} createdAt - Dấu thời gian tạo
+ * @property {Object} [entity] - Thực thể liên quan
+ * @property {string} [entity.id] - ID thực thể
+ * @property {string} [entity.type] - Loại thực thể
  */
 
 /**
  * @typedef {Object} AdminNotificationsContextType
- * @property {Array<Notification>} notifications - Array of notifications
- * @property {number} unreadCount - Count of unread notifications
- * @property {boolean} loading - Loading state
- * @property {Function} updateNotifications - Function to refresh notifications
- * @property {Function} markAsRead - Function to mark notification as read
- * @property {Function} markAllAsRead - Function to mark all notifications as read
+ * @property {Array<Notification>} notifications - Mảng các thông báo
+ * @property {number} unreadCount - Số lượng thông báo chưa đọc
+ * @property {boolean} loading - Trạng thái tải
+ * @property {Function} updateNotifications - Hàm để làm mới thông báo
+ * @property {Function} markAsRead - Hàm để đánh dấu thông báo là đã đọc
+ * @property {Function} markAllAsRead - Hàm để đánh dấu tất cả thông báo là đã đọc
  */
 
-// Create context
+// Tạo context
 const AdminNotificationsContext = createContext({
   notifications: [],
   unreadCount: 0,
@@ -38,7 +38,7 @@ const AdminNotificationsContext = createContext({
   markAllAsRead: async () => {}
 });
 
-// Provider component
+// Thành phần Provider
 export const AdminNotificationsProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -46,7 +46,71 @@ export const AdminNotificationsProvider = ({ children }) => {
   const { lastMessage } = useWebSocket();
   const [isInitialRender, setIsInitialRender] = useState(true);
 
-  // Function to fetch notifications
+  // Thêm theo dõi mount để ngăn ngừa rò rỉ bộ nhớ
+  useEffect(() => {
+    let isMounted = true;
+
+    // Hàm để lấy thông báo với kiểm tra mount
+    const updateNotifications = async () => {
+      try {
+        if (!isMounted) return;
+        setLoading(true);
+        const fetchedNotifications = await getNotifications();
+        if (!isMounted) return;
+        setNotifications(fetchedNotifications);
+        setUnreadCount(fetchedNotifications.filter(n => !n.isRead).length);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    // Hàm để đánh dấu một thông báo là đã đọc với kiểm tra mount
+    const markAsRead = async (id) => {
+      try {
+        await markNotificationAsRead(id);
+        if (!isMounted) return;
+        setNotifications(prev => 
+          prev.map(n => n._id === id ? { ...n, isRead: true } : n)
+        );
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      } catch (error) {
+        console.error('Error marking notification as read:', error);
+      }
+    };
+
+    // Hàm để đánh dấu tất cả thông báo là đã đọc với kiểm tra mount
+    const markAllAsRead = async () => {
+      try {
+        await markAllNotificationsAsRead();
+        if (!isMounted) return;
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        setUnreadCount(0);
+      } catch (error) {
+        console.error('Error marking all notifications as read:', error);
+      }
+    };
+
+    // Lấy thông báo ban đầu
+    updateNotifications();
+    
+    // Thiết lập khoảng thời gian để kiểm tra thông báo mới mỗi phút
+    const intervalId = setInterval(() => {
+      if (isMounted) {
+        updateNotifications();
+      }
+    }, 60000);
+    
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, []);
+
+  // Hàm để lấy thông báo (được cung cấp cho context)
   const updateNotifications = async () => {
     try {
       setLoading(true);
@@ -60,7 +124,7 @@ export const AdminNotificationsProvider = ({ children }) => {
     }
   };
 
-  // Function to mark a notification as read
+  // Hàm để đánh dấu một thông báo là đã đọc (được cung cấp cho context)
   const markAsRead = async (id) => {
     try {
       await markNotificationAsRead(id);
@@ -73,7 +137,7 @@ export const AdminNotificationsProvider = ({ children }) => {
     }
   };
 
-  // Function to mark all notifications as read
+  // Hàm để đánh dấu tất cả thông báo là đã đọc (được cung cấp cho context)
   const markAllAsRead = async () => {
     try {
       await markAllNotificationsAsRead();
@@ -84,28 +148,16 @@ export const AdminNotificationsProvider = ({ children }) => {
     }
   };
 
-  // Initial fetch of notifications
+  // Lấy thông báo khi có tin nhắn mới từ websocket
   useEffect(() => {
-    updateNotifications();
-    
-    // Set up interval to check for new notifications every minute
-    const intervalId = setInterval(() => {
-      updateNotifications();
-    }, 60000);
-    
-    return () => clearInterval(intervalId);
-  }, []);
-
-  // Handle incoming websocket notifications
-  useEffect(() => {
-    // Skip showing toast for initial render
+    // Bỏ qua việc hiển thị toast cho lần render đầu tiên
     if (isInitialRender) {
       setIsInitialRender(false);
       return;
     }
 
     if (lastMessage) {
-      // Refresh notifications when we receive a new one
+      // Làm mới thông báo khi nhận được thông báo mới
       updateNotifications();
       
       const { type, action, data } = lastMessage;
@@ -114,7 +166,7 @@ export const AdminNotificationsProvider = ({ children }) => {
       let title = '';
       let toastType = toast.TYPE.INFO;
       
-      // Determine notification type based on data received
+      // Xác định loại thông báo dựa trên dữ liệu nhận được
       if (type === 'movie') {
         const movieTitle = data?.title || 'Một phim';
         title = 'Thông báo phim';
@@ -152,7 +204,7 @@ export const AdminNotificationsProvider = ({ children }) => {
             message = `Có thay đổi với ${userName}`;
         }
       } else if (lastMessage.type === 'notification') {
-        // Handle notification from our new system
+        // Xử lý thông báo từ hệ thống mới của chúng ta
         title = lastMessage.data?.title || 'Thông báo mới';
         message = lastMessage.data?.message || 'Có thông báo mới';
       } else {
@@ -160,7 +212,7 @@ export const AdminNotificationsProvider = ({ children }) => {
         message = lastMessage.message || 'Có thông báo mới';
       }
       
-      // Show toast notification
+      // Hiển thị thông báo toast
       toast(
         <div>
           <strong>{title}</strong>
@@ -211,12 +263,12 @@ export const AdminNotificationsProvider = ({ children }) => {
   );
 };
 
-// Custom hook to use the notifications context
+// Hook tùy chỉnh để sử dụng context thông báo
 export const useAdminNotifications = () => useContext(AdminNotificationsContext);
 
-// The main AdminNotifications component
+// Thành phần AdminNotifications chính
 const AdminNotifications = () => {
-  // This component doesn't render anything visible since the Provider handles everything
+  // Thành phần này không hiển thị bất cứ thứ gì vì Provider xử lý mọi thứ
   return null;
 };
 

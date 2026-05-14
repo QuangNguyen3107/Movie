@@ -3,7 +3,7 @@ import axiosInstance from '../config/axiosConfig';
 // Lưu ý API_URL đã được cấu hình trong axiosInstance, không cần import
 
 const favoritesService = {
-  // Get all favorites for the current user
+  // Lấy tất cả các mục yêu thích cho người dùng hiện tại
   getFavorites: async () => {
     try {
       console.log('[SERVICE] Bắt đầu gọi API lấy danh sách yêu thích');
@@ -114,7 +114,7 @@ const favoritesService = {
     }
   },
 
-  // Add a movie to favorites
+  // Thêm một bộ phim vào danh sách yêu thích
   addToFavorites: async (movieData) => {
     try {
       const payload = {};
@@ -147,7 +147,7 @@ const favoritesService = {
     }
   },
 
-  // Remove a movie from favorites
+  // Xóa một bộ phim khỏi danh sách yêu thích
   removeFromFavorites: async (movieId) => {
     try {
       console.log('Xóa phim khỏi yêu thích, ID:', movieId);
@@ -169,7 +169,7 @@ const favoritesService = {
     }
   },
 
-  // Check if a movie is in favorites
+  // Kiểm tra xem một bộ phim có trong danh sách yêu thích không
   checkFavoriteStatus: async (movieSlug) => {
     try {
       console.log('Kiểm tra trạng thái yêu thích cho phim:', movieSlug);

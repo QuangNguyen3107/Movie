@@ -69,22 +69,28 @@ const PremiumPage = () => {
   const isSuccessfulSubscription = (response) => {
     return response && response.success; 
   };
-
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchData = async () => {
+      if (!isMounted) return;
+      
       try {
         setLoading(true);
         
         // Lấy danh sách các gói đăng ký từ API
         const packagesData = await subscriptionService.getAllPackages();
+        if (!isMounted) return;
         setPackages(packagesData);
         
-        if (isAuthenticated) {
+        if (isAuthenticated && isMounted) {
           try {
             const subscriptionData = await subscriptionService.getCurrentSubscription();
+            if (!isMounted) return;
             setCurrentSubscription(subscriptionData);
             
             const pendingData = await subscriptionService.getPendingSubscription();
+            if (!isMounted) return;
             if (pendingData && pendingData.hasPendingSubscription) {
               setPendingSubscription(pendingData);
             } else {
@@ -140,16 +146,19 @@ const PremiumPage = () => {
 
     fetchData();
   }, [isAuthenticated]);  
-
   // Làm mới dữ liệu đăng ký
   const refreshSubscriptionData = async () => {
+    let isMounted = true;
+    
     if (isAuthenticated) {
       try {
+        if (!isMounted) return;
         setLoading(true);
         console.log("===== REFRESHING SUBSCRIPTION DATA =====");
         
         // Lấy thông tin đăng ký hiện tại
         const subscriptionData = await subscriptionService.getCurrentSubscription();
+        if (!isMounted) return;
         console.log("Latest subscription data received:", subscriptionData);
         
         // Enhanced debug logging
@@ -176,18 +185,25 @@ const PremiumPage = () => {
         }
         
         // Always update the subscription state, even if it might be null
-        setCurrentSubscription(subscriptionData);
+        if (isMounted) {
+          setCurrentSubscription(subscriptionData);
+        }
         
         // Lấy thông tin đăng ký đang chờ duyệt
         const pendingData = await subscriptionService.getPendingSubscription();
+        if (!isMounted) return;
         console.log("Latest pending subscription data:", pendingData);
         
         if (pendingData && pendingData.hasPendingSubscription) {
           console.log("User has a pending subscription - updating UI");
-          setPendingSubscription(pendingData);
+          if (isMounted) {
+            setPendingSubscription(pendingData);
+          }
         } else {
           console.log("User has no pending subscription");
-          setPendingSubscription(null);
+          if (isMounted) {
+            setPendingSubscription(null);
+          }
         }
 
         // Ensure UI is updated if there's an active subscription
@@ -196,34 +212,49 @@ const PremiumPage = () => {
         }
       } catch (error) {
         console.error("Error refreshing subscription data:", error);
-        toast.error("Không thể làm mới thông tin đăng ký. Vui lòng thử lại sau.");
+        if (isMounted) {
+          toast.error("Không thể làm mới thông tin đăng ký. Vui lòng thử lại sau.");
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     } else {
       console.log("User not authenticated - skipping subscription refresh");
     }
-  };
-  // Tự động làm mới dữ liệu mỗi khi trang được tải
+    
+    return () => {
+      isMounted = false;
+    };
+  };  // Tự động làm mới dữ liệu mỗi khi trang được tải
   useEffect(() => {
+    let isMounted = true;
+    let refreshInterval;
+    
     // Gọi làm mới dữ liệu khi trang được tải
-    if (isAuthenticated) {
+    if (isAuthenticated && isMounted) {
       console.log("Đang làm mới dữ liệu đăng ký khi component mount...");
       refreshSubscriptionData();
     }
 
     // Thiết lập interval để làm mới dữ liệu mỗi 10 giây nếu người dùng đã đăng nhập
-    const refreshInterval = setInterval(() => {
-      if (isAuthenticated) {
-        console.log("Đang làm mới dữ liệu đăng ký theo định kỳ...");
-        refreshSubscriptionData();
-      }
-    }, 10000); // Giảm xuống 10 giây để cập nhật nhanh hơn
+    if (isAuthenticated) {
+      refreshInterval = setInterval(() => {
+        if (isAuthenticated && isMounted) {
+          console.log("Đang làm mới dữ liệu đăng ký theo định kỳ...");
+          refreshSubscriptionData();
+        }
+      }, 10000); // Giảm xuống 10 giây để cập nhật nhanh hơn
+    }
 
     // Xóa interval khi component unmount
     return () => {
       console.log("Xóa interval làm mới dữ liệu khi component unmount");
-      clearInterval(refreshInterval);
+      isMounted = false;
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
     };
   }, [isAuthenticated]); // Chỉ chạy lại khi isAuthenticated thay đổi
 

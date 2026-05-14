@@ -11,15 +11,16 @@ export default async function handler(req, res) {
     // Validate required fields
     if (!email) {
       return res.status(400).json({ message: 'Email is required' });
-    }
-
-    // Email validation
+    }    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ message: 'Invalid email format' });
-    }    // Send request to backend API using axios for consistency
+    }
+    
+    // Send request to backend API using axios for consistency
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
     const response = await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/auth/forgot-password`, 
+      `${baseUrl}/auth/forgot-password`, 
       { email }
     );
     

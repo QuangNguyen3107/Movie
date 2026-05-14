@@ -13,9 +13,9 @@ export default async function handler(req, res) {
     if (!userData.fullname || !userData.email || !userData.password) {
       return res.status(400).json({ message: 'Required fields are missing' });
     }
-    
-    // Gửi request tới backend API
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/register`, {
+      // Gửi request tới backend API
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+    const response = await fetch(`${baseUrl.replace('/api', '')}/api/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

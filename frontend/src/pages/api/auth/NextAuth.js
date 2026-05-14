@@ -17,9 +17,9 @@ export default NextAuth({
   callbacks: {
     async signIn({ user, account, profile }) {
       if (account.provider === 'google') {
-        try {
-          // Send the Google profile data to your backend
-          const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/google-login`, {
+        try {          // Send the Google profile data to your backend
+          const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+          const response = await axios.post(`${baseUrl.replace('/api', '')}/api/auth/google-login`, {
             email: profile.email,
             name: profile.name,
             googleId: profile.sub,
@@ -37,11 +37,11 @@ export default NextAuth({
         } catch (error) {
           console.error("Error with Google login backend:", error);
           return false;
-        }
-      } else if (account.provider === 'facebook') {
+        }        } else if (account.provider === 'facebook') {
         try {
           // Send the Facebook profile data to your backend
-          const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/auth/facebook-login`, {
+          const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+          const response = await axios.post(`${baseUrl.replace('/api', '')}/api/auth/facebook-login`, {
             email: profile.email,
             name: profile.name,
             facebookId: profile.id,

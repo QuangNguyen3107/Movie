@@ -17,11 +17,13 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'Passwords do not match' });
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
-    }    // Send request to backend API using axios
+    if (newPassword.length < 6) {    return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+    }
+    
+    // Send request to backend API using axios
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
     const response = await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/auth/reset-password`,
+      `${baseUrl}/auth/reset-password`,
       {
         token,
         newPassword,

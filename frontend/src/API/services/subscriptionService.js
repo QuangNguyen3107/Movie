@@ -1,6 +1,6 @@
-import api from '../config/axiosConfig.js'; // Import axios instance đã cấu hình
+import api from '../config/axiosConfig.js'; // Nhập instance axios đã cấu hình
 
-// Service xử lý các API liên quan đến subscription
+// Service xử lý các API liên quan đến đăng ký
 const subscriptionService = {
   // Lấy danh sách các gói đăng ký có sẵn
   getAllPackages: async () => {
@@ -11,7 +11,7 @@ const subscriptionService = {
       console.error('Error fetching subscription packages:', error);
       throw error;
     }
-  },  // Removed duplicate getUserAdBenefits method - using the one with improved logging below
+  },  // Đã xóa phương thức getUserAdBenefits trùng lặp - sử dụng phương thức có ghi log cải tiến ở dưới
 
   // Lấy chi tiết một gói đăng ký
   getPackageById: async (packageId) => {
@@ -60,7 +60,7 @@ const subscriptionService = {
         };
       }
       
-      // Return a formatted error response for better frontend handling
+      // Trả về một phản hồi lỗi đã định dạng để xử lý frontend tốt hơn
       return {
         success: false,
         message: error.response?.data?.error || 'Có lỗi xảy ra khi đăng ký gói',
@@ -81,8 +81,8 @@ const subscriptionService = {
       console.error('Error confirming payment:', error);
       console.error('Error details:', error.response?.data);
       
-      // Even in case of error, return a proper response object
-      // This helps the frontend continue the flow
+      // Ngay cả trong trường hợp lỗi, trả về một đối tượng phản hồi phù hợp
+      // Điều này giúp frontend tiếp tục luồng xử lý
       return {
         success: false,
         message: error.response?.data?.message || 'Lỗi khi xác nhận thanh toán, nhưng đăng ký đã được tạo.',
@@ -127,7 +127,7 @@ const subscriptionService = {
     // Lấy thông tin về quyền lợi ẩn quảng cáo dựa trên gói đăng ký của người dùng
   getUserAdBenefits: async () => {
     try {
-      // Get token first to check authentication status
+      // Lấy token trước để kiểm tra trạng thái xác thực
       const token = localStorage.getItem('auth_token') || localStorage.getItem('token') || localStorage.getItem('authToken');
       
       console.log('%c[AdBenefits] Fetching user ad benefits based on subscription...', 'color: #4CAF50; font-weight: bold');
@@ -144,7 +144,7 @@ const subscriptionService = {
         };
       }
       
-      // Make the API call with proper headers
+      // Thực hiện lệnh gọi API với header phù hợp
       const response = await api.get('/subscription/ad-benefits', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -159,7 +159,7 @@ const subscriptionService = {
         console.log('%c[AdBenefits] GOI 15K PREMIUM DETECTED! Hiding all ads.', 'color: #FF0000; font-weight: bold; font-size: 16px;');
       }
       
-      // Return the ad benefits from API or default values if not available
+      // Trả về quyền lợi quảng cáo từ API hoặc giá trị mặc định nếu không có
       return {
         hideHomepageAds: response.data.data?.hideHomepageAds || isPremiumPackage || false,
         hideVideoAds: response.data.data?.hideVideoAds || isPremiumPackage || false,
@@ -170,13 +170,13 @@ const subscriptionService = {
     } catch (error) {
       console.error('%c[AdBenefits] Error fetching ad benefits:', 'color: #FF0000; font-weight: bold', error);
       
-      // Check if it's an authentication error
+      // Kiểm tra xem đó có phải là lỗi xác thực không
       const isAuthError = error.response && (error.response.status === 401 || error.response.status === 403);
       if (isAuthError) {
         console.warn('%c[AdBenefits] Authentication error detected', 'color: #FF9800; font-weight: bold');
       }
       
-      // Default values in case of error
+      // Giá trị mặc định trong trường hợp lỗi
       return {
         hideHomepageAds: false,
         hideVideoAds: false,
@@ -220,7 +220,7 @@ const subscriptionService = {
     }
   },
 
-  // ADMIN METHODS
+  // PHƯƠNG THỨC ADMIN
   // [Admin] Lấy danh sách đăng ký đang chờ duyệt
   getAdminPendingSubscriptions: async () => {
     try {
@@ -239,8 +239,9 @@ const subscriptionService = {
         };
       }
       
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
       // Thử gọi trực tiếp để debug
-      const response = await fetch('http://localhost:5000/api/subscription/admin/pending-subscriptions', {
+      const response = await fetch(`${baseUrl}/subscription/admin/pending-subscriptions`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -295,7 +296,7 @@ const subscriptionService = {
     }
   },
 
-  // [Admin] Lấy số lượng đăng ký đang chờ duyệt - dùng cho notification badge
+  // [Admin] Lấy số lượng đăng ký đang chờ duyệt - dùng cho huy hiệu thông báo
   getAdminPendingSubscriptionsCount: async () => {
     try {
       // Sử dụng token trực tiếp để tránh vấn đề với instance axios
@@ -306,7 +307,8 @@ const subscriptionService = {
         return 0;
       }
       
-      const response = await fetch('http://localhost:5000/api/subscription/admin/pending-count', {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const response = await fetch(`${baseUrl}/subscription/admin/pending-count`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

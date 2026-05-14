@@ -13,14 +13,14 @@ export default function Layout({ children }) {
   const { hideHomepageAds } = useAdContext();
   const [showAds, setShowAds] = useState(true);
   
-  // Check if current path is an auth page (login or signup)
+  // Kiểm tra xem đường dẫn hiện tại có phải là trang xác thực (login hoặc signup) không
   const isAuthPage = router.pathname.startsWith('/auth/');
   const isAdminPage = router.pathname.startsWith('/admin/');
   const isMoviePage = router.pathname.startsWith('/movie/');
-  // Only show ads on specific pages and if the user is not premium
+  // Chỉ hiển thị quảng cáo trên các trang cụ thể và nếu người dùng không phải là premium
   useEffect(() => {
-    // Don't show ads on auth, admin, account, payment, or noaccess pages
-    // Also don't show ads if user has premium benefits
+    // Không hiển thị quảng cáo trên các trang auth, admin, account, payment, hoặc noaccess
+    // Cũng không hiển thị quảng cáo nếu người dùng có quyền lợi premium
     const shouldShowAds = !isAuthPage && 
                           !isAdminPage && 
                           !router.pathname.startsWith('/account/') &&
@@ -33,25 +33,25 @@ export default function Layout({ children }) {
     console.log('[Layout] Should show ads:', shouldShowAds, 'hideHomepageAds:', hideHomepageAds, 'pathname:', router.pathname);
     setShowAds(shouldShowAds);
   }, [router.pathname, isAuthPage, isAdminPage, hideHomepageAds]);
-    // Track scrolling to adjust for fixed-position banner and ads
+    // Theo dõi cuộn trang để điều chỉnh banner cố định và quảng cáo
   useEffect(() => {
     const updateBodyPadding = () => {
       let paddingTop = 0;
       let paddingBottom = 0;
       
-      // Account for locked banner
+      // Điều chỉnh cho banner bị khóa tài khoản
       if (showAccountLockedBanner && !isAuthPage) {
         paddingTop += 120;
       }
       
-      // Account for top ad banner if showing
+      // Điều chỉnh cho banner quảng cáo ở đầu trang nếu đang hiển thị
       if (showAds && !isMoviePage) {
-        paddingTop += 20; // Just a little spacing, not full height since we want overlay effect
+        paddingTop += 20; // Chỉ thêm một chút khoảng cách, không phải chiều cao đầy đủ vì muốn hiệu ứng overlay
       }
       
-      // Account for bottom ad banner if showing
+      // Điều chỉnh cho banner quảng cáo ở cuối trang nếu đang hiển thị
       if (showAds) {
-        paddingBottom += 20; // Just a little spacing for bottom content
+        paddingBottom += 20; // Chỉ thêm một chút khoảng cách cho nội dung ở cuối
       }
       
       document.body.style.paddingTop = `${paddingTop}px`;
@@ -72,12 +72,12 @@ export default function Layout({ children }) {
       
       {showAccountLockedBanner && !isAuthPage && <AccountLockedBanner />}
       
-      {/* Top banner ad */}
+      {/* Banner quảng cáo ở đầu trang */}
       {showAds && !isMoviePage && <BannerAd position="top" />}
       
       <main>{children}</main>
       
-      {/* Bottom banner ad */}
+      {/* Banner quảng cáo ở cuối trang */}
       {showAds && <BannerAd position="bottom" />}
       
       {!isAuthPage && <Footer />}

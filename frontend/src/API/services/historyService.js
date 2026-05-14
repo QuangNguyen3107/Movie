@@ -1,7 +1,7 @@
 import axiosInstance from '../config/axiosConfig';
 
 const getAuthToken = () => {
-  // Check if we're in the browser environment
+  // Kiểm tra xem đang ở môi trường trình duyệt không
   if (typeof window !== 'undefined') {
     return localStorage.getItem('auth_token') || localStorage.getItem('token');
   }
@@ -9,11 +9,11 @@ const getAuthToken = () => {
 };
 
 const historyService = {
-  // Add movie to user's history
+  // Thêm phim vào lịch sử của người dùng
   addToHistory: async (movieData) => {
     try {
         console.log("Adding to history:", movieData);
-      // Ensure the token is included in the request
+      // Đảm bảo token được bao gồm trong yêu cầu
       const token = getAuthToken();
       if (!token) {
         console.warn("No auth token available for history request");
@@ -29,7 +29,7 @@ const historyService = {
     }
   },
   
-  // Add movie to history by ID
+  // Thêm phim vào lịch sử theo ID
   addToHistoryById: async (movieId, additionalData = {}) => {
     try {
       console.log(`Adding movie ID ${movieId} to history with additional data:`, additionalData);
@@ -48,10 +48,10 @@ const historyService = {
     }
   },
 
-  // Get user's history
+  // Lấy lịch sử xem phim của người dùng
   getUserHistory: async (limit = 10, page = 1, filter = 'all', sort = 'newest', searchQuery = '') => {
     try {
-      // Check authentication status
+      // Kiểm tra trạng thái xác thực
       const token = getAuthToken();
       if (!token) {
         console.warn('No authentication token found');
@@ -60,18 +60,18 @@ const historyService = {
 
       console.log(`Fetching history with params: limit=${limit}, page=${page}, filter=${filter}, sort=${sort}`);
 
-      // Build query params
+      // Xây dựng tham số truy vấn
       let url = `/history?limit=${limit}&page=${page}`;
       
-      // Add filter for movie type if not 'all'
+      // Thêm bộ lọc cho loại phim nếu không phải 'all'
       if (filter !== 'all') {
         url += `&filter=${filter}`;
       }
       
-      // Add sorting
+      // Thêm sắp xếp
       url += `&sort=${sort}`;
       
-      // Add search query if provided
+      // Thêm truy vấn tìm kiếm nếu có
       if (searchQuery) {
         url += `&search=${encodeURIComponent(searchQuery)}`;
       }
@@ -80,9 +80,9 @@ const historyService = {
       const response = await axiosInstance.get(url);
       console.log("History response data:", response.data);
       
-      // Handle different response formats
+      // Xử lý các định dạng phản hồi khác nhau
       if (response.data && response.data.data) {
-        // For the responseHelper format
+        // Định dạng responseHelper
         const historyData = response.data.data;
         console.log("History items received:", historyData.histories?.length || 0);
         return {
@@ -92,7 +92,7 @@ const historyService = {
           histories: historyData.histories || []
         };
       } else if (response.data && response.data.histories) {
-        // Support original format
+        // Hỗ trợ định dạng gốc
         const historyData = response.data;
         console.log("History items received:", historyData.histories?.length || 0);
         return {
@@ -102,7 +102,7 @@ const historyService = {
           histories: historyData.histories || []
         };
       } else if (response.data && response.data.success && response.data.message === "Lấy lịch sử xem phim thành công") {
-        // Support another response format where histories may be directly in the response
+        // Hỗ trợ định dạng phản hồi khác, nơi histories có thể nằm trực tiếp trong phản hồi
         console.log("Direct history format detected");
         const histories = response.data.histories || [];
         console.log("Direct history items received:", histories.length);
@@ -115,7 +115,7 @@ const historyService = {
       }
       
       console.warn("Unexpected response format:", response.data);
-      // Fallback to empty structure
+      // Trả về cấu trúc rỗng nếu không đúng định dạng
       return {
         total: 0,
         page: page,
@@ -131,10 +131,10 @@ const historyService = {
     }
   },
 
-  // Get history for a specific user (admin function)
+  // Lấy lịch sử cho một người dùng cụ thể (chức năng admin)
   getUserHistoryById: async (userId, limit = 10, page = 1, filter = 'all', sort = 'newest') => {
     try {
-      // Check authentication status
+      // Kiểm tra trạng thái xác thực
       const token = getAuthToken();
       if (!token) {
         console.warn('No authentication token found');
@@ -146,9 +146,9 @@ const historyService = {
       const response = await axiosInstance.get(url);
       console.log("User history response:", response.data);
       
-      // Handle different response formats
+      // Xử lý các định dạng phản hồi khác nhau
       if (response.data && response.data.data) {
-        // For the responseHelper format
+        // Định dạng responseHelper
         const historyData = response.data.data;
         return {
           total: historyData.total || 0,
@@ -182,7 +182,7 @@ const historyService = {
     }
   },
 
-  // Delete history entry
+  // Xóa một mục lịch sử
   deleteHistory: async (historyId) => {
     try {
       console.log(`Deleting history item: ${historyId}`);
@@ -200,7 +200,7 @@ const historyService = {
     }
   },
 
-  // Clear all history
+  // Xóa toàn bộ lịch sử
   clearAllHistory: async () => {
     try {
       console.log("Clearing all history");
@@ -313,7 +313,7 @@ const historyService = {
       return response.data.data;
     } catch (error) {
       console.error('Error getting total watch time:', error.response?.data || error.message);
-      // Return default values on error
+      // Trả về giá trị mặc định khi có lỗi
       return {
         totalWatchTimeSeconds: 0,
         totalWatchTimeFormatted: "0 giờ 0 phút 0 giây",

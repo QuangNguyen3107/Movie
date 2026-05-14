@@ -92,7 +92,7 @@ const FeedbackDetailPage = () => {
     fetchFeedbackDetail();
   }, [id, router]);
 
-  // Mark as read when viewing
+  // Đánh dấu là đã đọc khi xem
   useEffect(() => {
     const markAsRead = async () => {
       if (!id || !feedback || feedback.isRead) return;
@@ -106,7 +106,7 @@ const FeedbackDetailPage = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
         
-        // Update local state
+        // Cập nhật trạng thái local
         setFeedback(prev => prev ? { ...prev, isRead: true } : null);
       } catch (err) {
         console.error('Error marking feedback as read:', err);
@@ -116,7 +116,7 @@ const FeedbackDetailPage = () => {
     markAsRead();
   }, [id, feedback]);
 
-  // Format date
+  // Định dạng ngày tháng
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('vi-VN', {
@@ -128,7 +128,7 @@ const FeedbackDetailPage = () => {
     });
   };
 
-  // Get status text
+  // Lấy text trạng thái
   const getStatusText = (status: string) => {
     switch (status) {
       case 'pending':
@@ -142,7 +142,7 @@ const FeedbackDetailPage = () => {
     }
   };
 
-  // Get status badge class
+  // Lấy class badge trạng thái
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case 'pending':
@@ -156,7 +156,7 @@ const FeedbackDetailPage = () => {
     }
   };
 
-  // Get status icon
+  // Lấy icon trạng thái
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
@@ -170,7 +170,7 @@ const FeedbackDetailPage = () => {
     }
   };
 
-  // Handle response submission
+  // Xử lý gửi phản hồi
   const handleSubmitResponse = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -234,7 +234,7 @@ const FeedbackDetailPage = () => {
     }
   };
 
-  // Handle delete feedback
+  // Xử lý xóa góp ý
   const handleDeleteFeedback = async () => {
     try {
       setDeleting(true);
@@ -507,7 +507,7 @@ const FeedbackDetailPage = () => {
                 </div>
 
                 {/* Sidebar - Response History */}
-                <div className="col-lg-4">                  {/* Admin Activity History */}                  <div className="card">
+                <div className="col-lg-4">                  {/* Lịch sử hoạt động admin */}                  <div className="card">
                     <div className="card-header bg-white">
                       <h3 className="card-title d-flex align-items-center">
                         <FaHistory className="me-2" /> Lịch sử hoạt động

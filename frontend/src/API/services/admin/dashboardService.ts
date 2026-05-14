@@ -66,7 +66,6 @@ export const getDashboardStats = async () => {
  */
 export const getMovieStatsByPeriod = async (period = 'week') => {
   try {
-    // Using views-by-day endpoint as a substitute for period stats
     const response = await axiosInstance.get(`/admin/dashboard/views-by-day`);
     
     if (response.data && response.data.data) {
@@ -87,7 +86,6 @@ export const getMovieStatsByPeriod = async (period = 'week') => {
  */
 export const getUserStatsByPeriod = async (period = 'week') => {
   try {
-    // We don't have a period-specific user stats endpoint, so we'll reuse the dashboard stats
     const response = await axiosInstance.get(`/admin/dashboard/stats`);
     
     if (response.data && response.data.data) {
